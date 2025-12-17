@@ -46,3 +46,20 @@ body {
 .material-symbols-outlined {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
+
+body.glass-page {
+    background:
+        radial-gradient(900px circle at 18% -12%, rgba(14, 165, 233, 0.18), transparent 60%),
+        radial-gradient(800px circle at 92% 8%, rgba(16, 185, 129, 0.14), transparent 55%),
+        radial-gradient(1000px circle at 55% 110%, rgba(245, 158, 11, 0.12), transparent 60%),
+        #ffffff;
+}
+
+div.glass-card,
+section.glass-card,
+a.glass-card {
+    background-color: rgba(255, 255, 255, 0.68);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border-color: rgba(226, 232, 240, 0.75);
+}
