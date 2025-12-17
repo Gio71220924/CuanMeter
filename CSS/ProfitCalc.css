@@ -29,6 +29,16 @@ body {
     backdrop-filter: blur(8px);
 }
 
+.header-cta {
+    height: 44px;
+    padding-left: 24px;
+    padding-right: 24px;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
 .material-symbols-outlined {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }

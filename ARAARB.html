@@ -1,372 +1,376 @@
 <!DOCTYPE html>
 <html lang="en">
- <head>
-  <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>
-   ARA/ARB Calculator - StockCalc ID
-  </title>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
-  <link href="CSS/ARAARB.css" rel="stylesheet"/>
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries">
-  </script>
-  <script id="tailwind-config">
-   tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#0ea5e9", // Sky blue
-                        "primary-hover": "#0284c7",
-                        "accent-mint": "#34d399", // Mint
-                        "accent-yellow": "#fbbf24", // Sunny Yellow
-                        "bg-main": "#ffffff",
-                        "bg-subtle": "#f8fafc",
-                        "text-main": "#0f172a",
-                        "text-muted": "#64748b",
-                        "border-color": "#e2e8f0",
-                        "success-light": "#ecfdf5",
-                        "success-text": "#059669",
-                        "danger-light": "#fef2f2",
-                        "danger-text": "#dc2626",
-                    },
-                    fontFamily: {
-                        "sans": ["Inter", "sans-serif"]
-                    },
-                    borderRadius: {
-                        "xl": "1rem",
-                        "2xl": "1.5rem",
-                    }
-                },
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>ARA/ARB Calculator - StockCalc ID</title>
+
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link href="CSS/ARAARB.css" rel="stylesheet" />
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#0ea5e9", // Sky blue
+              "primary-hover": "#0284c7",
+              "accent-mint": "#34d399", // Mint
+              "accent-yellow": "#fbbf24", // Sunny Yellow
+              "bg-main": "#ffffff",
+              "bg-subtle": "#f8fafc",
+              "text-main": "#0f172a",
+              "text-muted": "#64748b",
+              "border-color": "#e2e8f0",
+              "success-light": "#ecfdf5",
+              "success-text": "#059669",
+              "danger-light": "#fef2f2",
+              "danger-text": "#dc2626",
             },
-        }
-  </script>
- </head>
- <body class="bg-bg-main text-text-main font-sans min-h-screen flex flex-col antialiased">
-  <header class="sticky top-0 z-50 w-full border-b border-border-color bg-white/90 backdrop-blur-sm">
-   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-    <div class="flex items-center gap-3">
-     <div class="flex items-center justify-center size-9 rounded-xl bg-primary/10 text-primary">
-      <span class="material-symbols-outlined text-[24px]">
-       candlestick_chart
-      </span>
-     </div>
-     <h2 class="text-xl font-bold tracking-tight text-slate-900">
-      StockCalc ID
-     </h2>
-    </div>
-    <div class="hidden md:flex items-center gap-8">
-     <nav class="flex items-center gap-6">
-      <a class="text-sm font-semibold text-text-muted hover:text-primary transition-colors" href="#">
-       Tools
-      </a>
-      <a class="text-sm font-semibold text-text-muted hover:text-primary transition-colors" href="#">
-       Guides
-      </a>
-      <a class="text-sm font-semibold text-text-muted hover:text-primary transition-colors" href="#">
-       FAQ
-      </a>
-     </nav>
-     <div class="h-5 w-px bg-slate-200">
-     </div>
-     <button class="flex items-center justify-center rounded-lg h-9 px-4 bg-primary hover:bg-primary-hover text-white text-sm font-semibold shadow-sm shadow-primary/30 transition-all">
-      Log In
-     </button>
-    </div>
-    <button class="md:hidden p-2 text-text-muted hover:bg-slate-50 rounded-lg">
-     <span class="material-symbols-outlined">
-      menu
-     </span>
-    </button>
-   </div>
-  </header>
-  <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16">
-   <div class="max-w-3xl mx-auto text-center mb-12">
-    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-primary text-xs font-bold uppercase tracking-wide mb-4">
-     <span class="material-symbols-outlined text-[16px]">
-      calculate
-     </span>
-     Trading Utilities
-    </div>
-    <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-4">
-     ARA / ARB Calculator
-    </h1>
-    <p class="text-lg text-text-muted">
-     Quickly determine the Auto Rejection Upper (ARA) and Lower (ARB) limits for Indonesian stocks. Simply input the closing price.
-    </p>
-   </div>
-   <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-6xl mx-auto">
-    <div class="lg:col-span-5 bg-bg-subtle rounded-2xl p-6 sm:p-8 border border-slate-100 shadow-sm">
-     <h3 class="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-      <span class="flex items-center justify-center size-8 rounded-lg bg-white border border-slate-200 shadow-sm text-primary">
-       <span class="material-symbols-outlined text-[20px]">
-        tune
-       </span>
-      </span>
-      Input Parameters
-     </h3>
-     <div class="space-y-6">
-      <div class="space-y-3">
-       <label class="block text-sm font-bold text-slate-700">
-        Previous Closing Price
-       </label>
-       <div class="relative group">
-        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-         <span class="text-slate-400 font-semibold">
-          Rp
-         </span>
-        </div>
-        <input class="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-primary focus:border-primary text-lg font-bold shadow-sm transition-all group-hover:border-slate-300" placeholder="0" type="text" value="4800"/>
-       </div>
-       <p class="text-xs text-text-muted">
-        Price at market close yesterday.
-       </p>
-      </div>
-      <div class="space-y-3">
-       <label class="block text-sm font-bold text-slate-700">
-        Price Fraction Tier
-       </label>
-       <div class="space-y-2.5">
-        <label class="cursor-pointer relative flex items-start p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-primary shadow-sm">
-         <input class="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary bg-white" name="tier" type="radio"/>
-         <div class="ml-3 flex-1">
-          <div class="flex justify-between">
-           <span class="block text-sm font-bold text-slate-900">
-            Tier 1 (&lt; Rp 200)
-           </span>
-           <span class="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-            35%
-           </span>
+            fontFamily: {
+              display: ["Manrope", "sans-serif"],
+              body: ["Noto Sans", "sans-serif"],
+              sans: ["Inter", "sans-serif"],
+            },
+            borderRadius: {
+              xl: "1rem",
+              "2xl": "1.5rem",
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+
+  <body class="bg-bg-main text-text-main font-sans min-h-screen flex flex-col antialiased">
+    <header class="glass-header fixed top-0 left-0 right-0 z-50 border-b border-slate-100">
+      <div class="flex justify-center w-full">
+        <div class="flex items-center justify-between w-full max-w-[1280px] px-6 py-4 md:px-10">
+          <div class="flex items-center gap-3 cursor-pointer group">
+            <div
+              class="size-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 transition-transform group-hover:scale-105"
+            >
+              <span class="material-symbols-outlined text-[24px]">candlestick_chart</span>
+            </div>
+            <h2 class="text-xl font-extrabold leading-tight tracking-tight text-slate-900 font-display">
+              StockCalcID
+            </h2>
           </div>
-          <span class="block text-xs text-slate-500 mt-1">
-           High volatility range
-          </span>
-         </div>
-        </label>
-        <label class="cursor-pointer relative flex items-start p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-primary shadow-sm">
-         <input checked="" class="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary bg-white" name="tier" type="radio"/>
-         <div class="ml-3 flex-1">
-          <div class="flex justify-between">
-           <span class="block text-sm font-bold text-slate-900">
-            Tier 2 (Rp 200 - 5,000)
-           </span>
-           <span class="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-            25%
-           </span>
+
+          <nav class="hidden md:flex items-center gap-10">
+            <a class="text-slate-600 hover:text-primary text-sm font-bold transition-colors" href="AveragePrice.html">
+              Kalkulator Rata-rata Saham 
+            </a>
+            <a class="text-slate-600 hover:text-primary text-sm font-bold transition-colors" href="ARAARB.html">
+              ARA / ARB Checker
+            </a>
+            <a class="text-slate-600 hover:text-primary text-sm font-bold transition-colors" href="ProfitCalc.html">
+              Simulasi Profit
+          </a>
+          </nav>
+
+          <div class="flex items-center gap-4">
+            <button class="md:hidden p-2 text-slate-900">
+              <span class="material-symbols-outlined">menu</span>
+            </button>
+            <button
+              class="header-cta hidden md:flex cursor-pointer items-center justify-center rounded-full h-11 px-6 bg-slate-900 hover:bg-slate-800 transition-all text-white text-sm font-bold shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+            >
+              <span class="truncate">Get Started</span>
+            </button>
           </div>
-          <span class="block text-xs text-slate-500 mt-1">
-           Standard trading range
-          </span>
-         </div>
-        </label>
-        <label class="cursor-pointer relative flex items-start p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-primary shadow-sm">
-         <input class="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary bg-white" name="tier" type="radio"/>
-         <div class="ml-3 flex-1">
-          <div class="flex justify-between">
-           <span class="block text-sm font-bold text-slate-900">
-            Tier 3 (&gt; Rp 5,000)
-           </span>
-           <span class="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-            20%
-           </span>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-10 lg:pb-16">
+      <div class="max-w-3xl mx-auto text-center mb-12">
+        <div
+          class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-primary text-xs font-bold uppercase tracking-wide mb-4"
+        >
+          <span class="material-symbols-outlined text-[16px]">calculate</span>
+          Trading Utilities
+        </div>
+
+        <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-4">
+          ARA / ARB Calculator
+        </h1>
+
+        <p class="text-lg text-text-muted">
+          Quickly determine the Auto Rejection Upper (ARA) and Lower (ARB) limits for Indonesian
+          stocks. Simply input the closing price.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-6xl mx-auto">
+        <div class="lg:col-span-5 bg-bg-subtle rounded-2xl p-6 sm:p-8 border border-slate-100 shadow-sm">
+          <h3 class="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+            <span
+              class="flex items-center justify-center size-8 rounded-lg bg-white border border-slate-200 shadow-sm text-primary"
+            >
+              <span class="material-symbols-outlined text-[20px]">tune</span>
+            </span>
+            Input Parameters
+          </h3>
+
+          <div class="space-y-6">
+            <div class="space-y-3">
+              <label class="block text-sm font-bold text-slate-700">Previous Closing Price</label>
+
+              <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <span class="text-slate-400 font-semibold">Rp</span>
+                </div>
+
+                <input
+                  class="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-primary focus:border-primary text-lg font-bold shadow-sm transition-all group-hover:border-slate-300"
+                  placeholder="0"
+                  type="text"
+                  value="4800"
+                />
+              </div>
+
+              <p class="text-xs text-text-muted">Price at market close yesterday.</p>
+            </div>
+
+            <div class="space-y-3">
+              <label class="block text-sm font-bold text-slate-700">Price Fraction Tier</label>
+
+              <div class="space-y-2.5">
+                <label
+                  class="cursor-pointer relative flex items-start p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-primary shadow-sm"
+                >
+                  <input
+                    class="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary bg-white"
+                    name="tier"
+                    type="radio"
+                  />
+                  <div class="ml-3 flex-1">
+                    <div class="flex justify-between">
+                      <span class="block text-sm font-bold text-slate-900">Tier 1 (&lt; Rp 200)</span>
+                      <span class="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        35%
+                      </span>
+                    </div>
+                    <span class="block text-xs text-slate-500 mt-1">High volatility range</span>
+                  </div>
+                </label>
+
+                <label
+                  class="cursor-pointer relative flex items-start p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-primary shadow-sm"
+                >
+                  <input
+                    checked
+                    class="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary bg-white"
+                    name="tier"
+                    type="radio"
+                  />
+                  <div class="ml-3 flex-1">
+                    <div class="flex justify-between">
+                      <span class="block text-sm font-bold text-slate-900">
+                        Tier 2 (Rp 200 - 5,000)
+                      </span>
+                      <span class="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        25%
+                      </span>
+                    </div>
+                    <span class="block text-xs text-slate-500 mt-1">Standard trading range</span>
+                  </div>
+                </label>
+
+                <label
+                  class="cursor-pointer relative flex items-start p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-primary shadow-sm"
+                >
+                  <input
+                    class="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary bg-white"
+                    name="tier"
+                    type="radio"
+                  />
+                  <div class="ml-3 flex-1">
+                    <div class="flex justify-between">
+                      <span class="block text-sm font-bold text-slate-900">Tier 3 (&gt; Rp 5,000)</span>
+                      <span class="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        20%
+                      </span>
+                    </div>
+                    <span class="block text-xs text-slate-500 mt-1">Blue chip range</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <button
+              class="w-full py-3.5 mt-2 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+            >
+              <span class="material-symbols-outlined text-[20px]">refresh</span>
+              Update Calculation
+            </button>
           </div>
-          <span class="block text-xs text-slate-500 mt-1">
-           Blue chip range
-          </span>
-         </div>
-        </label>
-       </div>
-      </div>
-      <button class="w-full py-3.5 mt-2 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]">
-       <span class="material-symbols-outlined text-[20px]">
-        refresh
-       </span>
-       Update Calculation
-      </button>
-     </div>
-    </div>
-    <div class="lg:col-span-7 flex flex-col gap-6">
-     <div class="grid sm:grid-cols-2 gap-4">
-      <div class="bg-white rounded-2xl p-6 border-2 border-accent-mint/20 shadow-lg shadow-accent-mint/5 relative overflow-hidden group hover:border-accent-mint/40 transition-colors">
-       <div class="absolute -right-6 -top-6 w-24 h-24 bg-accent-mint/10 rounded-full blur-xl">
-       </div>
-       <div class="flex justify-between items-start mb-6">
-        <div class="flex items-center gap-2">
-         <div class="p-1.5 bg-success-light rounded-lg text-success-text">
-          <span class="material-symbols-outlined text-xl font-bold">
-           trending_up
-          </span>
-         </div>
-         <span class="text-sm font-bold text-slate-600 uppercase tracking-wide">
-          ARA Limit
-         </span>
         </div>
-        <span class="bg-success-light text-success-text text-xs font-bold px-2.5 py-1 rounded-full">
-         +25.00%
-        </span>
-       </div>
-       <div class="relative z-10">
-        <div class="flex items-baseline gap-1">
-         <span class="text-lg font-medium text-slate-400">
-          Rp
-         </span>
-         <span class="text-5xl font-extrabold text-slate-900 tracking-tighter">
-          6,000
-         </span>
+
+        <div class="lg:col-span-7 flex flex-col gap-6">
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div
+              class="bg-white rounded-2xl p-6 border-2 border-accent-mint/20 shadow-lg shadow-accent-mint/5 relative overflow-hidden group hover:border-accent-mint/40 transition-colors"
+            >
+              <div class="absolute -right-6 -top-6 w-24 h-24 bg-accent-mint/10 rounded-full blur-xl"></div>
+
+              <div class="flex justify-between items-start mb-6">
+                <div class="flex items-center gap-2">
+                  <div class="p-1.5 bg-success-light rounded-lg text-success-text">
+                    <span class="material-symbols-outlined text-xl font-bold">trending_up</span>
+                  </div>
+                  <span class="text-sm font-bold text-slate-600 uppercase tracking-wide">ARA Limit</span>
+                </div>
+
+                <span class="bg-success-light text-success-text text-xs font-bold px-2.5 py-1 rounded-full">
+                  +25.00%
+                </span>
+              </div>
+
+              <div class="relative z-10">
+                <div class="flex items-baseline gap-1">
+                  <span class="text-lg font-medium text-slate-400">Rp</span>
+                  <span class="text-5xl font-extrabold text-slate-900 tracking-tighter">6,000</span>
+                </div>
+
+                <div class="mt-2 flex items-center gap-2 text-sm font-medium text-success-text">
+                  <span class="material-symbols-outlined text-[18px]">arrow_upward</span>
+                  Gain Rp 1,200
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="bg-white rounded-2xl p-6 border-2 border-danger-text/10 shadow-lg shadow-red-500/5 relative overflow-hidden group hover:border-danger-text/20 transition-colors"
+            >
+              <div class="absolute -right-6 -top-6 w-24 h-24 bg-danger-light rounded-full blur-xl"></div>
+
+              <div class="flex justify-between items-start mb-6">
+                <div class="flex items-center gap-2">
+                  <div class="p-1.5 bg-danger-light rounded-lg text-danger-text">
+                    <span class="material-symbols-outlined text-xl font-bold">trending_down</span>
+                  </div>
+                  <span class="text-sm font-bold text-slate-600 uppercase tracking-wide">ARB Limit</span>
+                </div>
+
+                <span class="bg-danger-light text-danger-text text-xs font-bold px-2.5 py-1 rounded-full">
+                  -25.00%
+                </span>
+              </div>
+
+              <div class="relative z-10">
+                <div class="flex items-baseline gap-1">
+                  <span class="text-lg font-medium text-slate-400">Rp</span>
+                  <span class="text-5xl font-extrabold text-slate-900 tracking-tighter">3,600</span>
+                </div>
+
+                <div class="mt-2 flex items-center gap-2 text-sm font-medium text-danger-text">
+                  <span class="material-symbols-outlined text-[18px]">arrow_downward</span>
+                  Loss Rp 1,200
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+              <h4 class="font-bold text-slate-800 flex items-center gap-2">
+                <span class="material-symbols-outlined text-slate-400">table_chart</span>
+                Tick Analysis
+              </h4>
+
+              <span class="text-xs font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded">
+                Based on Rp 4,800
+              </span>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="bg-white text-slate-500 font-semibold border-b border-slate-100">
+                  <tr>
+                    <th class="px-6 py-3 w-1/3">Range Type</th>
+                    <th class="px-6 py-3 w-1/3">Price Level</th>
+                    <th class="px-6 py-3 w-1/3 text-right">Tick Size</th>
+                  </tr>
+                </thead>
+
+                <tbody class="divide-y divide-slate-50 text-slate-700">
+                  <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="px-6 py-3 font-medium text-success-text">Max Upside (ARA)</td>
+                    <td class="px-6 py-3 font-bold">6,000</td>
+                    <td class="px-6 py-3 text-right text-slate-500">Rp 25</td>
+                  </tr>
+
+                  <tr class="bg-blue-50/30">
+                    <td class="px-6 py-3 font-medium text-primary">Current Base</td>
+                    <td class="px-6 py-3 font-bold">4,800</td>
+                    <td class="px-6 py-3 text-right text-slate-500">Rp 10</td>
+                  </tr>
+
+                  <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="px-6 py-3 font-medium text-danger-text">Max Downside (ARB)</td>
+                    <td class="px-6 py-3 font-bold">3,600</td>
+                    <td class="px-6 py-3 text-right text-slate-500">Rp 10</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-100">
+              <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center text-xs text-slate-500">
+                <span class="font-bold text-slate-700">Reference:</span>
+
+                <div class="flex gap-4">
+                  <span class="flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                    &lt; 200: Rp 1
+                  </span>
+
+                  <span class="flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                    200-500: Rp 2
+                  </span>
+
+                  <span class="flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                    500-2k: Rp 5
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-amber-50 border border-amber-100 rounded-xl p-4 flex gap-3 items-start">
+            <span class="material-symbols-outlined text-amber-500 text-xl shrink-0 mt-0.5">warning</span>
+
+            <div class="space-y-1">
+              <h5 class="text-sm font-bold text-amber-800">Risk Disclaimer</h5>
+              <p class="text-xs text-amber-700/80 leading-relaxed">
+                Calculations are estimates based on IDX regulations (Regulation Number II-A). Actual
+                execution prices may vary due to market liquidity and broker policies. Always verify
+                before trading.
+              </p>
+            </div>
+          </div>
         </div>
-        <div class="mt-2 flex items-center gap-2 text-sm font-medium text-success-text">
-         <span class="material-symbols-outlined text-[18px]">
-          arrow_upward
-         </span>
-         Gain Rp 1,200
-        </div>
-       </div>
       </div>
-      <div class="bg-white rounded-2xl p-6 border-2 border-danger-text/10 shadow-lg shadow-red-500/5 relative overflow-hidden group hover:border-danger-text/20 transition-colors">
-       <div class="absolute -right-6 -top-6 w-24 h-24 bg-danger-light rounded-full blur-xl">
-       </div>
-       <div class="flex justify-between items-start mb-6">
-        <div class="flex items-center gap-2">
-         <div class="p-1.5 bg-danger-light rounded-lg text-danger-text">
-          <span class="material-symbols-outlined text-xl font-bold">
-           trending_down
-          </span>
-         </div>
-         <span class="text-sm font-bold text-slate-600 uppercase tracking-wide">
-          ARB Limit
-         </span>
-        </div>
-        <span class="bg-danger-light text-danger-text text-xs font-bold px-2.5 py-1 rounded-full">
-         -25.00%
-        </span>
-       </div>
-       <div class="relative z-10">
-        <div class="flex items-baseline gap-1">
-         <span class="text-lg font-medium text-slate-400">
-          Rp
-         </span>
-         <span class="text-5xl font-extrabold text-slate-900 tracking-tighter">
-          3,600
-         </span>
-        </div>
-        <div class="mt-2 flex items-center gap-2 text-sm font-medium text-danger-text">
-         <span class="material-symbols-outlined text-[18px]">
-          arrow_downward
-         </span>
-         Loss Rp 1,200
-        </div>
-       </div>
+    </main>
+
+    <footer class="border-t border-slate-100 py-8 mt-auto">
+      <div class="max-w-7xl mx-auto px-4 text-center text-sm text-slate-400">
+        © 2024 StockCalc ID. All rights reserved.
       </div>
-     </div>
-     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-      <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-       <h4 class="font-bold text-slate-800 flex items-center gap-2">
-        <span class="material-symbols-outlined text-slate-400">
-         table_chart
-        </span>
-        Tick Analysis
-       </h4>
-       <span class="text-xs font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded">
-        Based on Rp 4,800
-       </span>
-      </div>
-      <div class="overflow-x-auto">
-       <table class="w-full text-left text-sm">
-        <thead class="bg-white text-slate-500 font-semibold border-b border-slate-100">
-         <tr>
-          <th class="px-6 py-3 w-1/3">
-           Range Type
-          </th>
-          <th class="px-6 py-3 w-1/3">
-           Price Level
-          </th>
-          <th class="px-6 py-3 w-1/3 text-right">
-           Tick Size
-          </th>
-         </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-50 text-slate-700">
-         <tr class="hover:bg-slate-50/50 transition-colors">
-          <td class="px-6 py-3 font-medium text-success-text">
-           Max Upside (ARA)
-          </td>
-          <td class="px-6 py-3 font-bold">
-           6,000
-          </td>
-          <td class="px-6 py-3 text-right text-slate-500">
-           Rp 25
-          </td>
-         </tr>
-         <tr class="bg-blue-50/30">
-          <td class="px-6 py-3 font-medium text-primary">
-           Current Base
-          </td>
-          <td class="px-6 py-3 font-bold">
-           4,800
-          </td>
-          <td class="px-6 py-3 text-right text-slate-500">
-           Rp 10
-          </td>
-         </tr>
-         <tr class="hover:bg-slate-50/50 transition-colors">
-          <td class="px-6 py-3 font-medium text-danger-text">
-           Max Downside (ARB)
-          </td>
-          <td class="px-6 py-3 font-bold">
-           3,600
-          </td>
-          <td class="px-6 py-3 text-right text-slate-500">
-           Rp 10
-          </td>
-         </tr>
-        </tbody>
-       </table>
-      </div>
-      <div class="p-4 bg-slate-50 border-t border-slate-100">
-       <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center text-xs text-slate-500">
-        <span class="font-bold text-slate-700">
-         Reference:
-        </span>
-        <div class="flex gap-4">
-         <span class="flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-slate-400">
-          </span>
-          &lt; 200: Rp 1
-         </span>
-         <span class="flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-slate-400">
-          </span>
-          200-500: Rp 2
-         </span>
-         <span class="flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-slate-400">
-          </span>
-          500-2k: Rp 5
-         </span>
-        </div>
-       </div>
-      </div>
-     </div>
-     <div class="bg-amber-50 border border-amber-100 rounded-xl p-4 flex gap-3 items-start">
-      <span class="material-symbols-outlined text-amber-500 text-xl shrink-0 mt-0.5">
-       warning
-      </span>
-      <div class="space-y-1">
-       <h5 class="text-sm font-bold text-amber-800">
-        Risk Disclaimer
-       </h5>
-       <p class="text-xs text-amber-700/80 leading-relaxed">
-        Calculations are estimates based on IDX regulations (Regulation Number II-A). Actual execution prices may vary due to market liquidity and broker policies. Always verify before trading.
-       </p>
-      </div>
-     </div>
-    </div>
-   </div>
-  </main>
-  <footer class="border-t border-slate-100 py-8 mt-auto">
-   <div class="max-w-7xl mx-auto px-4 text-center text-sm text-slate-400">
-    © 2024 StockCalc ID. All rights reserved.
-   </div>
-  </footer>
- </body>
+    </footer>
+  </body>
 </html>
