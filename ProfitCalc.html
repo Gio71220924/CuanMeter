@@ -60,7 +60,7 @@
   <body class="bg-white text-slate-600 font-body selection:bg-primary/20 selection:text-primary">
     <div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
       <!-- Header (same as landing) -->
-      <header class="glass-header fixed top-0 left-0 right-0 z-50 border-b border-slate-100">
+      <header class="glass-header fixed top-0 left-0 right-0 z-50 border-b border-slate-100 font-display">
         <div class="flex justify-center w-full">
           <div class="flex items-center justify-between w-full max-w-[1280px] px-6 py-4 md:px-10">
             <div class="flex items-center gap-3 cursor-pointer group">
@@ -69,19 +69,19 @@
               >
                 <span class="material-symbols-outlined text-[24px]">candlestick_chart</span>
               </div>
-              <h2 class="text-xl font-extrabold leading-tight tracking-tight text-slate-900 font-display">
+              <h2 class="header-brand text-xl font-extrabold leading-tight tracking-tight text-slate-900 font-display">
                 StockCalcID
               </h2>
             </div>
 
             <nav class="hidden md:flex items-center gap-10">
-              <a class="text-slate-600 hover:text-primary text-sm font-bold transition-colors" href="AveragePrice.html">
+              <a class="header-link text-slate-600 hover:text-primary transition-colors" href="AveragePrice.html">
                 Kalkulator Rata-rata Saham 
               </a>
-              <a class="text-slate-600 hover:text-primary text-sm font-bold transition-colors" href="ARAARB.html">
+              <a class="header-link text-slate-600 hover:text-primary transition-colors" href="ARAARB.html">
                 ARA / ARB Checker
               </a>
-              <a class="text-slate-600 hover:text-primary text-sm font-bold transition-colors" href="ProfitCalc.html">
+              <a class="header-link text-slate-600 hover:text-primary transition-colors" href="ProfitCalc.html">
                 Simulasi Profit
             </a>
             </nav>
@@ -89,12 +89,6 @@
             <div class="flex items-center gap-4">
               <button class="md:hidden p-2 text-slate-900">
                 <span class="material-symbols-outlined">menu</span>
-              </button>
-
-              <button
-                class="header-cta hidden md:flex cursor-pointer items-center justify-center rounded-full h-11 px-6 bg-slate-900 hover:bg-slate-800 transition-all text-white text-sm font-bold shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-              >
-                <span class="truncate">Get Started</span>
               </button>
             </div>
           </div>

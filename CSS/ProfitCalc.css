@@ -29,11 +29,15 @@ body {
     backdrop-filter: blur(8px);
 }
 
-.header-cta {
-    height: 44px;
-    padding-left: 24px;
-    padding-right: 24px;
-    border-radius: 9999px;
+.header-brand {
+    font-family: 'Manrope', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.header-link {
+    font-family: 'Manrope', sans-serif;
     font-size: 0.875rem;
     font-weight: 700;
     line-height: 1.25;
