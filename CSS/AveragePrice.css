@@ -1,34 +1,17 @@
-html {
-    scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
-body {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    background-color: #ffffff;
-    color: #0f172a;
-}
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
+/* Header matching LandingPage */
 .glass-header {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 .header-brand {
@@ -45,23 +28,50 @@ body {
     line-height: 1.25;
 }
 
-.material-symbols-outlined {
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-}
-
+/* Background matching LandingPage exactly */
 body.glass-page {
     background:
         radial-gradient(900px circle at 18% -12%, rgba(14, 165, 233, 0.18), transparent 60%),
         radial-gradient(800px circle at 92% 8%, rgba(16, 185, 129, 0.14), transparent 55%),
         radial-gradient(1000px circle at 55% 110%, rgba(245, 158, 11, 0.12), transparent 60%),
         #ffffff;
+    color: #0f172a; /* Slate 900 */
 }
 
-div.glass-card,
-section.glass-card,
-a.glass-card {
-    background-color: rgba(255, 255, 255, 0.68);
+/*
+   Mapping .glass-surface (AveragePrice) to match .glass-card (LandingPage)
+   LandingPage .glass-card: bg-white/68, blur 14px, sat 140%, border slate-200/75
+*/
+.glass-surface {
+    background-color: rgba(255, 255, 255, 0.85); /* Increased opacity from 0.68 to 0.85 */
     backdrop-filter: blur(14px) saturate(140%);
     -webkit-backdrop-filter: blur(14px) saturate(140%);
-    border-color: rgba(226, 232, 240, 0.75);
+    border: 1px solid rgba(226, 232, 240, 0.85); /* Increased opacity from 0.75 to 0.85 */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); /* shadow-soft equivalent */
+}
+
+/* Additional specific overrides to ensure transparency isn't blocked by Tailwind utility classes if they are set to opaque colors */
+.glass-surface.bg-white,
+.glass-surface.bg-surface,
+.glass-surface.bg-slate-50 {
+    background-color: rgba(255, 255, 255, 0.85) !important; /* Increased opacity */
+}
+
+/* Result Panel - Light Glass matching LandingPage */
+.glass-dark {
+    background: rgba(255, 255, 255, 0.9); /* Increased opacity from 0.75 to 0.9 */
+    border: 1px solid rgba(14, 165, 233, 0.3); /* Increased opacity from 0.2 to 0.3 */
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    box-shadow: 0 20px 25px -5px rgba(14, 165, 233, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+}
+
+/* Adjust the why section cards to match landing page styling */
+.glass-surface.p-6.rounded-2xl.shadow-sm.hover\:shadow-md.transition-shadow {
+    background-color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Material Symbols fix */
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
 }

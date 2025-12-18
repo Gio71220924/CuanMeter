@@ -2,20 +2,19 @@
 <html class="light" lang="id">
   <head>
     <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Kalkulator Harga Rata-rata - StockCalcID</title>
 
-    <link href="https://fonts.googleapis.com" rel="preconnect" />
-    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;600;700&amp;display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
       rel="stylesheet"
     />
-    <link href="CSS/AveragePrice.css" rel="stylesheet" />
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script id="tailwind-config">
@@ -24,19 +23,25 @@
         theme: {
           extend: {
             colors: {
-              primary: "#0ea5e9", // Sky Blue (match landing)
+              primary: "#0ea5e9", // Vibrant Sky Blue
               "primary-hover": "#0284c7",
-              accent: "#f59e0b", // Amber/Yellow
+              "primary-light": "#e0f2fe",
+              accent: "#f59e0b",
               "accent-light": "#fef3c7",
-              success: "#10b981", // Emerald
+              "accent-mint": "#10b981", // Vibrant Mint/Emerald
+              "accent-mint-light": "#ecfdf5",
+              "accent-yellow": "#f59e0b", // Sunny Yellow/Amber
+              "accent-yellow-light": "#fffbeb",
+              success: "#10b981",
               "success-light": "#d1fae5",
               danger: "#ef4444",
               background: "#ffffff",
-              surface: "#f8fafc", // Slate 50
+              surface: "#f8fafc",
               "surface-hover": "#f1f5f9",
-              border: "#e2e8f0", // Slate 200
-              "text-main": "#0f172a", // Slate 900
-              "text-sub": "#64748b", // Slate 500
+              border: "#e2e8f0",
+              "text-main": "#0f172a",
+              "text-sub": "#64748b",
+              "slate-850": "#1e293b",
             },
             fontFamily: {
               display: ["Manrope", "sans-serif"],
@@ -59,37 +64,41 @@
         },
       };
     </script>
+
+    <!-- CSS kamu: taruh setelah Tailwind biar gampang override -->
+    <link rel="stylesheet" href="CSS/AveragePrice.css" />
+
+    <!-- JS kalkulator -->
+    <script src="avg.js" defer></script>
   </head>
 
   <body class="glass-page font-body min-h-screen flex flex-col antialiased">
     <header class="glass-header fixed top-0 left-0 right-0 z-50 border-b border-slate-100 font-display">
       <div class="flex justify-center w-full">
         <div class="flex items-center justify-between w-full max-w-[1280px] px-6 py-4 md:px-10">
-            <div class="flex items-center gap-3 cursor-pointer group">
-              <div
-                class="size-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 transition-transform group-hover:scale-105"
-              >
-                <span class="material-symbols-outlined text-[24px]">candlestick_chart</span>
-              </div>
-              <h2 class="header-brand text-xl font-extrabold leading-tight tracking-tight text-slate-900 font-display">
-                StockCalcID
-              </h2>
+          <div class="flex items-center gap-3 cursor-pointer group">
+            <div
+              class="size-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 transition-transform group-hover:scale-105"
+            >
+              <span class="material-symbols-outlined text-[24px]">candlestick_chart</span>
             </div>
+            <a href="LandingPage.html" class="header-brand text-xl font-extrabold leading-tight tracking-tight text-slate-900 font-display">StockCalcID</a>
+          </div>
 
           <nav class="hidden md:flex items-center gap-10">
             <a class="header-link text-slate-600 hover:text-primary transition-colors" href="AveragePrice.html">
-              Kalkulator Rata-rata Saham 
+              Kalkulator Rata-rata Saham
             </a>
             <a class="header-link text-slate-600 hover:text-primary transition-colors" href="ARAARB.html">
               Cek ARA/ARB
             </a>
             <a class="header-link text-slate-600 hover:text-primary transition-colors" href="ProfitCalc.html">
               Simulasi Profit
-          </a>
+            </a>
           </nav>
 
           <div class="flex items-center gap-4">
-            <button class="md:hidden p-2 text-slate-900">
+            <button class="md:hidden p-2 text-slate-900" type="button">
               <span class="material-symbols-outlined">menu</span>
             </button>
           </div>
@@ -97,7 +106,11 @@
       </div>
     </header>
 
-    <main class="flex-grow pt-24 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-50">
+    <!-- penting: biarkan background body kelihatan biar glass kebaca -->
+    <main class="flex-grow pt-24 pb-16 px-4 sm:px-6 lg:px-8 bg-transparent relative">
+      <div
+        class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary-light/40 via-white to-white pointer-events-none opacity-60 z-[-1]"
+      ></div>
       <div class="max-w-6xl mx-auto">
         <div class="mb-10 text-center md:text-left md:flex md:items-end md:justify-between">
           <div class="max-w-2xl">
@@ -118,24 +131,21 @@
           </div>
 
           <div class="hidden md:block">
-            <div class="glass-card bg-white p-3 rounded-xl border border-gray-100 shadow-soft flex items-center gap-3">
+            <div class="glass-surface p-3 rounded-xl shadow-soft flex items-center gap-3">
               <span class="material-symbols-outlined text-accent">lightbulb</span>
-              <span class="text-sm font-medium text-text-sub">Tips: 1 Lot = 100 Saham (IDX)</span>
+              <span class="text-sm font-medium text-text-sub">Tips: 1 Lot = 100 Lembar Saham</span>
             </div>
           </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           <div class="lg:col-span-7 space-y-6">
-            <section
-              class="glass-card bg-white rounded-2xl border border-gray-100 shadow-card p-6 md:p-8 relative overflow-hidden group"
-            >
-              <div class="absolute top-0 left-0 w-1.5 h-full bg-gray-200 group-hover:bg-primary transition-colors"></div>
+            <!-- CURRENT HOLDINGS -->
+            <section class="glass-surface relative overflow-hidden group rounded-2xl shadow-card p-6 md:p-8">
+              <div class="absolute top-0 left-0 w-1.5 h-full bg-primary group-hover:bg-primary transition-colors"></div>
 
-                <div class="flex items-center gap-3 mb-6">
-                <div
-                  class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-text-sub border border-gray-100"
-                >
+              <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-text-sub border border-gray-100">
                   <span class="material-symbols-outlined">inventory_2</span>
                 </div>
                 <h3 class="text-lg font-bold font-display text-text-main">Posisi Saat Ini</h3>
@@ -145,15 +155,14 @@
                 <div class="space-y-2">
                   <label class="text-sm font-semibold text-text-sub">Harga Beli Rata-rata</label>
                   <div class="relative">
-                    <span
-                      class="absolute left-4 top-1/2 -translate-y-1/2 text-text-sub font-medium select-none"
-                    >
-                      Rp
-                    </span>
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-text-sub font-medium select-none">Rp</span>
                     <input
+                      id="currentAvgPrice"
                       class="w-full h-12 pl-12 pr-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all font-display text-lg font-bold text-text-main placeholder-gray-300"
                       placeholder="0"
                       type="number"
+                      min="0"
+                      step="1"
                     />
                   </div>
                 </div>
@@ -162,13 +171,14 @@
                   <label class="text-sm font-semibold text-text-sub">Jumlah Lot Saat Ini</label>
                   <div class="relative">
                     <input
+                      id="currentLots"
                       class="w-full h-12 pl-4 pr-12 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-blue-50 transition-all font-display text-lg font-bold text-text-main placeholder-gray-300"
                       placeholder="0"
                       type="number"
+                      min="0"
+                      step="1"
                     />
-                    <span
-                      class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-text-sub uppercase bg-gray-100 px-2 py-1 rounded"
-                    >
+                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-text-sub uppercase bg-gray-100 px-2 py-1 rounded">
                       Lot
                     </span>
                   </div>
@@ -176,46 +186,41 @@
               </div>
             </section>
 
-            <section
-              class="glass-card bg-white rounded-2xl border border-gray-100 shadow-card p-6 md:p-8 relative overflow-hidden group"
-            >
+            <!-- NEW BUY ORDER -->
+            <section class="glass-surface relative overflow-hidden group rounded-2xl shadow-card p-6 md:p-8">
               <div class="absolute top-0 left-0 w-1.5 h-full bg-accent"></div>
 
               <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-3">
-                  <div
-                    class="w-10 h-10 rounded-full bg-accent-light flex items-center justify-center text-accent border border-yellow-100"
-                  >
+                  <div class="w-10 h-10 rounded-full bg-accent-light flex items-center justify-center text-accent border border-yellow-100">
                     <span class="material-symbols-outlined">add_shopping_cart</span>
                   </div>
                   <h3 class="text-lg font-bold font-display text-text-main">Order Beli Baru</h3>
                 </div>
 
                 <button
-                  class="text-sm font-bold text-primary hover:text-primary-hover flex items-center gap-1 transition-colors px-3 py-1.5 rounded-lg hover:bg-blue-50"
+                  id="addOrderRowBtn"
+                  type="button"
+                  class="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-primary hover:bg-primary hover:text-white transition-all text-sm font-bold"
                 >
                   <span class="material-symbols-outlined text-[18px]">add_circle</span>
                   Tambah Baris
                 </button>
               </div>
 
-              <div class="space-y-4">
-                <div
-                  class="bg-surface hover:bg-surface-hover p-4 rounded-xl transition-colors border border-transparent hover:border-gray-200 relative group/row"
-                >
+              <div id="orderRows" class="space-y-4">
+                <div class="order-row bg-slate-50 p-4 rounded-2xl border border-slate-200 relative group/row">
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div class="space-y-2">
                       <label class="text-xs font-bold text-text-sub uppercase tracking-wider">Harga Beli</label>
                       <div class="relative">
-                        <span
-                          class="absolute left-3 top-1/2 -translate-y-1/2 text-text-sub font-medium text-sm"
-                        >
-                          Rp
-                        </span>
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-sub font-medium text-sm">Rp</span>
                         <input
-                          class="w-full h-10 pl-9 pr-3 rounded-lg border-gray-200 text-text-main focus:border-accent focus:ring-accent/20 text-base font-semibold transition-all"
+                          class="order-price w-full h-10 pl-9 pr-3 rounded-lg border-gray-200 bg-white text-text-main focus:border-primary focus:ring-primary/20 text-base font-semibold transition-all"
                           placeholder="0"
                           type="number"
+                          min="0"
+                          step="1"
                         />
                       </div>
                     </div>
@@ -224,13 +229,13 @@
                       <label class="text-xs font-bold text-text-sub uppercase tracking-wider">Jumlah</label>
                       <div class="relative">
                         <input
-                          class="w-full h-10 pl-3 pr-10 rounded-lg border-gray-200 text-text-main focus:border-accent focus:ring-accent/20 text-base font-semibold transition-all"
+                          class="order-lots w-full h-10 pl-3 pr-10 rounded-lg border-gray-200 bg-white text-text-main focus:border-primary focus:ring-primary/20 text-base font-semibold transition-all"
                           placeholder="0"
                           type="number"
+                          min="0"
+                          step="1"
                         />
-                        <span
-                          class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-sub uppercase"
-                        >
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-sub uppercase">
                           Lot
                         </span>
                       </div>
@@ -238,7 +243,9 @@
                   </div>
 
                   <button
-                    class="absolute -right-2 -top-2 bg-white text-danger shadow-sm border border-gray-100 rounded-full p-1 opacity-0 group-hover/row:opacity-100 transition-all hover:bg-red-50"
+                    type="button"
+                    aria-label="Hapus baris"
+                    class="remove-order-row absolute -right-2 -top-2 bg-white text-danger shadow-md border border-gray-100 rounded-full p-1 opacity-0 group-hover/row:opacity-100 transition-all hover:bg-red-50 hover:scale-110"
                   >
                     <span class="material-symbols-outlined text-[16px]">close</span>
                   </button>
@@ -248,13 +255,17 @@
 
             <div class="flex items-center gap-4 pt-4">
               <button
-                class="flex-1 py-4 rounded-xl bg-gray-100 text-text-sub font-bold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                id="resetBtn"
+                type="button"
+                class="flex-1 h-14 rounded-full bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2"
               >
                 Atur Ulang
               </button>
 
               <button
-                class="flex-[2] py-4 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all flex items-center justify-center gap-2 text-lg"
+                id="calculateBtn"
+                type="button"
+                class="flex-[2] h-14 rounded-full bg-primary hover:bg-primary-hover text-white font-bold shadow-lg shadow-primary/25 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 text-lg"
               >
                 Hitung Rata-rata
                 <span class="material-symbols-outlined">arrow_forward</span>
@@ -262,72 +273,73 @@
             </div>
           </div>
 
+          <!-- RESULT PANEL -->
           <div class="lg:col-span-5 sticky top-28">
-            <div class="bg-text-main text-white rounded-3xl shadow-float overflow-hidden relative">
-              <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-primary opacity-20 blur-3xl"></div>
-              <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 rounded-full bg-accent opacity-10 blur-3xl"></div>
+            <div class="glass-dark text-slate-900 rounded-3xl shadow-float overflow-hidden relative border-t-4 border-t-primary">
+              <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-primary opacity-10 blur-3xl"></div>
+              <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 rounded-full bg-accent opacity-5 blur-3xl"></div>
 
               <div class="p-8 relative z-10">
                 <div class="text-center mb-8">
-                  <p class="text-gray-400 text-sm font-bold uppercase tracking-widest mb-2">Harga Rata-rata Baru</p>
+                  <p class="text-slate-500 text-sm font-bold uppercase tracking-widest mb-2">Harga Rata-rata Baru</p>
 
                   <div class="flex items-baseline justify-center gap-1 mb-2">
-                    <span class="text-2xl font-medium text-gray-500 font-display">Rp</span>
-                    <h2 class="text-6xl font-black tracking-tight font-display">1,250</h2>
+                    <span class="text-2xl font-medium text-slate-400 font-display">Rp</span>
+                    <h2 id="newAveragePrice" class="text-6xl font-black tracking-tight font-display text-slate-900">0</h2>
                   </div>
 
                   <div
-                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/20 text-success text-xs font-bold border border-success/30"
+                    id="averagePriceDeltaBadge"
+                    class="hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/10 text-success text-xs font-bold border border-success/20"
                   >
-                    <span class="material-symbols-outlined text-[14px]">trending_down</span>
-                    <span>-4,5% dari awal</span>
+                    <span id="averagePriceDeltaIcon" class="material-symbols-outlined text-[14px]">trending_down</span>
+                    <span id="averagePriceDeltaText">0% dari awal</span>
                   </div>
                 </div>
 
-                <div class="space-y-4 bg-white/5 rounded-2xl p-5 backdrop-blur-sm border border-white/10">
-                  <div class="flex justify-between items-center pb-4 border-b border-white/10">
+                <div class="space-y-4 bg-slate-50/50 rounded-2xl p-5 backdrop-blur-sm border border-slate-200/50">
+                  <div class="flex justify-between items-center pb-4 border-b border-slate-100">
                     <div class="flex items-center gap-2">
-                      <div class="p-1.5 rounded bg-white/10">
-                        <span class="material-symbols-outlined text-[16px] text-gray-300">pie_chart</span>
+                      <div class="p-1.5 rounded bg-primary-light text-primary">
+                        <span class="material-symbols-outlined text-[16px]">pie_chart</span>
                       </div>
-                      <span class="text-sm text-gray-300">Total Lot</span>
+                      <span class="text-sm text-slate-600 font-medium">Total Lot</span>
                     </div>
 
                     <div class="text-right">
-                      <span class="block text-xl font-bold">150</span>
-                      <span class="block text-[10px] text-gray-500 uppercase">15,000 Saham</span>
+                      <span id="totalLots" class="block text-xl font-bold text-slate-900">0</span>
+                      <span id="totalShares" class="block text-[10px] text-slate-400 uppercase font-bold">0 Saham</span>
                     </div>
                   </div>
 
                   <div class="flex justify-between items-center">
                     <div class="flex items-center gap-2">
-                      <div class="p-1.5 rounded bg-white/10">
-                        <span class="material-symbols-outlined text-[16px] text-gray-300">payments</span>
+                      <div class="p-1.5 rounded bg-primary-light text-primary">
+                        <span class="material-symbols-outlined text-[16px]">payments</span>
                       </div>
-                      <span class="text-sm text-gray-300">Total Nilai</span>
+                      <span class="text-sm text-slate-600 font-medium">Total Nilai</span>
                     </div>
 
                     <div class="text-right">
-                      <span class="block text-xl font-bold">Rp 18.75M</span>
+                      <span id="totalValue" class="block text-xl font-bold text-slate-900">Rp 0</span>
                     </div>
                   </div>
                 </div>
 
-                <div class="mt-6 p-4 bg-accent/10 border border-accent/20 rounded-xl flex items-start gap-3">
+                <div class="mt-6 p-4 bg-accent-light/30 border border-accent/20 rounded-xl flex items-start gap-3">
                   <span class="material-symbols-outlined text-accent mt-0.5">info</span>
 
                   <div>
                     <h4 class="text-accent font-bold text-sm mb-1">Analisis Titik Impas</h4>
-                    <p class="text-xs text-gray-300 leading-relaxed">
-                      Harga saham perlu naik sebesar <span class="font-bold text-white">2,4%</span> untuk mencapai titik
-                      impas baru Anda.
+                    <p id="breakEvenText" class="text-xs text-slate-500 leading-relaxed">
+                      Masukkan data untuk melihat analisis.
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div class="bg-black/20 p-4 border-t border-white/5 flex justify-center">
-                <p class="text-[10px] text-gray-500 text-center max-w-xs">
+              <div class="bg-slate-50/80 p-4 border-t border-slate-100 flex justify-center">
+                <p class="text-[10px] text-slate-400 text-center max-w-xs font-medium">
                   *Disclaimer: Perhitungan ini hanya estimasi dan belum termasuk fee broker, pajak, serta biaya lain yang
                   mungkin berlaku. Trading memiliki risiko.
                 </p>
@@ -336,13 +348,12 @@
           </div>
         </div>
 
+        <!-- WHY -->
         <div class="mt-20 border-t border-gray-200 pt-12">
           <h3 class="font-display text-2xl font-bold text-text-main mb-8 text-center">Mengapa average down?</h3>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div
-              class="glass-card bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
-            >
+            <div class="glass-surface p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
               <div class="w-12 h-12 rounded-xl bg-blue-50 text-primary flex items-center justify-center mb-4">
                 <span class="material-symbols-outlined">strategy</span>
               </div>
@@ -353,9 +364,7 @@
               </p>
             </div>
 
-            <div
-              class="glass-card bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
-            >
+            <div class="glass-surface p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
               <div class="w-12 h-12 rounded-xl bg-green-50 text-success flex items-center justify-center mb-4">
                 <span class="material-symbols-outlined">trending_up</span>
               </div>
@@ -365,9 +374,7 @@
               </p>
             </div>
 
-            <div
-              class="glass-card bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
-            >
+            <div class="glass-surface p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
               <div class="w-12 h-12 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center mb-4">
                 <span class="material-symbols-outlined">warning</span>
               </div>
@@ -382,7 +389,7 @@
       </div>
     </main>
 
-    <footer class="bg-white border-t border-gray-100 py-12">
+    <footer class="bg-white/70 backdrop-blur border-t border-gray-100 py-12">
       <div class="max-w-7xl mx-auto px-4 text-center">
         <div class="flex items-center justify-center gap-2 mb-4 text-text-main font-display font-bold text-lg">
           <span class="material-symbols-outlined text-primary">candlestick_chart</span>
@@ -397,7 +404,7 @@
           <a class="hover:text-primary transition-colors" href="#">Kontak</a>
         </div>
 
-        <p class="text-xs text-gray-400 mt-8">© 2024 StockCalcID. Hak cipta dilindungi.</p>
+        <p class="text-xs text-gray-400 mt-8">© 2025 StockCalcID.</p>
       </div>
     </footer>
   </body>
