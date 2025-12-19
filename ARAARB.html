@@ -50,6 +50,8 @@
         },
       };
     </script>
+
+    <script src="araarb.js" defer></script>
   </head>
 
   <body class="glass-page bg-bg-main text-text-main font-sans min-h-screen flex flex-col antialiased">
@@ -128,6 +130,7 @@
                 </div>
 
                 <input
+                  id="prevClose"
                   class="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-primary focus:border-primary text-lg font-bold shadow-sm transition-all group-hover:border-slate-300"
                   placeholder="0"
                   type="text"
@@ -146,9 +149,11 @@
                   class="cursor-pointer relative flex items-start p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-primary shadow-sm"
                 >
                   <input
+                    id="tier1"
                     class="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary bg-white"
                     name="tier"
                     type="radio"
+                    value="1"
                   />
                   <div class="ml-3 flex-1">
                     <div class="flex justify-between">
@@ -165,10 +170,12 @@
                   class="cursor-pointer relative flex items-start p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-primary shadow-sm"
                 >
                   <input
+                    id="tier2"
                     checked
                     class="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary bg-white"
                     name="tier"
                     type="radio"
+                    value="2"
                   />
                   <div class="ml-3 flex-1">
                     <div class="flex justify-between">
@@ -187,9 +194,11 @@
                   class="cursor-pointer relative flex items-start p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-primary shadow-sm"
                 >
                   <input
+                    id="tier3"
                     class="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary bg-white"
                     name="tier"
                     type="radio"
+                    value="3"
                   />
                   <div class="ml-3 flex-1">
                     <div class="flex justify-between">
@@ -205,7 +214,9 @@
             </div>
 
             <button
+              id="calculateBtn"
               class="w-full py-3.5 mt-2 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+              type="button"
             >
               <span class="material-symbols-outlined text-[20px]">refresh</span>
               Perbarui Perhitungan
@@ -228,7 +239,10 @@
                   <span class="text-sm font-bold text-slate-600 uppercase tracking-wide">Batas ARA</span>
                 </div>
 
-                <span class="bg-success-light text-success-text text-xs font-bold px-2.5 py-1 rounded-full">
+                <span
+                  id="araPctBadge"
+                  class="bg-success-light text-success-text text-xs font-bold px-2.5 py-1 rounded-full"
+                >
                   +25.00%
                 </span>
               </div>
@@ -236,12 +250,12 @@
               <div class="relative z-10">
                 <div class="flex items-baseline gap-1">
                   <span class="text-lg font-medium text-slate-400">Rp</span>
-                  <span class="text-5xl font-extrabold text-slate-900 tracking-tighter">6,000</span>
+                  <span id="araPrice" class="text-5xl font-extrabold text-slate-900 tracking-tighter">6,000</span>
                 </div>
 
-                <div class="mt-2 flex items-center gap-2 text-sm font-medium text-success-text">
+                <div id="araDelta" class="mt-2 flex items-center gap-2 text-sm font-medium text-success-text">
                   <span class="material-symbols-outlined text-[18px]">arrow_upward</span>
-                  Naik Rp 1,200
+                  <span id="araDeltaText">Naik Rp 1,200</span>
                 </div>
               </div>
             </div>
@@ -259,7 +273,10 @@
                   <span class="text-sm font-bold text-slate-600 uppercase tracking-wide">Batas ARB</span>
                 </div>
 
-                <span class="bg-danger-light text-danger-text text-xs font-bold px-2.5 py-1 rounded-full">
+                <span
+                  id="arbPctBadge"
+                  class="bg-danger-light text-danger-text text-xs font-bold px-2.5 py-1 rounded-full"
+                >
                   -25.00%
                 </span>
               </div>
@@ -267,12 +284,12 @@
               <div class="relative z-10">
                 <div class="flex items-baseline gap-1">
                   <span class="text-lg font-medium text-slate-400">Rp</span>
-                  <span class="text-5xl font-extrabold text-slate-900 tracking-tighter">3,600</span>
+                  <span id="arbPrice" class="text-5xl font-extrabold text-slate-900 tracking-tighter">3,600</span>
                 </div>
 
-                <div class="mt-2 flex items-center gap-2 text-sm font-medium text-danger-text">
+                <div id="arbDelta" class="mt-2 flex items-center gap-2 text-sm font-medium text-danger-text">
                   <span class="material-symbols-outlined text-[18px]">arrow_downward</span>
-                  Turun Rp 1,200
+                  <span id="arbDeltaText">Turun Rp 1,200</span>
                 </div>
               </div>
             </div>
@@ -285,7 +302,10 @@
                 Analisis Fraksi
               </h4>
 
-              <span class="text-xs font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded">
+              <span
+                id="analysisReference"
+                class="text-xs font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded"
+              >
                 Berdasarkan Rp 4,800
               </span>
             </div>
@@ -303,20 +323,20 @@
                 <tbody class="divide-y divide-slate-50 text-slate-700">
                   <tr class="hover:bg-slate-50/50 transition-colors">
                     <td class="px-6 py-3 font-medium text-success-text">Maksimum Naik (ARA)</td>
-                    <td class="px-6 py-3 font-bold">6,000</td>
-                    <td class="px-6 py-3 text-right text-slate-500">Rp 25</td>
+                    <td id="analysisAraPrice" class="px-6 py-3 font-bold">6,000</td>
+                    <td id="analysisAraTick" class="px-6 py-3 text-right text-slate-500">Rp 25</td>
                   </tr>
 
                   <tr class="bg-blue-50/30">
                     <td class="px-6 py-3 font-medium text-primary">Harga Dasar</td>
-                    <td class="px-6 py-3 font-bold">4,800</td>
-                    <td class="px-6 py-3 text-right text-slate-500">Rp 10</td>
+                    <td id="analysisBasePrice" class="px-6 py-3 font-bold">4,800</td>
+                    <td id="analysisBaseTick" class="px-6 py-3 text-right text-slate-500">Rp 10</td>
                   </tr>
 
                   <tr class="hover:bg-slate-50/50 transition-colors">
                     <td class="px-6 py-3 font-medium text-danger-text">Maksimum Turun (ARB)</td>
-                    <td class="px-6 py-3 font-bold">3,600</td>
-                    <td class="px-6 py-3 text-right text-slate-500">Rp 10</td>
+                    <td id="analysisArbPrice" class="px-6 py-3 font-bold">3,600</td>
+                    <td id="analysisArbTick" class="px-6 py-3 text-right text-slate-500">Rp 10</td>
                   </tr>
                 </tbody>
               </table>
