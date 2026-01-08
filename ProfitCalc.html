@@ -34,6 +34,12 @@
               "accent-yellow": "#f59e0b", // Sunny Yellow/Amber
               "accent-yellow-light": "#fffbeb",
               "slate-850": "#1e293b",
+              // Dark mode colors
+              "dark-bg": "#0f172a", // slate-900
+              "dark-surface": "#1e293b", // slate-800
+              "dark-text": "#f1f5f9", // slate-100
+              "dark-text-secondary": "#cbd5e1", // slate-300
+              "dark-border": "#334155", // slate-700
             },
             fontFamily: {
               display: ["Manrope", "sans-serif"],
@@ -56,6 +62,7 @@
       };
     </script>
 
+    <script src="utils.js"></script>
     <script src="profit.js" defer></script>
   </head>
 
@@ -89,6 +96,10 @@
             </nav>
 
             <div class="flex items-center gap-4">
+              <button id="theme-toggle" class="p-2 text-slate-900 rounded-lg hover:bg-slate-100">
+                <span class="material-symbols-outlined dark:hidden">dark_mode</span>
+                <span class="material-symbols-outlined hidden dark:block">light_mode</span>
+              </button>
               <button class="md:hidden p-2 text-slate-900">
                 <span class="material-symbols-outlined">menu</span>
               </button>
@@ -143,12 +154,14 @@
                         </div>
 
                         <input
-                          class="block w-full rounded-xl border-slate-200 pl-10 py-3 text-slate-900 placeholder-slate-400 focus:border-primary focus:ring-primary bg-white text-base font-semibold"
+                          class="block w-full rounded-xl border-slate-200 pl-10 py-3 text-slate-900 placeholder-slate-400 focus:border-primary focus:ring-primary bg-white text-base font-semibold focus:outline-none focus:ring-offset-2"
                           id="buy_price"
                           name="buy_price"
                           placeholder="0"
                           type="number"
                           value="5000"
+                          aria-label="Harga beli"
+                          autocomplete="off"
                         />
 
                         <div class="absolute inset-y-0 right-0 flex items-center pr-2 gap-1">
@@ -156,7 +169,8 @@
                              type="button"
                              data-stepper="dec"
                              data-target="buy_price"
-                             class="p-1 hover:bg-slate-50 rounded text-slate-400 hover:text-slate-600"
+                             class="p-1 hover:bg-slate-50 rounded text-slate-400 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary"
+                             aria-label="Kurangi harga beli"
                            >
                              <span class="material-symbols-outlined text-lg">remove</span>
                            </button>
@@ -164,7 +178,8 @@
                              type="button"
                              data-stepper="inc"
                              data-target="buy_price"
-                             class="p-1 hover:bg-slate-50 rounded text-slate-400 hover:text-slate-600"
+                             class="p-1 hover:bg-slate-50 rounded text-slate-400 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary"
+                             aria-label="Tambah harga beli"
                            >
                              <span class="material-symbols-outlined text-lg">add</span>
                            </button>
@@ -183,12 +198,14 @@
                         </div>
 
                         <input
-                          class="block w-full rounded-xl border-slate-200 pl-10 py-3 text-slate-900 placeholder-slate-400 focus:border-primary focus:ring-primary bg-white text-base font-semibold"
+                          class="block w-full rounded-xl border-slate-200 pl-10 py-3 text-slate-900 placeholder-slate-400 focus:border-primary focus:ring-primary bg-white text-base font-semibold focus:outline-none focus:ring-offset-2"
                           id="sell_price"
                           name="sell_price"
                           placeholder="0"
                           type="number"
                           value="5200"
+                          aria-label="Harga jual"
+                          autocomplete="off"
                         />
 
                         <div class="absolute inset-y-0 right-0 flex items-center pr-2 gap-1">
@@ -196,7 +213,8 @@
                              type="button"
                              data-stepper="dec"
                              data-target="sell_price"
-                             class="p-1 hover:bg-slate-50 rounded text-slate-400 hover:text-slate-600"
+                             class="p-1 hover:bg-slate-50 rounded text-slate-400 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary"
+                             aria-label="Kurangi harga jual"
                            >
                              <span class="material-symbols-outlined text-lg">remove</span>
                            </button>
@@ -204,7 +222,8 @@
                              type="button"
                              data-stepper="inc"
                              data-target="sell_price"
-                             class="p-1 hover:bg-slate-50 rounded text-slate-400 hover:text-slate-600"
+                             class="p-1 hover:bg-slate-50 rounded text-slate-400 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary"
+                             aria-label="Tambah harga jual"
                            >
                              <span class="material-symbols-outlined text-lg">add</span>
                            </button>
@@ -227,12 +246,14 @@
 
                     <div class="relative rounded-xl shadow-sm">
                       <input
-                        class="block w-full rounded-xl border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-primary focus:ring-primary bg-white text-base font-semibold"
+                        class="block w-full rounded-xl border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-primary focus:ring-primary bg-white text-base font-semibold focus:outline-none focus:ring-offset-2"
                         id="quantity"
                         name="quantity"
                         placeholder="mis. 10"
                         type="number"
                         value="100"
+                        aria-label="Jumlah lot"
+                        autocomplete="off"
                       />
 
                       <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
@@ -351,6 +372,19 @@
                       </div>
                        <span id="totalCostsValue" class="font-mono text-rose-500 font-bold">Rp 0</span>
                      </div>
+
+                     <div class="flex justify-between items-center text-sm pt-2 border-t border-slate-100/50">
+                        <div class="flex items-center gap-1 text-slate-500 font-semibold">
+                          <span>Harga Balik Modal (BEP)</span>
+                           <span
+                            class="material-symbols-outlined text-[16px] text-slate-400 cursor-help"
+                            title="Harga jual minimal agar tidak rugi (setelah fee)"
+                          >
+                            help
+                          </span>
+                        </div>
+                       <span id="breakEvenPrice" class="font-mono text-primary font-bold">Rp 0</span>
+                     </div>
                    </div>
                  </div>
 
@@ -439,5 +473,12 @@
         </div>
       </main>
     </div>
+
+    <script>
+      // Initialize theme from utils
+      if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
+        window.CuanMeterUtils.theme.init();
+      }
+    </script>
   </body>
 </html>

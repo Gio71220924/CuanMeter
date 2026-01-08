@@ -1,5 +1,7 @@
 (() => {
-  const LOT_SIZE = 100;
+  const { formatters, idx, storage } = window.CuanMeterUtils;
+  const LOT_SIZE = idx.LOT_SIZE;
+  const HISTORY_KEY = 'profitCalcHistory';
 
   const els = {
     buyPrice: document.getElementById("buy_price"),
@@ -19,63 +21,48 @@
     totalBuyValue: document.getElementById("totalBuyValue"),
     totalSellValue: document.getElementById("totalSellValue"),
     totalCostsValue: document.getElementById("totalCostsValue"),
+    breakEvenPrice: document.getElementById("breakEvenPrice"),
   };
 
   if (!els.buyPrice || !els.sellPrice || !els.lots) return;
 
-  const nf0 = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
-  const nfPct = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 });
-
-  const toNumber = (value) => {
-    if (value === null || value === undefined) return 0;
-    const raw = String(value).trim();
-    if (raw === "") return 0;
-    const numberValue = Number(raw.replace(/\s+/g, "").replace(",", "."));
-    if (!Number.isFinite(numberValue)) return 0;
-    return numberValue;
+  const formatCost = (value) => {
+    if (!Number.isFinite(value) || value <= 0) return "Rp 0";
+    return `-(Rp ${formatters.nf0.format(Math.round(value))})`;
   };
-
-  const toNonNegativeNumber = (value) => {
-    const numberValue = toNumber(value);
-    if (numberValue <= 0) return 0;
-    return numberValue;
-  };
-
-  const toNonNegativeInt = (value) => Math.floor(toNonNegativeNumber(value));
-
-  const formatCurrency = (value) => `Rp ${nf0.format(Math.round(value))}`;
 
   const formatCurrencySigned = (value) => {
     const rounded = Math.round(value);
-    if (rounded === 0) return formatCurrency(0);
+    if (rounded === 0) return formatters.formatCurrency(0);
     const absValue = Math.abs(rounded);
-    const formatted = formatCurrency(absValue);
+    const formatted = formatters.formatCurrency(absValue);
     return rounded < 0 ? `-${formatted}` : formatted;
   };
 
-  const formatCost = (value) => {
-    if (!Number.isFinite(value) || value <= 0) return "Rp 0";
-    return `-(Rp ${nf0.format(Math.round(value))})`;
-  };
+  const getFormData = () => {
+    const buyPrice = formatters.toNonNegativeNumber(els.buyPrice.value);
+    const sellPrice = formatters.toNonNegativeNumber(els.sellPrice.value);
+    const lots = formatters.toNonNegativeInt(els.lots.value);
+    const buyFeePct = formatters.toNonNegativeNumber(els.buyFeePct?.value);
+    const sellFeePct = formatters.toNonNegativeNumber(els.sellFeePct?.value);
 
-  const getTickSize = (price) => {
-    if (price < 200) return 1;
-    if (price < 500) return 2;
-    if (price < 2000) return 5;
-    if (price < 5000) return 10;
-    if (price < 10000) return 25;
-    if (price < 20000) return 50;
-    return 100;
+    return {
+      buyPrice,
+      sellPrice,
+      lots,
+      buyFeePct,
+      sellFeePct
+    };
   };
 
   const readInputs = () => {
-    const buyPrice = toNonNegativeNumber(els.buyPrice.value);
-    const sellPrice = toNonNegativeNumber(els.sellPrice.value);
-    const lots = toNonNegativeInt(els.lots.value);
+    const buyPrice = formatters.toNonNegativeNumber(els.buyPrice.value);
+    const sellPrice = formatters.toNonNegativeNumber(els.sellPrice.value);
+    const lots = formatters.toNonNegativeInt(els.lots.value);
     const shares = lots * LOT_SIZE;
 
-    const buyFeePct = toNonNegativeNumber(els.buyFeePct?.value);
-    const sellFeePct = toNonNegativeNumber(els.sellFeePct?.value);
+    const buyFeePct = formatters.toNonNegativeNumber(els.buyFeePct?.value);
+    const sellFeePct = formatters.toNonNegativeNumber(els.sellFeePct?.value);
 
     return { buyPrice, sellPrice, lots, shares, buyFeePct, sellFeePct };
   };
@@ -98,7 +85,23 @@
     const roiPctRaw = buyTotal > 0 ? (netProfit / buyTotal) * 100 : 0;
     const roiPct = Math.abs(roiPctRaw) < 0.005 ? 0 : roiPctRaw;
 
-    return { ...input, buyGross, sellGross, buyTotal, sellNet, netProfit, totalCosts, roiPct };
+    // Break Even Point Calculation
+    // BEP = SellPrice where NetProfit = 0
+    // NetProfit = SellNet - BuyTotal
+    // SellNet = SellPrice * Shares * (1 - sellFeePct/100)
+    // BuyTotal = SellPrice * Shares * (1 - sellFeePct/100)
+    // SellPrice = BuyTotal / (Shares * (1 - sellFeePct/100))
+    
+    let bep = 0;
+    if (shares > 0 && (1 - sellFeePct/100) > 0) {
+        const rawBep = buyTotal / (shares * (1 - sellFeePct/100));
+        // We usually round up to the nearest tick to be safe (don't lose money), 
+        // or just round to nearest int for display. 
+        // Let's ceil to tick to be strictly "Break Even" (not losing).
+        bep = idx.ceilToTick(rawBep);
+    }
+
+    return { ...input, buyGross, sellGross, buyTotal, sellNet, netProfit, totalCosts, roiPct, bep };
   };
 
   const applyTheme = (isProfit) => {
@@ -125,15 +128,17 @@
     const isProfit = netProfitRounded >= 0;
     applyTheme(isProfit);
 
-    if (els.totalBuyValue) els.totalBuyValue.textContent = formatCurrency(result.buyGross);
-    if (els.totalSellValue) els.totalSellValue.textContent = formatCurrency(result.sellGross);
+    if (els.totalBuyValue) els.totalBuyValue.textContent = formatters.formatCurrency(result.buyGross);
+    if (els.totalSellValue) els.totalSellValue.textContent = formatters.formatCurrency(result.sellGross);
     if (els.totalCostsValue) els.totalCostsValue.textContent = formatCost(result.totalCosts);
 
     if (els.netProfit) els.netProfit.textContent = formatCurrencySigned(result.netProfit);
+    
+    if (els.breakEvenPrice) els.breakEvenPrice.textContent = formatters.formatCurrency(result.bep);
 
     if (els.roiPct) {
       const sign = result.roiPct > 0 ? "+" : "";
-      els.roiPct.textContent = `${sign}${nfPct.format(result.roiPct)}%`;
+      els.roiPct.textContent = `${sign}${formatters.formatPct(result.roiPct)}%`;
     }
 
     if (els.roiIcon) els.roiIcon.textContent = isProfit ? "trending_up" : "trending_down";
@@ -150,6 +155,27 @@
     render();
   };
 
+  const saveCurrentCalculation = () => {
+    const formData = getFormData();
+    const result = calculate();
+
+    if (formData.buyPrice > 0 && formData.sellPrice > 0 && formData.lots > 0) {
+      const historyData = {
+        ...formData,
+        result: {
+          netProfit: result.netProfit,
+          roiPct: result.roiPct,
+          totalBuyValue: result.buyGross,
+          totalSellValue: result.sellGross,
+          totalCosts: result.totalCosts,
+          bep: result.bep
+        }
+      };
+
+      storage.save(HISTORY_KEY, historyData, 10, 'profit_calc');
+    }
+  };
+
   const bindEvents = () => {
     const rerenderOnInput = (node) => {
       node?.addEventListener("input", render);
@@ -163,7 +189,10 @@
     rerenderOnInput(els.buyFeePct);
     rerenderOnInput(els.sellFeePct);
 
-    els.calculateBtn?.addEventListener("click", render);
+    els.calculateBtn?.addEventListener("click", () => {
+      render();
+      saveCurrentCalculation();
+    });
     els.resetBtn?.addEventListener("click", resetAll);
 
     document.querySelectorAll("[data-stepper][data-target]").forEach((btn) => {
@@ -175,9 +204,9 @@
         const input = targetId ? document.getElementById(targetId) : null;
         if (!input) return;
 
-        const current = toNonNegativeNumber(input.value);
+        const current = formatters.toNonNegativeNumber(input.value);
         const tickRef = direction === "dec" ? Math.max(0, current - 1) : current;
-        let step = getTickSize(tickRef || 0);
+        let step = idx.getTickSize(tickRef || 0);
         if (event.shiftKey) step *= 10;
 
         const nextRaw = direction === "dec" ? Math.max(0, current - step) : Math.max(0, current + step);

@@ -1,5 +1,7 @@
 (() => {
-  const LOT_SIZE = 100;
+  const { formatters, idx, storage } = window.CuanMeterUtils;
+  const LOT_SIZE = idx.LOT_SIZE;
+  const HISTORY_KEY = 'avgPriceHistory';
 
   const els = {
     currentAvgPrice: document.getElementById("currentAvgPrice"),
@@ -16,41 +18,35 @@
     totalShares: document.getElementById("totalShares"),
     totalValue: document.getElementById("totalValue"),
     breakEvenText: document.getElementById("breakEvenText"),
+    historyContainer: document.getElementById('historyContainer'),
+    historyList: document.getElementById('historyList'),
+    noHistoryMessage: document.getElementById('noHistoryMessage'),
+    clearHistoryBtn: document.getElementById('clearHistoryBtn')
   };
 
-  // Kalau ID tidak ketemu, stop (biasanya karena file HTML beda / typo id)
   if (!els.currentAvgPrice || !els.currentLots || !els.orderRows) return;
 
-  const nf0 = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
-  const nfPct = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
+  const formatCurrencyFull = (value) => `Rp ${formatters.nf0.format(Math.round(value))}`;
 
-  const toNonNegativeNumber = (value) => {
-    const numberValue = Number(value);
-    if (!Number.isFinite(numberValue) || numberValue <= 0) return 0;
-    return numberValue;
-  };
+  const getFormData = () => {
+    const currentAvgPrice = formatters.toNonNegativeNumber(els.currentAvgPrice.value);
+    const currentLots = formatters.toNonNegativeInt(els.currentLots.value);
 
-  const toNonNegativeInt = (value) => Math.floor(toNonNegativeNumber(value));
-  const formatCurrencyFull = (value) => `Rp ${nf0.format(Math.round(value))}`;
-
-  const formatCurrencyCompact = (value) => {
-    const absValue = Math.abs(value);
-    const sign = value < 0 ? "-" : "";
-    const units = [
-      { suffix: "T", value: 1e12 },
-      { suffix: "M", value: 1e9 }, // (Indonesia sering pakai M = miliar)
-      { suffix: "Jt", value: 1e6 }, // juta
-      { suffix: "Rb", value: 1e3 }, // ribu
-    ];
-
-    for (const unit of units) {
-      if (absValue >= unit.value) {
-        const scaled = absValue / unit.value;
-        let formatted = scaled.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
-        return `${sign}Rp ${formatted}${unit.suffix}`;
+    const orders = [];
+    for (const row of getOrderRows()) {
+      const { priceInput, lotsInput } = normalizeRow(row);
+      const price = formatters.toNonNegativeNumber(priceInput?.value);
+      const lots = formatters.toNonNegativeInt(lotsInput?.value);
+      if (price > 0 && lots > 0) {
+        orders.push({ price, lots });
       }
     }
-    return `${sign}Rp ${nf0.format(Math.round(absValue))}`;
+
+    return {
+      currentAvgPrice,
+      currentLots,
+      orders
+    };
   };
 
   const getOrderRows = () => [...els.orderRows.querySelectorAll(".order-row")];
@@ -68,8 +64,8 @@
 
     for (const row of getOrderRows()) {
       const { priceInput, lotsInput } = normalizeRow(row);
-      const price = toNonNegativeNumber(priceInput?.value);
-      const lots = toNonNegativeInt(lotsInput?.value);
+      const price = formatters.toNonNegativeNumber(priceInput?.value);
+      const lots = formatters.toNonNegativeInt(lotsInput?.value);
       if (price > 0 && lots > 0) {
         orders.push({ price, lots });
         lastOrderPrice = price;
@@ -80,8 +76,8 @@
   };
 
   const calculate = () => {
-    const currentAvgPrice = toNonNegativeNumber(els.currentAvgPrice.value);
-    const currentLots = toNonNegativeInt(els.currentLots.value);
+    const currentAvgPrice = formatters.toNonNegativeNumber(els.currentAvgPrice.value);
+    const currentLots = formatters.toNonNegativeInt(els.currentLots.value);
 
     const currentShares = currentLots * LOT_SIZE;
     const currentCost = currentAvgPrice * currentShares;
@@ -107,7 +103,6 @@
         ? ((newAvg - currentAvgPrice) / currentAvgPrice) * 100
         : null;
 
-    // kalau user belum isi order baru, break-even pakai avg sekarang
     const refPrice = lastOrderPrice > 0 ? lastOrderPrice : currentAvgPrice;
 
     const breakEvenMovePct =
@@ -125,7 +120,7 @@
     }
 
     const sign = deltaPct > 0 ? "+" : "";
-    els.averagePriceDeltaText.textContent = `${sign}${nfPct.format(deltaPct)}% dari awal`;
+    els.averagePriceDeltaText.textContent = `${sign}${formatters.formatPct(deltaPct, 1)}% dari awal`;
 
     const isUp = deltaPct > 0;
     const isDownOrFlat = !isUp;
@@ -145,10 +140,10 @@
   const render = () => {
     const result = calculate();
 
-    if (els.newAveragePrice) els.newAveragePrice.textContent = nf0.format(Math.round(result.newAvg));
-    if (els.totalLots) els.totalLots.textContent = nf0.format(result.totalLots);
-    if (els.totalShares) els.totalShares.textContent = `${nf0.format(result.totalShares)} Saham`;
-    if (els.totalValue) els.totalValue.textContent = formatCurrencyCompact(result.totalCost);
+    if (els.newAveragePrice) els.newAveragePrice.textContent = formatters.nf0.format(Math.round(result.newAvg));
+    if (els.totalLots) els.totalLots.textContent = formatters.nf0.format(result.totalLots);
+    if (els.totalShares) els.totalShares.textContent = `${formatters.nf0.format(result.totalShares)} Saham`;
+    if (els.totalValue) els.totalValue.textContent = formatters.formatCurrencyCompact(result.totalCost);
 
     renderDeltaBadge(result.deltaPct);
 
@@ -160,7 +155,7 @@
           `Harga sudah berada di atas titik impas Anda (<span class="font-bold text-slate-900">${formatCurrencyFull(result.newAvg)}</span>).`;
       } else {
         els.breakEvenText.innerHTML =
-          `Harga saham perlu naik sebesar <span class="font-bold text-slate-900">${nfPct.format(result.breakEvenMovePct)}%</span> ` +
+          `Harga saham perlu naik sebesar <span class="font-bold text-slate-900">${formatters.formatPct(result.breakEvenMovePct, 1)}%</span> ` +
           `dari ${formatCurrencyFull(result.refPrice)} untuk mencapai titik impas Anda.`;
       }
     }
@@ -215,13 +210,139 @@
     render();
   };
 
-  // init
+  // Display history
+  const displayHistory = () => {
+    const history = storage.load(HISTORY_KEY);
+
+    if (history.length === 0) {
+      els.noHistoryMessage.style.display = 'block';
+      els.historyList.innerHTML = '';
+      els.historyList.appendChild(els.noHistoryMessage);
+      return;
+    }
+
+    els.noHistoryMessage.style.display = 'none';
+    els.historyList.innerHTML = '';
+
+    history.forEach(entry => {
+      const historyItem = document.createElement('div');
+      historyItem.className = 'p-4 hover:bg-slate-50 transition-colors';
+
+      const timestamp = new Date(entry.timestamp).toLocaleString('id-ID');
+      const currentAvg = formatters.formatCurrency(entry.data.currentAvgPrice);
+      const currentLots = entry.data.currentLots;
+      const ordersCount = entry.data.orders.length;
+      const newAvg = formatters.formatCurrency(entry.data.result.newAvg);
+
+      historyItem.innerHTML = `
+        <div class="flex justify-between items-start">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-sm font-bold text-slate-900 truncate">${entry.id}</span>
+              <span class="text-xs text-slate-500">${timestamp}</span>
+            </div>
+            <div class="text-sm text-slate-600 space-y-1">
+              <div>Harga Rata-rata Awal: <span class="font-medium">${currentAvg}</span></div>
+              <div>Lot Awal: <span class="font-medium">${currentLots}</span></div>
+              <div>Order Tambahan: <span class="font-medium">${ordersCount} order</span></div>
+              <div class="pt-1 border-t border-slate-100">
+                <span class="font-bold text-primary">Harga Rata-rata Baru: ${newAvg}</span>
+              </div>
+            </div>
+          </div>
+          <button class="load-history-btn ml-4 p-2 text-slate-400 hover:text-primary rounded-lg hover:bg-slate-100"
+                  data-id="${entry.id}">
+            <span class="material-symbols-outlined text-sm">restore</span>
+          </button>
+        </div>
+      `;
+
+      els.historyList.appendChild(historyItem);
+    });
+
+    document.querySelectorAll('.load-history-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        const history = storage.load(HISTORY_KEY);
+        const entry = history.find(item => item.id == id);
+
+        if (entry) {
+          loadFromHistory(entry.data);
+        }
+      });
+    });
+  };
+
+  const loadFromHistory = (data) => {
+    els.currentAvgPrice.value = data.currentAvgPrice;
+    els.currentLots.value = data.currentLots;
+
+    const rows = getOrderRows();
+    for (let i = 1; i < rows.length; i++) {
+      rows[i].remove();
+    }
+
+    if (rows.length > 0) {
+      const { priceInput, lotsInput } = normalizeRow(rows[0]);
+      if (data.orders[0]) {
+        priceInput.value = data.orders[0].price;
+        lotsInput.value = data.orders[0].lots;
+      }
+    }
+
+    for (let i = 1; i < data.orders.length; i++) {
+      addRow();
+      const allRows = getOrderRows();
+      const newRow = allRows[allRows.length - 1];
+      const { priceInput, lotsInput } = normalizeRow(newRow);
+
+      if (priceInput && lotsInput) {
+        priceInput.value = data.orders[i].price;
+        lotsInput.value = data.orders[i].lots;
+      }
+    }
+
+    render();
+  };
+
+  const clearHistory = () => {
+    if (confirm('Apakah Anda yakin ingin menghapus semua riwayat perhitungan?')) {
+      storage.clear(HISTORY_KEY);
+      displayHistory();
+    }
+  };
+
+  const saveCurrentCalculation = () => {
+    const formData = getFormData();
+    const result = calculate();
+
+    if (formData.currentAvgPrice > 0 || formData.orders.length > 0) {
+      const historyData = {
+        ...formData,
+        result: {
+          newAvg: result.newAvg,
+          totalLots: result.totalLots,
+          totalShares: result.totalShares,
+          totalValue: result.totalCost
+        }
+      };
+
+      storage.save(HISTORY_KEY, historyData, 10, 'average_price');
+      displayHistory();
+    }
+  };
+
   getOrderRows().forEach(bindRowEvents);
   els.currentAvgPrice.addEventListener("input", render);
   els.currentLots.addEventListener("input", render);
   els.addOrderRowBtn?.addEventListener("click", addRow);
-  els.calculateBtn?.addEventListener("click", render);
+  els.calculateBtn?.addEventListener("click", () => {
+    render();
+    saveCurrentCalculation();
+  });
   els.resetBtn?.addEventListener("click", resetAll);
+  els.clearHistoryBtn?.addEventListener("click", clearHistory);
 
+  displayHistory();
   render();
 })();

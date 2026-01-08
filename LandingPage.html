@@ -33,6 +33,12 @@
               "accent-yellow": "#f59e0b", // Sunny Yellow/Amber
               "accent-yellow-light": "#fffbeb",
               "slate-850": "#1e293b",
+              // Dark mode colors
+              "dark-bg": "#0f172a", // slate-900
+              "dark-surface": "#1e293b", // slate-800
+              "dark-text": "#f1f5f9", // slate-100
+              "dark-text-secondary": "#cbd5e1", // slate-300
+              "dark-border": "#334155", // slate-700
             },
             fontFamily: {
               display: ["Manrope", "sans-serif"],
@@ -85,6 +91,10 @@
             </nav>
 
             <div class="flex items-center gap-4">
+              <button id="theme-toggle" class="p-2 text-slate-900 rounded-lg hover:bg-slate-100">
+                <span class="material-symbols-outlined dark:hidden">dark_mode</span>
+                <span class="material-symbols-outlined hidden dark:block">light_mode</span>
+              </button>
               <button class="md:hidden p-2 text-slate-900">
                 <span class="material-symbols-outlined">menu</span>
               </button>
@@ -440,5 +450,13 @@
         </div>
       </footer>
     </div>
+
+    <script src="utils.js"></script>
+    <script>
+      // Initialize theme from utils
+      if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
+        window.CuanMeterUtils.theme.init();
+      }
+    </script>
   </body>
 </html>

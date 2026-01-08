@@ -42,6 +42,12 @@
               "text-main": "#0f172a",
               "text-sub": "#64748b",
               "slate-850": "#1e293b",
+              // Dark mode colors
+              "dark-bg": "#0f172a", // slate-900
+              "dark-surface": "#1e293b", // slate-800
+              "dark-text": "#f1f5f9", // slate-100
+              "dark-text-secondary": "#cbd5e1", // slate-300
+              "dark-border": "#334155", // slate-700
             },
             fontFamily: {
               display: ["Manrope", "sans-serif"],
@@ -69,6 +75,7 @@
     <link rel="stylesheet" href="CSS/AveragePrice.css" />
 
     <!-- JS kalkulator -->
+    <script src="utils.js"></script>
     <script src="avg.js" defer></script>
   </head>
 
@@ -98,6 +105,10 @@
           </nav>
 
           <div class="flex items-center gap-4">
+            <button id="theme-toggle" class="p-2 text-slate-900 rounded-lg hover:bg-slate-100">
+              <span class="material-symbols-outlined dark:hidden">dark_mode</span>
+              <span class="material-symbols-outlined hidden dark:block">light_mode</span>
+            </button>
             <button class="md:hidden p-2 text-slate-900" type="button">
               <span class="material-symbols-outlined">menu</span>
             </button>
@@ -153,7 +164,7 @@
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div class="space-y-2">
-                  <label class="text-sm font-semibold text-text-sub">Harga Beli Rata-rata</label>
+                  <label for="currentAvgPrice" class="text-sm font-semibold text-text-sub">Harga Beli Rata-rata</label>
                   <div class="relative">
                     <span class="absolute left-4 top-1/2 -translate-y-1/2 text-text-sub font-medium select-none">Rp</span>
                     <input
@@ -163,12 +174,15 @@
                       type="number"
                       min="0"
                       step="1"
+                      aria-describedby="currentAvgPriceHelp"
+                      autocomplete="off"
                     />
+                    <span id="currentAvgPriceHelp" class="sr-only">Masukkan harga beli rata-rata dalam Rupiah</span>
                   </div>
                 </div>
 
                 <div class="space-y-2">
-                  <label class="text-sm font-semibold text-text-sub">Jumlah Lot Saat Ini</label>
+                  <label for="currentLots" class="text-sm font-semibold text-text-sub">Jumlah Lot Saat Ini</label>
                   <div class="relative">
                     <input
                       id="currentLots"
@@ -177,10 +191,13 @@
                       type="number"
                       min="0"
                       step="1"
+                      aria-describedby="currentLotsHelp"
+                      autocomplete="off"
                     />
                     <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-text-sub uppercase bg-gray-100 px-2 py-1 rounded">
                       Lot
                     </span>
+                    <span id="currentLotsHelp" class="sr-only">Masukkan jumlah lot saat ini</span>
                   </div>
                 </div>
               </div>
@@ -221,6 +238,8 @@
                           type="number"
                           min="0"
                           step="1"
+                          aria-label="Harga beli"
+                          autocomplete="off"
                         />
                       </div>
                     </div>
@@ -234,6 +253,8 @@
                           type="number"
                           min="0"
                           step="1"
+                          aria-label="Jumlah lot"
+                          autocomplete="off"
                         />
                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-sub uppercase">
                           Lot
@@ -245,7 +266,7 @@
                   <button
                     type="button"
                     aria-label="Hapus baris"
-                    class="remove-order-row absolute -right-2 -top-2 bg-white text-danger shadow-md border border-gray-100 rounded-full p-1 opacity-0 group-hover/row:opacity-100 transition-all hover:bg-red-50 hover:scale-110"
+                    class="remove-order-row absolute -right-2 -top-2 bg-white text-danger shadow-md border border-gray-100 rounded-full p-1 opacity-0 group-hover/row:opacity-100 transition-all hover:bg-red-50 hover:scale-110 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-danger"
                   >
                     <span class="material-symbols-outlined text-[16px]">close</span>
                   </button>
@@ -257,7 +278,8 @@
               <button
                 id="resetBtn"
                 type="button"
-                class="flex-1 h-14 rounded-full bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2"
+                class="flex-1 h-14 rounded-full bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                aria-label="Atur ulang semua input"
               >
                 Atur Ulang
               </button>
@@ -265,7 +287,8 @@
               <button
                 id="calculateBtn"
                 type="button"
-                class="flex-[2] h-14 rounded-full bg-primary hover:bg-primary-hover text-white font-bold shadow-lg shadow-primary/25 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 text-lg"
+                class="flex-[2] h-14 rounded-full bg-primary hover:bg-primary-hover text-white font-bold shadow-lg shadow-primary/25 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 text-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                aria-label="Hitung harga rata-rata baru"
               >
                 Hitung Rata-rata
                 <span class="material-symbols-outlined">arrow_forward</span>
@@ -348,8 +371,28 @@
           </div>
         </div>
 
-        <!-- WHY -->
+        <!-- CALCULATION HISTORY -->
         <div class="mt-20 border-t border-gray-200 pt-12">
+          <div class="flex items-center justify-between mb-8 px-1">
+            <h3 class="font-display text-2xl font-bold text-text-main">Riwayat Perhitungan</h3>
+            <button id="clearHistoryBtn" class="text-sm font-bold text-danger hover:text-danger/80">
+              Hapus Riwayat
+            </button>
+          </div>
+
+          <div id="historyContainer" class="glass-surface rounded-2xl border border-slate-200 overflow-hidden">
+            <div id="historyList" class="divide-y divide-slate-100">
+              <div id="noHistoryMessage" class="p-8 text-center text-slate-500">
+                <span class="material-symbols-outlined text-4xl mb-3 block">history</span>
+                <p>Belum ada riwayat perhitungan</p>
+                <p class="text-sm mt-1">Lakukan perhitungan untuk menyimpannya di sini</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- WHY -->
+        <div class="mt-12">
           <h3 class="font-display text-2xl font-bold text-text-main mb-8 text-center">Mengapa average down?</h3>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -407,5 +450,12 @@
         <p class="text-xs text-gray-400 mt-8">© 2025 StockCalcID.</p>
       </div>
     </footer>
+
+    <script>
+      // Initialize theme from utils
+      if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
+        window.CuanMeterUtils.theme.init();
+      }
+    </script>
   </body>
 </html>

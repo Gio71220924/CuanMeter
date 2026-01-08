@@ -20,6 +20,7 @@
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script id="tailwind-config">
       tailwind.config = {
+        darkMode: "class",
         theme: {
           extend: {
             colors: {
@@ -36,6 +37,12 @@
               "success-text": "#059669",
               "danger-light": "#fef2f2",
               "danger-text": "#dc2626",
+              // Dark mode colors
+              "dark-bg": "#0f172a", // slate-900
+              "dark-surface": "#1e293b", // slate-800
+              "dark-text": "#f1f5f9", // slate-100
+              "dark-text-secondary": "#cbd5e1", // slate-300
+              "dark-border": "#334155", // slate-700
             },
             fontFamily: {
               display: ["Manrope", "sans-serif"],
@@ -51,6 +58,7 @@
       };
     </script>
 
+    <script src="utils.js"></script>
     <script src="araarb.js" defer></script>
   </head>
 
@@ -82,6 +90,10 @@
           </nav>
 
           <div class="flex items-center gap-4">
+            <button id="theme-toggle" class="p-2 text-slate-900 rounded-lg hover:bg-slate-100">
+              <span class="material-symbols-outlined dark:hidden">dark_mode</span>
+              <span class="material-symbols-outlined hidden dark:block">light_mode</span>
+            </button>
             <button class="md:hidden p-2 text-slate-900">
               <span class="material-symbols-outlined">menu</span>
             </button>
@@ -131,10 +143,12 @@
 
                 <input
                   id="prevClose"
-                  class="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-primary focus:border-primary text-lg font-bold shadow-sm transition-all group-hover:border-slate-300"
+                  class="block w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-primary focus:border-primary text-lg font-bold shadow-sm transition-all group-hover:border-slate-300 focus:outline-none focus:ring-offset-2"
                   placeholder="0"
                   type="text"
                   value="4800"
+                  aria-label="Harga penutupan sebelumnya"
+                  autocomplete="off"
                 />
               </div>
 
@@ -146,14 +160,15 @@
 
               <div class="space-y-2.5">
                 <label
-                  class="cursor-pointer relative flex items-start p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-primary shadow-sm"
+                  class="cursor-pointer relative flex items-start p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-primary shadow-sm focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2"
                 >
                   <input
                     id="tier1"
-                    class="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary bg-white"
+                    class="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary bg-white focus:outline-none"
                     name="tier"
                     type="radio"
                     value="1"
+                    aria-label="Tingkat 1, harga di bawah Rp 200, fraksi 35%"
                   />
                   <div class="ml-3 flex-1">
                     <div class="flex justify-between">
@@ -167,15 +182,16 @@
                 </label>
 
                 <label
-                  class="cursor-pointer relative flex items-start p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-primary shadow-sm"
+                  class="cursor-pointer relative flex items-start p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-primary shadow-sm focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2"
                 >
                   <input
                     id="tier2"
                     checked
-                    class="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary bg-white"
+                    class="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary bg-white focus:outline-none"
                     name="tier"
                     type="radio"
                     value="2"
+                    aria-label="Tingkat 2, harga Rp 200 - 5,000, fraksi 25%"
                   />
                   <div class="ml-3 flex-1">
                     <div class="flex justify-between">
@@ -191,14 +207,15 @@
                 </label>
 
                 <label
-                  class="cursor-pointer relative flex items-start p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-primary shadow-sm"
+                  class="cursor-pointer relative flex items-start p-4 rounded-xl border border-slate-200 bg-white hover:border-primary/40 transition-all has-[:checked]:border-primary has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-primary shadow-sm focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2"
                 >
                   <input
                     id="tier3"
-                    class="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary bg-white"
+                    class="mt-1 h-4 w-4 border-slate-300 text-primary focus:ring-primary bg-white focus:outline-none"
                     name="tier"
                     type="radio"
                     value="3"
+                    aria-label="Tingkat 3, harga di atas Rp 5,000, fraksi 20%"
                   />
                   <div class="ml-3 flex-1">
                     <div class="flex justify-between">
@@ -215,8 +232,9 @@
 
             <button
               id="calculateBtn"
-              class="w-full py-3.5 mt-2 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+              class="w-full py-3.5 mt-2 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 transition-transform active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
               type="button"
+              aria-label="Perbarui perhitungan ARA/ARB"
             >
               <span class="material-symbols-outlined text-[20px]">refresh</span>
               Perbarui Perhitungan
@@ -386,5 +404,12 @@
         © 2024 StockCalcID. Hak cipta dilindungi.
       </div>
     </footer>
+
+    <script>
+      // Initialize theme from utils
+      if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
+        window.CuanMeterUtils.theme.init();
+      }
+    </script>
   </body>
 </html>

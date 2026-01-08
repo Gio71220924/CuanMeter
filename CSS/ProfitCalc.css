@@ -27,6 +27,7 @@ body {
 .glass-header {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 .header-brand {
@@ -58,8 +59,76 @@ body.glass-page {
 div.glass-card,
 section.glass-card,
 a.glass-card {
-    background-color: rgba(255, 255, 255, 0.68);
+    background-color: rgba(255, 255, 255, 0.75);
     backdrop-filter: blur(14px) saturate(140%);
     -webkit-backdrop-filter: blur(14px) saturate(140%);
-    border-color: rgba(226, 232, 240, 0.75);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+/* Dark mode overrides */
+.dark .glass-header {
+    background: rgba(15, 23, 42, 0.90);
+    border-color: rgba(51, 65, 85, 0.5) !important;
+}
+
+.dark body.glass-page {
+    background:
+        radial-gradient(900px circle at 18% -12%, rgba(14, 165, 233, 0.15), transparent 60%),
+        radial-gradient(800px circle at 92% 8%, rgba(16, 185, 129, 0.10), transparent 55%),
+        radial-gradient(1000px circle at 55% 110%, rgba(245, 158, 11, 0.10), transparent 60%),
+        #0f172a;
+    color: #f1f5f9;
+}
+
+/* Dark Glass Card */
+.dark .glass-card {
+    background-color: rgba(30, 41, 59, 0.70);
+    border-color: rgba(51, 65, 85, 0.6);
+    color: #f1f5f9;
+}
+
+/* Specific background overrides to prevent opacity inheritance issues */
+.dark .glass-card.bg-white {
+    background-color: rgba(30, 41, 59, 0.70) !important;
+}
+
+/* Text Colors in Dark Mode */
+.dark .text-slate-900 { color: #f8fafc !important; }
+.dark .text-slate-800 { color: #f1f5f9 !important; }
+.dark .text-slate-700 { color: #e2e8f0 !important; }
+.dark .text-slate-600 { color: #cbd5e1 !important; }
+.dark .text-slate-500 { color: #94a3b8 !important; }
+.dark .text-slate-400 { color: #64748b !important; }
+
+/* Backgrounds */
+.dark .bg-white { background-color: #1e293b !important; }
+.dark .bg-slate-50 { background-color: #0f172a !important; }
+.dark .bg-slate-100 { background-color: #334155 !important; }
+.dark .bg-primary-light { background-color: rgba(14, 165, 233, 0.2) !important; }
+.dark .bg-accent-mint-light { background-color: rgba(16, 185, 129, 0.2) !important; }
+.dark .bg-accent-yellow-light { background-color: rgba(245, 158, 11, 0.2) !important; }
+.dark .bg-rose-50 { background-color: rgba(244, 63, 94, 0.2) !important; }
+
+/* Borders */
+.dark .border-slate-100,
+.dark .border-slate-200 {
+    border-color: #334155 !important;
+}
+
+/* Inputs */
+.dark input {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+.dark input:focus {
+    background-color: #0f172a !important;
+    border-color: #0ea5e9 !important;
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.2) !important;
+}
+
+/* Table */
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+    border-color: #334155 !important;
 }

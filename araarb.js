@@ -28,49 +28,20 @@
 
   if (!els.prevClose) return;
 
-  const nf0 = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
-  const nfPct = new Intl.NumberFormat("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const { formatters, idx, storage } = window.CuanMeterUtils;
+  const HISTORY_KEY = 'araarbHistory';
 
-  const toNonNegativeInt = (value) => {
-    if (value === null || value === undefined) return 0;
-    const raw = String(value).trim();
-    if (raw === "") return 0;
-    const digits = raw.replace(/[^\d]/g, "");
-    if (digits === "") return 0;
-    const numberValue = Number(digits);
-    if (!Number.isFinite(numberValue) || numberValue <= 0) return 0;
-    return Math.floor(numberValue);
-  };
+  const formatTick = (tick) => `Rp ${formatters.nf0.format(tick)}`;
 
-  const formatNumber = (value) => nf0.format(Math.round(value || 0));
-  const formatTick = (tick) => `Rp ${formatNumber(tick)}`;
+  const getFormData = () => {
+    const basePrice = formatters.toNonNegativeInt(els.prevClose.value);
+    const { tier, pct } = idx.getAraArbTier(basePrice);
 
-  const getAraArbTier = (price) => {
-    if (price < 200) return { tier: 1, pct: 0.35 };
-    if (price <= 5000) return { tier: 2, pct: 0.25 };
-    return { tier: 3, pct: 0.2 };
-  };
-
-  const getTickSize = (price) => {
-    if (price < 200) return 1;
-    if (price < 500) return 2;
-    if (price < 2000) return 5;
-    if (price < 5000) return 10;
-    if (price < 10000) return 25;
-    if (price < 20000) return 50;
-    return 100;
-  };
-
-  const floorToTick = (value) => {
-    const tick = getTickSize(value);
-    if (!Number.isFinite(tick) || tick <= 0) return Math.floor(value);
-    return Math.floor(value / tick) * tick;
-  };
-
-  const ceilToTick = (value) => {
-    const tick = getTickSize(value);
-    if (!Number.isFinite(tick) || tick <= 0) return Math.ceil(value);
-    return Math.ceil(value / tick) * tick;
+    return {
+      basePrice,
+      tier,
+      pct
+    };
   };
 
   const setTier = (tier) => {
@@ -103,57 +74,102 @@
     if (els.analysisArbTick) els.analysisArbTick.textContent = "Rp 1";
   };
 
-  const render = () => {
-    const basePrice = toNonNegativeInt(els.prevClose.value);
+  const calculate = () => {
+    const basePrice = formatters.toNonNegativeInt(els.prevClose.value);
     if (basePrice <= 0) {
-      renderEmpty();
-      return;
+      return null;
     }
 
-    const { tier, pct } = getAraArbTier(basePrice);
-    setTier(tier);
+    const { tier, pct } = idx.getAraArbTier(basePrice);
 
     const rawAra = basePrice * (1 + pct);
     const rawArb = basePrice * (1 - pct);
 
-    const araPrice = floorToTick(rawAra);
-    const arbPrice = Math.max(0, ceilToTick(rawArb));
+    const araPrice = idx.floorToTick(rawAra);
+    const arbPrice = Math.max(0, idx.ceilToTick(rawArb));
 
-    const araTick = getTickSize(araPrice);
-    const baseTick = getTickSize(basePrice);
-    const arbTick = getTickSize(arbPrice);
+    const araTick = idx.getTickSize(araPrice);
+    const baseTick = idx.getTickSize(basePrice);
+    const arbTick = idx.getTickSize(arbPrice);
 
     const araDelta = araPrice - basePrice;
     const arbDelta = basePrice - arbPrice;
 
-    if (els.araPctBadge) els.araPctBadge.textContent = `+${nfPct.format(pct * 100)}%`;
-    if (els.arbPctBadge) els.arbPctBadge.textContent = `-${nfPct.format(pct * 100)}%`;
+    return {
+      basePrice,
+      tier,
+      pct,
+      araPrice,
+      arbPrice,
+      araDelta,
+      arbDelta,
+      araTick,
+      baseTick,
+      arbTick
+    };
+  };
 
-    if (els.araPrice) els.araPrice.textContent = formatNumber(araPrice);
-    if (els.arbPrice) els.arbPrice.textContent = formatNumber(arbPrice);
+  const render = () => {
+    const result = calculate();
+    if (!result) {
+      renderEmpty();
+      return;
+    }
 
-    if (els.araDeltaText) els.araDeltaText.textContent = `Naik Rp ${formatNumber(araDelta)}`;
-    if (els.arbDeltaText) els.arbDeltaText.textContent = `Turun Rp ${formatNumber(arbDelta)}`;
+    const { basePrice, tier, pct, araPrice, arbPrice, araDelta, arbDelta, araTick, baseTick, arbTick } = result;
 
-    if (els.analysisReference) els.analysisReference.textContent = `Berdasarkan Rp ${formatNumber(basePrice)}`;
+    setTier(tier);
 
-    if (els.analysisAraPrice) els.analysisAraPrice.textContent = formatNumber(araPrice);
+    if (els.araPctBadge) els.araPctBadge.textContent = `+${formatters.formatPct(pct * 100)}%`;
+    if (els.arbPctBadge) els.arbPctBadge.textContent = `-${formatters.formatPct(pct * 100)}%`;
+
+    if (els.araPrice) els.araPrice.textContent = formatters.nf0.format(araPrice);
+    if (els.arbPrice) els.arbPrice.textContent = formatters.nf0.format(arbPrice);
+
+    if (els.araDeltaText) els.araDeltaText.textContent = `Naik Rp ${formatters.nf0.format(araDelta)}`;
+    if (els.arbDeltaText) els.arbDeltaText.textContent = `Turun Rp ${formatters.nf0.format(arbDelta)}`;
+
+    if (els.analysisReference) els.analysisReference.textContent = `Berdasarkan Rp ${formatters.nf0.format(basePrice)}`;
+
+    if (els.analysisAraPrice) els.analysisAraPrice.textContent = formatters.nf0.format(araPrice);
     if (els.analysisAraTick) els.analysisAraTick.textContent = formatTick(araTick);
 
-    if (els.analysisBasePrice) els.analysisBasePrice.textContent = formatNumber(basePrice);
+    if (els.analysisBasePrice) els.analysisBasePrice.textContent = formatters.nf0.format(basePrice);
     if (els.analysisBaseTick) els.analysisBaseTick.textContent = formatTick(baseTick);
 
-    if (els.analysisArbPrice) els.analysisArbPrice.textContent = formatNumber(arbPrice);
+    if (els.analysisArbPrice) els.analysisArbPrice.textContent = formatters.nf0.format(arbPrice);
     if (els.analysisArbTick) els.analysisArbTick.textContent = formatTick(arbTick);
+  };
+
+  // Save to history after calculation
+  const saveCurrentCalculation = () => {
+    const formData = getFormData();
+    const result = calculate();
+
+    if (result && result.basePrice > 0) {
+      const historyData = {
+        ...formData,
+        result: {
+          araPrice: result.araPrice,
+          arbPrice: result.arbPrice,
+          araDelta: result.araDelta,
+          arbDelta: result.arbDelta
+        }
+      };
+
+      storage.save(HISTORY_KEY, historyData, 10, 'ara_arb');
+    }
   };
 
   const bindEvents = () => {
     els.prevClose?.addEventListener("input", render);
     els.prevClose?.addEventListener("change", render);
-    els.calculateBtn?.addEventListener("click", render);
+    els.calculateBtn?.addEventListener("click", () => {
+      render();
+      saveCurrentCalculation();
+    });
   };
 
   bindEvents();
   render();
 })();
-
