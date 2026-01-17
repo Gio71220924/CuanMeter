@@ -1,0 +1,22 @@
+{
+    "name": "stockcalcid",
+    "version": "1.0.0",
+    "description": "Kalkulator saham gratis untuk trader Indonesia - StockCalcID",
+    "scripts": {
+        "dev": "npx -y live-server --port=3000 --no-browser",
+        "build:css": "npx tailwindcss -o CSS/tailwind-output.css --minify",
+        "watch:css": "npx tailwindcss -o CSS/tailwind-output.css --watch"
+    },
+    "keywords": [
+        "stock calculator",
+        "trading",
+        "indonesia",
+        "idx",
+        "saham"
+    ],
+    "author": "StockCalcID",
+    "license": "MIT",
+    "devDependencies": {
+        "tailwindcss": "^3.4.0"
+    }
+}
