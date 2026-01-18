@@ -3,20 +3,28 @@
     "version": "1.0.0",
     "description": "Kalkulator saham gratis untuk trader Indonesia - StockCalcID",
     "scripts": {
-        "dev": "npx -y live-server --port=3000 --no-browser",
-        "build:css": "npx tailwindcss -o CSS/tailwind-output.css --minify",
-        "watch:css": "npx tailwindcss -o CSS/tailwind-output.css --watch"
+        "dev": "npm run watch:css & npx -y live-server --port=3000",
+        "build": "npm run build:css && npm run build:js",
+        "build:css": "npx tailwindcss -i CSS/LandingPage.css -o CSS/tailwind-output.css --minify",
+        "watch:css": "npx tailwindcss -i CSS/LandingPage.css -o CSS/tailwind-output.css --watch",
+        "build:js": "echo 'JS minification placeholder - add terser if needed'",
+        "start": "npx -y live-server --port=3000"
     },
     "keywords": [
         "stock calculator",
         "trading",
         "indonesia",
         "idx",
-        "saham"
+        "saham",
+        "bursa efek",
+        "pwa"
     ],
     "author": "StockCalcID",
     "license": "MIT",
     "devDependencies": {
-        "tailwindcss": "^3.4.0"
+        "tailwindcss": "^3.4.0",
+        "postcss": "^8.4.32",
+        "autoprefixer": "^10.4.16",
+        "cssnano": "^6.0.2"
     }
 }

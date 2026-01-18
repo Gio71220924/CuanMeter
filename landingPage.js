@@ -1,22 +1,34 @@
 // Mobile Menu Toggle
-const mobileMenuToggle = document.querySelector('.md\\:hidden');
+const mobileMenuToggle = document.querySelector('button.md\\:hidden');
 const mobileMenu = document.getElementById('mobile-menu');
 
 if (mobileMenuToggle) {
-    mobileMenuToggle.addEventListener('click', () => {
-        if (!mobileMenu) {
-            // Create mobile menu if it doesn't exist
-            createMobileMenu();
+    mobileMenuToggle.addEventListener('click', (e) => {
+        try {
+            e.preventDefault();
+            if (!document.getElementById('mobile-menu')) {
+                // Create mobile menu if it doesn't exist
+                createMobileMenu();
+            }
+            toggleMobileMenu();
+        } catch (error) {
+            console.error('Error toggling mobile menu:', error);
+            if (window.CuanMeterToast) {
+                window.CuanMeterToast.error('Gagal membuka menu');
+            }
         }
-        toggleMobileMenu();
     });
 }
 
 function createMobileMenu() {
-    const nav = document.querySelector('nav.hidden.md\\:flex');
-    if (!nav) return;
+    try {
+        const nav = document.querySelector('nav.hidden.md\\:flex');
+        if (!nav) {
+            console.warn('Navigation element not found');
+            return;
+        }
 
-    const mobileMenuHTML = `
+        const mobileMenuHTML = `
     <div id="mobile-menu" class="mobile-menu">
       <div class="mobile-menu-backdrop"></div>
       <div class="mobile-menu-panel">
@@ -27,7 +39,7 @@ function createMobileMenu() {
             </div>
             <h2 class="text-xl font-extrabold text-slate-900 font-display">StockCalcID</h2>
           </div>
-          <button class="mobile-menu-close p-2 text-slate-900 rounded-lg hover:bg-slate-100">
+          <button class="mobile-menu-close p-2 text-slate-900 rounded-lg hover:bg-slate-100" aria-label="Tutup menu">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
@@ -57,174 +69,281 @@ function createMobileMenu() {
     </div>
   `;
 
-    document.body.insertAdjacentHTML('beforeend', mobileMenuHTML);
+        document.body.insertAdjacentHTML('beforeend', mobileMenuHTML);
 
-    // Add event listener to close button
-    const closeBtn = document.querySelector('.mobile-menu-close');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', toggleMobileMenu);
-    }
+        // Add event listener to close button
+        const closeBtn = document.querySelector('.mobile-menu-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                try {
+                    e.preventDefault();
+                    toggleMobileMenu();
+                } catch (error) {
+                    console.error('Error closing mobile menu:', error);
+                }
+            });
+        }
 
-    // Close on backdrop click
-    const backdrop = document.querySelector('.mobile-menu-backdrop');
-    if (backdrop) {
-        backdrop.addEventListener('click', toggleMobileMenu);
-    }
+        // Close on backdrop click
+        const backdrop = document.querySelector('.mobile-menu-backdrop');
+        if (backdrop) {
+            backdrop.addEventListener('click', toggleMobileMenu);
+        }
 
-    // Close on link click
-    const links = document.querySelectorAll('.mobile-menu-link');
-    links.forEach(link => {
-        link.addEventListener('click', () => {
-            setTimeout(toggleMobileMenu, 300);
+        // Close on link click
+        const links = document.querySelectorAll('.mobile-menu-link');
+        links.forEach(link => {
+            link.addEventListener('click', () => {
+                setTimeout(toggleMobileMenu, 300);
+            });
         });
-    });
+    } catch (error) {
+        console.error('Error creating mobile menu:', error);
+        if (window.CuanMeterToast) {
+            window.CuanMeterToast.error('Gagal membuat menu mobile');
+        }
+    }
 }
 
 function toggleMobileMenu() {
-    const menu = document.getElementById('mobile-menu');
-    if (!menu) return;
+    try {
+        const menu = document.getElementById('mobile-menu');
+        if (!menu) {
+            console.warn('Mobile menu not found');
+            return;
+        }
 
-    menu.classList.toggle('active');
-    document.body.classList.toggle('menu-open');
+        menu.classList.toggle('active');
+        document.body.classList.toggle('menu-open');
+
+        // Manage focus for accessibility
+        if (menu.classList.contains('active')) {
+            const closeBtn = menu.querySelector('.mobile-menu-close');
+            if (closeBtn) closeBtn.focus();
+        }
+    } catch (error) {
+        console.error('Error in toggleMobileMenu:', error);
+    }
 }
 
 // Calculator Navigation Buttons
 function initCalculatorButtons() {
-    // Average Price Calculator
-    const avgPriceBtn = document.querySelector('#tools .grid > div:nth-child(1) button');
-    if (avgPriceBtn) {
-        avgPriceBtn.addEventListener('click', () => {
-            window.location.href = 'AveragePrice.html';
-        });
-    }
+    try {
+        // Average Price Calculator
+        const avgPriceBtn = document.querySelector('#tools .grid > div:nth-child(1) button');
+        if (avgPriceBtn) {
+            avgPriceBtn.addEventListener('click', () => {
+                try {
+                    window.location.href = 'AveragePrice.html';
+                } catch (error) {
+                    console.error('Error navigating to Average Price calculator:', error);
+                    if (window.CuanMeterToast) {
+                        window.CuanMeterToast.error('Gagal membuka kalkulator');
+                    }
+                }
+            });
+        }
 
-    // ARA/ARB Calculator
-    const araArbBtn = document.querySelector('#tools .grid > div:nth-child(2) button');
-    if (araArbBtn) {
-        araArbBtn.addEventListener('click', () => {
-            window.location.href = 'ARAARB.html';
-        });
-    }
+        // ARA/ARB Calculator
+        const araArbBtn = document.querySelector('#tools .grid > div:nth-child(2) button');
+        if (araArbBtn) {
+            araArbBtn.addEventListener('click', () => {
+                try {
+                    window.location.href = 'ARAARB.html';
+                } catch (error) {
+                    console.error('Error navigating to ARA/ARB calculator:', error);
+                    if (window.CuanMeterToast) {
+                        window.CuanMeterToast.error('Gagal membuka kalkulator');
+                    }
+                }
+            });
+        }
 
-    // Profit Calculator
-    const profitBtn = document.querySelector('#tools .grid > div:nth-child(3) button');
-    if (profitBtn) {
-        profitBtn.addEventListener('click', () => {
-            window.location.href = 'ProfitCalc.html';
-        });
+        // Profit Calculator
+        const profitBtn = document.querySelector('#tools .grid > div:nth-child(3) button');
+        if (profitBtn) {
+            profitBtn.addEventListener('click', () => {
+                try {
+                    window.location.href = 'ProfitCalc.html';
+                } catch (error) {
+                    console.error('Error navigating to Profit calculator:', error);
+                    if (window.CuanMeterToast) {
+                        window.CuanMeterToast.error('Gagal membuka kalkulator');
+                    }
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error initializing calculator buttons:', error);
     }
 }
 
 // Lazy Loading Images
 function initLazyLoading() {
-    const images = document.querySelectorAll('img[loading="lazy"]');
+    try {
+        const images = document.querySelectorAll('img[loading="lazy"]');
 
-    if ('IntersectionObserver' in window) {
-        const imageObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    if (img.dataset.src) {
-                        img.src = img.dataset.src;
-                        img.removeAttribute('data-src');
+        if ('IntersectionObserver' in window) {
+            const imageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        if (img.dataset.src) {
+                            img.src = img.dataset.src;
+                            img.removeAttribute('data-src');
+                        }
+                        img.classList.add('loaded');
+                        observer.unobserve(img);
                     }
-                    observer.unobserve(img);
+                });
+            }, {
+                rootMargin: '50px'
+            });
+
+            images.forEach(img => imageObserver.observe(img));
+        } else {
+            // Fallback for browsers without IntersectionObserver
+            images.forEach(img => {
+                if (img.dataset.src) {
+                    img.src = img.dataset.src;
                 }
             });
-        });
-
-        images.forEach(img => imageObserver.observe(img));
-    } else {
-        // Fallback for browsers without IntersectionObserver
-        images.forEach(img => {
-            if (img.dataset.src) {
-                img.src = img.dataset.src;
-            }
-        });
+        }
+    } catch (error) {
+        console.error('Error initializing lazy loading:', error);
     }
 }
 
 // Scroll to Top Button
 function initScrollToTop() {
-    const scrollBtn = document.getElementById('scroll-to-top');
-    if (!scrollBtn) return;
-
-    window.addEventListener('scroll', () => {
-        if (window.pageYOffset > 300) {
-            scrollBtn.classList.add('visible');
-        } else {
-            scrollBtn.classList.remove('visible');
+    try {
+        const scrollBtn = document.getElementById('scroll-to-top');
+        if (!scrollBtn) {
+            console.warn('Scroll to top button not found');
+            return;
         }
-    });
 
-    scrollBtn.addEventListener('click', () => {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
+        let isScrolling = false;
+
+        window.addEventListener('scroll', () => {
+            if (!isScrolling) {
+                window.requestAnimationFrame(() => {
+                    if (window.pageYOffset > 300) {
+                        scrollBtn.classList.add('visible');
+                    } else {
+                        scrollBtn.classList.remove('visible');
+                    }
+                    isScrolling = false;
+                });
+                isScrolling = true;
+            }
+        }, { passive: true });
+
+        scrollBtn.addEventListener('click', () => {
+            try {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            } catch (error) {
+                // Fallback for older browsers
+                window.scrollTo(0, 0);
+            }
         });
-    });
+    } catch (error) {
+        console.error('Error initializing scroll to top:', error);
+    }
 }
 
 // Smooth Scroll for Anchor Links
 function initSmoothScroll() {
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            const href = this.getAttribute('href');
-            if (href === '#') return;
+    try {
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                try {
+                    const href = this.getAttribute('href');
+                    if (href === '#' || !href) return;
 
-            const target = document.querySelector(href);
-            if (target) {
-                e.preventDefault();
-                const headerOffset = 80;
-                const elementPosition = target.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                    const target = document.querySelector(href);
+                    if (target) {
+                        e.preventDefault();
+                        const headerOffset = 80;
+                        const elementPosition = target.getBoundingClientRect().top;
+                        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                });
-            }
+                        window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error in smooth scroll:', error);
+                }
+            });
         });
-    });
+    } catch (error) {
+        console.error('Error initializing smooth scroll:', error);
+    }
 }
 
 // Analytics (placeholder for Google Analytics or other)
 function initAnalytics() {
-    // Add your analytics initialization here
-    // Example: gtag('config', 'GA_MEASUREMENT_ID');
-    console.log('Analytics initialized');
+    try {
+        // Add your analytics initialization here
+        // Example: gtag('config', 'GA_MEASUREMENT_ID');
+        console.log('Analytics initialized');
+    } catch (error) {
+        console.error('Error initializing analytics:', error);
+    }
 }
 
 // Error handling for utils.js
 function checkUtils() {
-    if (typeof window.CuanMeterUtils === 'undefined') {
-        console.warn('CuanMeterUtils not loaded. Some features may not work.');
+    try {
+        if (typeof window.CuanMeterUtils === 'undefined') {
+            console.warn('CuanMeterUtils not loaded. Some features may not work.');
+            return false;
+        }
+        return true;
+    } catch (error) {
+        console.error('Error checking utils:', error);
         return false;
     }
-    return true;
 }
 
 // Initialize everything when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    checkUtils();
-    initCalculatorButtons();
-    initLazyLoading();
-    initSmoothScroll();
-    initScrollToTop();
-    initAnalytics();
+    try {
+        checkUtils();
+        initCalculatorButtons();
+        initLazyLoading();
+        initSmoothScroll();
+        initScrollToTop();
+        initAnalytics();
 
-    // Initialize theme from utils
-    if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
-        window.CuanMeterUtils.theme.init();
+        // Initialize theme from utils
+        if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
+            window.CuanMeterUtils.theme.init();
+        }
+    } catch (error) {
+        console.error('Error during initialization:', error);
+        if (window.CuanMeterToast) {
+            window.CuanMeterToast.error('Terjadi kesalahan saat memuat halaman');
+        }
     }
 });
 
 // Prevent FOUC (Flash of Unstyled Content) for dark mode
 (function () {
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    try {
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-        document.documentElement.classList.add('dark');
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+            document.documentElement.classList.add('dark');
+        }
+    } catch (error) {
+        console.error('Error preventing FOUC:', error);
     }
 })();
+

@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+CSS/tailwind-output.css
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Environment
+.env
+.env.local
+
+# Testing
+coverage/
+*.test.js
+
+# Lighthouse reports
+*-report.html

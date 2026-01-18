@@ -41,8 +41,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
+  <!-- Preload critical assets -->
+  <link rel="preload"
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap"
+    as="style" />
+  <link rel="preload" href="assets/images/hero-illustration.webp" as="image" />
+  <link rel="preload" href="utils.js" as="script" />
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json" />
+
   <!-- Theme Color -->
-  <meta name="theme-color" content="#0ea5e9" />
+  <meta name="theme-color" content="#0ea5e9" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
 
   <link href="https://fonts.googleapis.com" rel="preconnect" />
   <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
@@ -53,8 +64,22 @@
     rel="stylesheet" />
 
   <link href="CSS/LandingPage.css" rel="stylesheet" />
+  <!-- Compiled Tailwind CSS for production -->
+  <link href="CSS/tailwind-output.css" rel="stylesheet" />
 
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <!-- CDN fallback for development only -->
+  <script>
+    // Use CDN only if compiled CSS fails to load
+    var link = document.createElement('link');
+    link.onload = function () { /* Compiled CSS loaded successfully */ };
+    link.onerror = function () {
+      // Fallback to CDN if compiled CSS doesn't exist
+      var script = document.createElement('script');
+      script.src = 'https://cdn.tailwindcss.com?plugins=forms,container-queries';
+      document.head.appendChild(script);
+    };
+  </script>
+
   <script id="tailwind-config">
     tailwind.config = {
       darkMode: "class",
@@ -196,10 +221,14 @@
 
             <div
               class="relative w-full aspect-square md:aspect-[4/3] lg:aspect-square max-h-[560px] rounded-3xl overflow-hidden shadow-2xl shadow-slate-200 z-10 order-1 lg:order-2 bg-slate-50">
-              <img src="assets/images/hero-illustration.png"
-                alt="Ilustrasi modern minimalis dengan grafik candlestick dan elemen finansial 3D dalam gradien biru dan hijau"
-                class="w-full h-full object-cover transition-transform duration-700 hover:scale-105" loading="eager"
-                width="560" height="560" />
+              <picture>
+                <source srcset="assets/images/hero-illustration.webp" type="image/webp">
+                <source srcset="assets/images/hero-illustration.png" type="image/png">
+                <img src="assets/images/hero-illustration.png"
+                  alt="Ilustrasi modern minimalis dengan grafik candlestick 3D, grafik tren naik, dan elemen geometris dalam gradien biru sky dan hijau mint - representasi visual analisis pasar saham"
+                  class="w-full h-full object-cover transition-transform duration-700 hover:scale-105" loading="eager"
+                  width="560" height="560" />
+              </picture>
             </div>
           </div>
         </div>
@@ -347,9 +376,13 @@
           <div class="w-full lg:w-1/2">
             <div
               class="rounded-3xl overflow-hidden shadow-2xl shadow-slate-200 aspect-video transition-transform hover:scale-[1.02] duration-500">
-              <img src="assets/images/desktop-mockup.png"
-                alt="Mockup laptop menampilkan dashboard analitik saham dengan grafik dan visualisasi data pasar dalam antarmuka modern"
-                class="w-full h-full object-cover" loading="lazy" width="800" height="450" />
+              <picture>
+                <source srcset="assets/images/desktop-mockup.webp" type="image/webp">
+                <source srcset="assets/images/desktop-mockup.png" type="image/png">
+                <img src="assets/images/desktop-mockup.png"
+                  alt="Dashboard modern dark mode menampilkan grafik candlestick saham IHSG, kartu harga saham BBCA, BBRI, TLKM, tabel data trading dengan glassmorphism UI - platform analisis saham profesional"
+                  class="w-full h-full object-cover" loading="lazy" width="800" height="450" />
+              </picture>
             </div>
           </div>
 
@@ -479,7 +512,11 @@
 
   <!-- Scripts -->
   <script src="utils.js"></script>
-  <script src="landingPage.js"></script>
+  <script src="toast.js" defer></script>
+  <script src="landingPage.js" defer></script>
+  <script src="animations.js" defer></script>
+  <script src="analytics.js" defer></script>
+  <script src="pwa-install.js" defer></script>
 
   <!-- Structured Data for SEO -->
   <script type="application/ld+json">
@@ -503,6 +540,25 @@
         "Simulasi Profit & Loss",
         "Gratis Selamanya",
         "Tanpa Iklan"
+      ],
+      "author": {
+        "@type": "Organization",
+        "name": "StockCalcID"
+      }
+    }
+    </script>
+
+  <!-- Organization Structured Data -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "StockCalcID",
+      "url": "https://stockcalcid.com",
+      "logo": "https://stockcalcid.com/assets/images/favicon.png",
+      "description": "Platform kalkulator saham gratis untuk trader Indonesia dengan fitur hitung rata-rata, ARA/ARB, dan simulasi profit.",
+      "sameAs": [
+        "https://stockcalcid.com"
       ]
     }
     </script>
