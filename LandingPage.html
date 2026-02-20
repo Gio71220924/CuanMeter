@@ -63,21 +63,26 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
     rel="stylesheet" />
 
-  <link href="CSS/LandingPage.css" rel="stylesheet" />
   <!-- Compiled Tailwind CSS for production -->
-  <link href="CSS/tailwind-output.css" rel="stylesheet" />
+  <link id="tailwind-output" href="CSS/tailwind-output.css" rel="stylesheet" 
+        onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://cdn.tailwindcss.com?plugins=forms,container-queries'; document.head.appendChild(s);" />
 
-  <!-- CDN fallback for development only -->
   <script>
-    // Use CDN only if compiled CSS fails to load
-    var link = document.createElement('link');
-    link.onload = function () { /* Compiled CSS loaded successfully */ };
-    link.onerror = function () {
-      // Fallback to CDN if compiled CSS doesn't exist
-      var script = document.createElement('script');
-      script.src = 'https://cdn.tailwindcss.com?plugins=forms,container-queries';
-      document.head.appendChild(script);
-    };
+    // Secondary check: if tailwind-output loaded but is effectively empty (missing utilities)
+    // or if the link tag failed silently
+    window.addEventListener('DOMContentLoaded', () => {
+      const outputLink = document.getElementById('tailwind-output');
+      const isTailwindLoaded = Array.from(document.styleSheets).some(ss => 
+        ss.href && ss.href.includes('tailwind-output.css') && ss.cssRules.length > 50
+      );
+      
+      if (!isTailwindLoaded && !window.tailwind) {
+        console.warn('Tailwind output CSS not found or incomplete, falling back to CDN');
+        const s = document.createElement('script');
+        s.src = 'https://cdn.tailwindcss.com?plugins=forms,container-queries';
+        document.head.appendChild(s);
+      }
+    });
   </script>
 
   <script id="tailwind-config">
