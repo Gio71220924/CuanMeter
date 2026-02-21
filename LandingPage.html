@@ -33,7 +33,17 @@
   <link id="tailwind-output" href="CSS/tailwind-output.css" rel="stylesheet" 
         onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://cdn.tailwindcss.com?plugins=forms,container-queries'; document.head.appendChild(s);" />
 
+  <script src="utils.js"></script>
   <script id="tailwind-config">
+    // Apply theme class immediately to prevent FOUC
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+
     tailwind.config = {
       darkMode: "class",
       theme: {
@@ -76,9 +86,9 @@
             <div class="size-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 dark:shadow-none transition-transform group-hover:scale-105">
               <span class="material-symbols-outlined text-[24px]">candlestick_chart</span>
             </div>
-            <h2 class="header-brand text-xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white font-display transition-colors">
+            <a href="LandingPage.html" class="header-brand text-xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white font-display transition-colors">
               StockCalcID
-            </h2>
+            </a>
           </div>
 
           <nav class="hidden md:flex items-center gap-8">
@@ -250,7 +260,13 @@
     </footer>
   </div>
 
-  <script src="utils.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
+        window.CuanMeterUtils.theme.init();
+      }
+    });
+  </script>
   <script src="landingPage.js" defer></script>
 </body>
 </html>

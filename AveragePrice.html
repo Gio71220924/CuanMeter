@@ -80,28 +80,23 @@
   </head>
 
   <body class="glass-page font-body min-h-screen flex flex-col antialiased bg-white dark:bg-dark-bg text-slate-900 dark:text-white transition-colors duration-300">
-    <header class="glass-header fixed top-0 left-0 right-0 z-50 border-b border-slate-100 dark:border-dark-border font-display transition-colors">
+    <header class="glass-header fixed top-0 left-0 right-0 z-50 border-b border-slate-100 dark:border-dark-border font-display bg-white/80 dark:bg-dark-bg/80 backdrop-blur transition-colors">
       <div class="flex justify-center w-full">
         <div class="flex items-center justify-between w-full max-w-[1280px] px-6 py-4 md:px-10">
           <div class="flex items-center gap-3 cursor-pointer group">
-            <div
-              class="size-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 transition-transform group-hover:scale-105"
-            >
+            <div class="size-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 dark:shadow-none transition-transform group-hover:scale-105">
               <span class="material-symbols-outlined text-[24px]">candlestick_chart</span>
             </div>
-            <a href="LandingPage.html" class="header-brand text-xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white font-display transition-colors">StockCalcID</a>
+            <a href="LandingPage.html" class="header-brand text-xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white font-display transition-colors">
+              StockCalcID
+            </a>
           </div>
 
-          <nav class="hidden md:flex items-center gap-10">
-            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors" href="AveragePrice.html">
-              Kalkulator Rata-rata Saham
-            </a>
-            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors" href="ARAARB.html">
-              Cek ARA/ARB
-            </a>
-            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors" href="ProfitCalc.html">
-              Simulasi Profit
-            </a>
+          <nav class="hidden md:flex items-center gap-8">
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="AveragePrice.html">Rata-rata</a>
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="ARAARB.html">ARA/ARB</a>
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="ProfitCalc.html">Profit</a>
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="DividendYield.html">Dividen</a>
           </nav>
 
           <div class="flex items-center gap-4">
@@ -109,7 +104,7 @@
               <span class="material-symbols-outlined dark:hidden">dark_mode</span>
               <span class="material-symbols-outlined hidden dark:block">light_mode</span>
             </button>
-            <button class="md:hidden p-2 text-slate-900 dark:text-white" type="button">
+            <button class="md:hidden p-2 text-slate-900 dark:text-white">
               <span class="material-symbols-outlined">menu</span>
             </button>
           </div>
