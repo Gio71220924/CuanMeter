@@ -10,36 +10,50 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
 
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        primary: "#0ea5e9",
-                        "primary-hover": "#0284c7",
-                        "primary-light": "#e0f2fe",
-                        "accent-mint": "#10b981",
-                        "accent-yellow": "#f59e0b",
-                        "dark-bg": "#0f172a",
-                        "dark-surface": "#1e293b",
-                        "dark-border": "#334155",
-                    },
-                    fontFamily: {
-                        display: ["Manrope", "sans-serif"],
-                        body: ["Noto Sans", "sans-serif"],
-                    },
-                },
-            },
-        };
-    </script>
+  <!-- Compiled Tailwind CSS -->
+  <link id="tailwind-output" href="CSS/tailwind-output.css" rel="stylesheet" 
+        onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://cdn.tailwindcss.com?plugins=forms,container-queries'; document.head.appendChild(s);" />
+
+  <script src="utils.js"></script>
+  <script id="tailwind-config">
+    // Apply theme class immediately to prevent FOUC
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#0ea5e9",
+            "primary-hover": "#0284c7",
+            "primary-light": "#e0f2fe",
+            "accent-mint": "#10b981",
+            "accent-yellow": "#f59e0b",
+            "dark-bg": "#0f172a",
+            "dark-surface": "#1e293b",
+            "dark-border": "#334155",
+          },
+          fontFamily: {
+            display: ["Manrope", "sans-serif"],
+            body: ["Noto Sans", "sans-serif"],
+          },
+        },
+      },
+    };
+  </script>
     
-    <script src="utils.js"></script>
     <script src="dividend.js" defer></script>
+    <script src="shareImage.js" defer></script>
 </head>
 
-<body class="glass-page bg-white dark:bg-dark-bg text-slate-900 dark:text-white font-body transition-colors duration-300 min-h-screen flex flex-col antialiased">
+<body class="glass-page bg-white dark:bg-dark-bg text-slate-600 dark:text-slate-300 font-body transition-colors duration-300">
+  <div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden transition-colors">
     <header class="glass-header fixed top-0 left-0 right-0 z-50 border-b border-slate-100 dark:border-dark-border font-display bg-white/80 dark:bg-dark-bg/80 backdrop-blur transition-colors">
       <div class="flex justify-center w-full">
         <div class="flex items-center justify-between w-full max-w-[1280px] px-6 py-4 md:px-10">
@@ -56,6 +70,7 @@
             <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="AveragePrice.html">Rata-rata</a>
             <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="ARAARB.html">ARA/ARB</a>
             <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="ProfitCalc.html">Profit</a>
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="PositionSize.html">Amunisi</a>
             <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="DividendYield.html">Dividen</a>
           </nav>
 
@@ -213,5 +228,14 @@
             <p class="text-xs text-gray-400 dark:text-slate-500 mt-8">© 2026 StockCalcID.</p>
         </div>
     </footer>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
+        window.CuanMeterUtils.theme.init();
+      }
+    });
+  </script>
 </body>
 </html>

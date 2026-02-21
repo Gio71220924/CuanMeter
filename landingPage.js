@@ -56,6 +56,10 @@ function createMobileMenu() {
             <span class="material-symbols-outlined">savings</span>
             Simulasi Profit
           </a>
+          <a class="mobile-menu-link" href="PositionSize.html">
+            <span class="material-symbols-outlined">security</span>
+            Kalkulator Amunisi
+          </a>
           <a class="mobile-menu-link" href="DividendYield.html">
             <span class="material-symbols-outlined">payments</span>
             Kalkulator Dividen
