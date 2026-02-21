@@ -35,19 +35,19 @@
 
   const getFormData = () => {
     const basePrice = formatters.toNonNegativeInt(els.prevClose.value);
-    const { tier, pct } = idx.getAraArbTier(basePrice);
+    const { araPct, arbPct } = idx.getAraArbTier(basePrice);
 
     return {
       basePrice,
-      tier,
-      pct
+      araPct,
+      arbPct
     };
   };
 
-  const setTier = (tier) => {
-    if (els.tier1) els.tier1.checked = tier === 1;
-    if (els.tier2) els.tier2.checked = tier === 2;
-    if (els.tier3) els.tier3.checked = tier === 3;
+  const setTier = (basePrice) => {
+    if (els.tier1) els.tier1.checked = basePrice < 200;
+    if (els.tier2) els.tier2.checked = basePrice >= 200 && basePrice <= 5000;
+    if (els.tier3) els.tier3.checked = basePrice > 5000;
   };
 
   const renderEmpty = () => {
@@ -80,10 +80,10 @@
       return null;
     }
 
-    const { tier, pct } = idx.getAraArbTier(basePrice);
+    const { araPct, arbPct } = idx.getAraArbTier(basePrice);
 
-    const rawAra = basePrice * (1 + pct);
-    const rawArb = basePrice * (1 - pct);
+    const rawAra = basePrice * (1 + araPct);
+    const rawArb = basePrice * (1 - arbPct);
 
     const araPrice = idx.floorToTick(rawAra);
     const arbPrice = Math.max(0, idx.ceilToTick(rawArb));
@@ -97,8 +97,8 @@
 
     return {
       basePrice,
-      tier,
-      pct,
+      araPct,
+      arbPct,
       araPrice,
       arbPrice,
       araDelta,
@@ -116,12 +116,12 @@
       return;
     }
 
-    const { basePrice, tier, pct, araPrice, arbPrice, araDelta, arbDelta, araTick, baseTick, arbTick } = result;
+    const { basePrice, araPct, arbPct, araPrice, arbPrice, araDelta, arbDelta, araTick, baseTick, arbTick } = result;
 
-    setTier(tier);
+    setTier(basePrice);
 
-    if (els.araPctBadge) els.araPctBadge.textContent = `+${formatters.formatPct(pct * 100)}%`;
-    if (els.arbPctBadge) els.arbPctBadge.textContent = `-${formatters.formatPct(pct * 100)}%`;
+    if (els.araPctBadge) els.araPctBadge.textContent = `+${formatters.formatPct(araPct * 100, 0)}%`;
+    if (els.arbPctBadge) els.arbPctBadge.textContent = `-${formatters.formatPct(arbPct * 100, 0)}%`;
 
     if (els.araPrice) els.araPrice.textContent = formatters.nf0.format(araPrice);
     if (els.arbPrice) els.arbPrice.textContent = formatters.nf0.format(arbPrice);
