@@ -126,6 +126,17 @@ window.CuanMeterUtils = (function () {
         return [];
       }
     },
+    deleteItem: (key, id) => {
+      try {
+        let history = storage.load(key);
+        history = history.filter(item => item.id !== id);
+        localStorage.setItem(key, JSON.stringify(history));
+        return history;
+      } catch (e) {
+        console.error(`Error deleting item from ${key}`, e);
+        return [];
+      }
+    },
     clear: (key) => {
       localStorage.removeItem(key);
     }
