@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "Kalkulator saham gratis untuk trader Indonesia - StockCalcID",
     "scripts": {
-        "dev": "npm run watch:css & npx -y live-server --port=3000",
+        "start:web": "npm run watch:css & npx -y live-server --port=3000",
         "build": "npm run build:css && npm run build:js",
         "build:css": "npx tailwindcss -i CSS/LandingPage.css -o CSS/tailwind-output.css --minify",
         "watch:css": "npx tailwindcss -i CSS/LandingPage.css -o CSS/tailwind-output.css --watch",

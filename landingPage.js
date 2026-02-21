@@ -286,6 +286,73 @@ function initSmoothScroll() {
     }
 }
 
+// Stock Marquee Real-time Updates
+async function initStockMarquee() {
+    const marqueeContainer = document.getElementById('stock-marquee');
+    if (!marqueeContainer) return;
+
+    const symbols = [
+        { ticker: 'IDX:COMPOSITE', label: 'IHSG' },
+        { ticker: 'IDX:LQ45', label: 'LQ45' },
+        { ticker: 'IDX:BBCA', label: 'BBCA' },
+        { ticker: 'IDX:BUMI', label: 'BUMI' },
+        { ticker: 'IDX:BBNI', label: 'BBNI' },
+        { ticker: 'IDX:ADMR', label: 'ADMR' },
+        { ticker: 'IDX:PTBA', label: 'PTBA' },
+        { ticker: 'IDX:AADI', label: 'AADI' },
+        { ticker: 'IDX:ANTM', label: 'ANTM' },
+        { ticker: 'IDX:MBMA', label: 'MBMA' },
+        { ticker: 'IDX:BBRI', label: 'BBRI' },
+        { ticker: 'BINANCE:BTCUSDT', label: 'BTC/USDT' },
+        { ticker: 'OANDA:XAUUSD', label: 'Gold (XAUUSD)' }
+    ];
+
+    async function updateMarquee() {
+        try {
+            const response = await fetch('http://localhost:3001/api/prices');
+            if (!response.ok) throw new Error('Network response was not ok');
+            const data = await response.json();
+
+            let htmlContent = '';
+            
+            // Duplicate the items for smooth marquee effect
+            const displayItems = [...symbols, ...symbols];
+
+            displayItems.forEach(item => {
+                const stockData = data[item.ticker] || { price: 0, change: 0, pct: 0 };
+                const isUp = stockData.change >= 0;
+                const colorClass = isUp 
+                    ? 'text-accent-mint bg-accent-mint/10' 
+                    : 'text-red-500 bg-red-500/10';
+                const icon = isUp ? 'arrow_upward' : 'arrow_downward';
+                const sign = isUp ? '+' : '';
+
+                htmlContent += `
+                    <span class="flex items-center gap-3 hover:text-slate-900 dark:hover:text-white transition-colors cursor-default">
+                        ${item.label}
+                        <span class="${colorClass} px-2 py-0.5 rounded flex items-center gap-1 transition-colors">
+                            ${window.CuanMeterUtils ? window.CuanMeterUtils.formatters.nf2.format(stockData.price) : stockData.price}
+                            <span class="material-symbols-outlined text-[16px]">${icon}</span>
+                            <span class="text-[10px] ml-1">(${sign}${stockData.pct.toFixed(2)}%)</span>
+                        </span>
+                    </span>
+                `;
+            });
+
+            marqueeContainer.innerHTML = htmlContent;
+        } catch (error) {
+            console.error('Error fetching stock prices:', error);
+            // Optionally show an error state in the marquee
+        }
+    }
+
+    // Initial update
+    updateMarquee();
+
+    // Update every 3 seconds
+    setInterval(updateMarquee, 3000);
+}
+
 // Analytics (placeholder for Google Analytics or other)
 function initAnalytics() {
     try {
@@ -320,6 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initSmoothScroll();
         initScrollToTop();
         initAnalytics();
+        initStockMarquee();
 
         // Initialize theme from utils
         if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {

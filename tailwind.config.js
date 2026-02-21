@@ -41,7 +41,7 @@ module.exports = {
                 hover: "0 20px 40px -5px rgba(14, 165, 233, 0.1)",
             },
             animation: {
-                marquee: "marquee 30s linear infinite",
+                marquee: "marquee 15s linear infinite",
                 fadeIn: "fadeIn 0.5s ease-in-out",
                 slideIn: "slideIn 0.3s ease-out",
             },

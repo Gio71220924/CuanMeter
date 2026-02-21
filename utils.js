@@ -1,11 +1,13 @@
 window.CuanMeterUtils = (function () {
   const nf0 = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
+  const nf2 = new Intl.NumberFormat("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   const nfPct = new Intl.NumberFormat("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const nfPct1 = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
 
   // --- Formatters ---
   const formatters = {
     nf0,
+    nf2,
     nfPct,
     nfPct1,
 
