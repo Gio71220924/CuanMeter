@@ -11,7 +11,9 @@
         riskAmount: document.getElementById("risk_amount"),
         totalBuyValue: document.getElementById("total_buy_value"),
         slDistancePct: document.getElementById("sl_distance_pct"),
-        btnShare: document.getElementById("btn_share")
+        btnShare: document.getElementById("btn_share"),
+        calculateBtn: document.getElementById("calculateBtn"),
+        resetBtn: document.getElementById("resetBtn")
     };
 
     if (!els.totalEquity) return;
@@ -22,7 +24,15 @@
         const entry = formatters.toNumber(els.entryPrice.value);
         const sl = formatters.toNumber(els.stopLoss.value);
 
-        if (equity <= 0 || entry <= 0 || sl <= 0 || entry <= sl) {
+        if (equity <= 0 || entry <= 0 || sl <= 0) {
+            renderEmpty();
+            return;
+        }
+
+        if (entry <= sl) {
+            if (window.CuanMeterToast && entry > 0) {
+                window.CuanMeterToast.error('Harga beli harus lebih tinggi dari Stop Loss!');
+            }
             renderEmpty();
             return;
         }
@@ -50,10 +60,11 @@
     };
 
     const render = (lots, risk, totalBuy, slPct) => {
+        // Use nf0 for thousands separator in Lot count (e.g., 1.000)
         els.recommendedLots.textContent = formatters.nf0.format(lots);
         els.riskAmount.textContent = formatters.formatCurrency(risk);
         els.totalBuyValue.textContent = formatters.formatCurrency(totalBuy);
-        els.slDistancePct.textContent = `${slPct.toFixed(2)}%`;
+        els.slDistancePct.textContent = `${formatters.nfPct1.format(slPct)}%`;
 
         // Visual feedback based on buying power
         const equity = formatters.toNumber(els.totalEquity.value);
@@ -76,9 +87,48 @@
         els.slDistancePct.textContent = "0%";
     };
 
+    const formatInput = (input) => {
+        // Save cursor position
+        const selectionStart = input.selectionStart;
+        const oldLength = input.value.length;
+
+        let value = input.value.replace(/[^0-9]/g, "");
+        if (value === "") {
+            input.value = "";
+            return;
+        }
+        
+        const formatted = formatters.nf0.format(parseInt(value));
+        input.value = formatted;
+
+        // Restore cursor position
+        const newLength = input.value.length;
+        const newPosition = selectionStart + (newLength - oldLength);
+        input.setSelectionRange(newPosition, newPosition);
+    };
+
     const init = () => {
-        [els.totalEquity, els.riskPercent, els.entryPrice, els.stopLoss].forEach(el => {
-            el.addEventListener("input", calculate);
+        [els.totalEquity, els.entryPrice, els.stopLoss].forEach(el => {
+            el.addEventListener("input", (e) => {
+                formatInput(e.target);
+                calculate();
+            });
+        });
+
+        els.riskPercent.addEventListener("input", calculate);
+
+        els.calculateBtn?.addEventListener("click", () => {
+            calculate();
+            if (window.CuanMeterToast) window.CuanMeterToast.success('Perhitungan diperbarui');
+        });
+
+        els.resetBtn?.addEventListener("click", () => {
+          els.totalEquity.value = "";
+          els.riskPercent.value = "1";
+          els.entryPrice.value = "";
+          els.stopLoss.value = "";
+          renderEmpty();
+          if (window.CuanMeterToast) window.CuanMeterToast.info('Data telah di-reset');
         });
     };
 

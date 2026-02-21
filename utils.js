@@ -16,23 +16,14 @@ window.CuanMeterUtils = (function () {
       let raw = String(value).trim();
       if (raw === "") return 0;
 
-      // Handle Indonesian format: "1.234.567,89"
-      // If there's a comma and it's after a dot, or there are multiple dots
-      const hasComma = raw.includes(',');
-      const hasDot = raw.includes('.');
-
-      if (hasComma && hasDot) {
-        // Assume Indonesian: remove dots (thousands), replace comma with dot (decimal)
-        raw = raw.replace(/\./g, '').replace(',', '.');
-      } else if (hasComma && !hasDot) {
-        // Could be "1234,56" -> replace comma with dot
-        raw = raw.replace(',', '.');
-      }
-      // If it's just dots like "1.000", but it's meant to be 1000, 
-      // this is tricky because "1.000" could also be 1.0 (standard).
-      // However, in stock context, prices are usually > 1 or whole numbers.
+      // Clean the string for Indonesian format: 
+      // 1. Remove all dots (assumed thousands)
+      // 2. Replace comma with dot (assumed decimal)
+      let clean = raw.replace(/\./g, '').replace(',', '.');
       
-      const clean = raw.replace(/[^0-9.-]/g, '');
+      // Remove any other non-numeric characters except minus and decimal dot
+      clean = clean.replace(/[^0-9.-]/g, '');
+      
       const num = parseFloat(clean);
       return Number.isFinite(num) ? num : 0;
     },
@@ -46,7 +37,10 @@ window.CuanMeterUtils = (function () {
       return Math.floor(formatters.toNonNegativeNumber(value));
     },
 
-    formatCurrency: (value) => `Rp ${nf0.format(Math.round(value || 0))}`,
+    formatCurrency: (value) => {
+      const formatted = nf0.format(Math.round(value || 0));
+      return `Rp ${formatted},-`;
+    },
 
     formatCurrencyCompact: (value) => {
       const absValue = Math.abs(value);

@@ -26,6 +26,24 @@
 
   if (!els.buyPrice || !els.sellPrice || !els.lots) return;
 
+  const formatInput = (input) => {
+    if (!input) return;
+    const selectionStart = input.selectionStart;
+    const oldLength = input.value.length;
+
+    let value = input.value.replace(/[^0-9]/g, "");
+    if (value === "") {
+      input.value = "";
+      return;
+    }
+    
+    input.value = formatters.nf0.format(parseInt(value));
+
+    const newLength = input.value.length;
+    const newPosition = selectionStart + (newLength - oldLength);
+    input.setSelectionRange(newPosition, newPosition);
+  };
+
   const formatCost = (value) => {
     if (!Number.isFinite(value) || value <= 0) return "Rp 0";
     return `-(Rp ${formatters.nf0.format(Math.round(value))})`;
@@ -178,7 +196,12 @@
 
   const bindEvents = () => {
     const rerenderOnInput = (node) => {
-      node?.addEventListener("input", render);
+      node?.addEventListener("input", (e) => {
+        if (node === els.buyPrice || node === els.sellPrice) {
+          formatInput(e.target);
+        }
+        render();
+      });
       node?.addEventListener("change", render);
     };
 
@@ -204,7 +227,7 @@
         const input = targetId ? document.getElementById(targetId) : null;
         if (!input) return;
 
-        const current = formatters.toNonNegativeNumber(input.value);
+        const current = formatters.toNumber(input.value);
         const tickRef = direction === "dec" ? Math.max(0, current - 1) : current;
         let step = idx.getTickSize(tickRef || 0);
         if (event.shiftKey) step *= 10;
@@ -212,7 +235,7 @@
         const nextRaw = direction === "dec" ? Math.max(0, current - step) : Math.max(0, current + step);
         const next = Math.round(nextRaw);
 
-        input.value = String(next);
+        input.value = formatters.nf0.format(next);
         render();
         input.focus();
       });

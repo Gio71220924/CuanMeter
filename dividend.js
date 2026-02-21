@@ -17,9 +17,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const STORAGE_KEY = 'cuanmeter_div_history';
 
+    function formatInput(input) {
+        if (!input) return;
+        const selectionStart = input.selectionStart;
+        const oldLength = input.value.length;
+
+        let value = input.value.replace(/[^0-9]/g, "");
+        if (value === "") {
+            input.value = "";
+            return;
+        }
+        
+        const nf0 = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
+        input.value = nf0.format(parseInt(value));
+
+        const newLength = input.value.length;
+        const newPosition = selectionStart + (newLength - oldLength);
+        input.setSelectionRange(newPosition, newPosition);
+    }
+
     function calculate(saveToHistory = true) {
-        const divPerShare = parseFloat(divPerShareInput.value) || 0;
-        const sharePrice = parseFloat(sharePriceInput.value) || 0;
+        const utils = window.CuanMeterUtils;
+        const divPerShare = utils ? utils.formatters.toNumber(divPerShareInput.value) : parseFloat(divPerShareInput.value) || 0;
+        const sharePrice = utils ? utils.formatters.toNumber(sharePriceInput.value) : parseFloat(sharePriceInput.value) || 0;
         const lotsOwned = parseFloat(sharesOwnedInput.value) || 0;
         const sharesOwned = lotsOwned * 100;
         const isTaxEnabled = taxToggle.checked;
