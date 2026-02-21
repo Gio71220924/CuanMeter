@@ -121,6 +121,7 @@
           boxShadow: {
             soft: "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
             hover: "0 20px 40px -5px rgba(14, 165, 233, 0.1)",
+            "dark-none": "none",
           },
         },
       },
@@ -128,42 +129,42 @@
   </script>
 </head>
 
-<body class="glass-page bg-white text-slate-600 font-body selection:bg-primary/20 selection:text-primary">
+<body class="glass-page bg-white dark:bg-dark-bg text-slate-600 dark:text-slate-300 font-body selection:bg-primary/20 selection:text-primary transition-colors duration-300">
   <!-- Skip to Content for Accessibility -->
   <a href="#main-content" class="skip-to-content">Skip to main content</a>
 
-  <div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
-    <header class="glass-header fixed top-0 left-0 right-0 z-50 border-b border-slate-100 font-display">
+  <div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden transition-colors">
+    <header class="glass-header fixed top-0 left-0 right-0 z-50 border-b border-slate-100 dark:border-dark-border font-display transition-colors">
       <div class="flex justify-center w-full">
         <div class="flex items-center justify-between w-full max-w-[1280px] px-6 py-4 md:px-10">
           <div class="flex items-center gap-3 cursor-pointer group">
             <div
-              class="size-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 transition-transform group-hover:scale-105">
+              class="size-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 dark:shadow-none transition-transform group-hover:scale-105">
               <span class="material-symbols-outlined text-[24px]">candlestick_chart</span>
             </div>
-            <h2 class="header-brand text-xl font-extrabold leading-tight tracking-tight text-slate-900 font-display">
+            <h2 class="header-brand text-xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white font-display transition-colors">
               StockCalcID
             </h2>
           </div>
 
           <nav class="hidden md:flex items-center gap-10">
-            <a class="header-link text-slate-600 hover:text-primary transition-colors" href="AveragePrice.html">
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors" href="AveragePrice.html">
               Kalkulator Rata-rata Saham
             </a>
-            <a class="header-link text-slate-600 hover:text-primary transition-colors" href="ARAARB.html">
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors" href="ARAARB.html">
               Cek ARA/ARB
             </a>
-            <a class="header-link text-slate-600 hover:text-primary transition-colors" href="ProfitCalc.html">
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors" href="ProfitCalc.html">
               Simulasi Profit
             </a>
           </nav>
 
           <div class="flex items-center gap-4">
-            <button id="theme-toggle" class="p-2 text-slate-900 rounded-lg hover:bg-slate-100">
+            <button id="theme-toggle" class="p-2 text-slate-900 dark:text-slate-100 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Ganti tema (gelap/terang)">
               <span class="material-symbols-outlined dark:hidden">dark_mode</span>
               <span class="material-symbols-outlined hidden dark:block">light_mode</span>
             </button>
-            <button class="md:hidden p-2 text-slate-900">
+            <button class="md:hidden p-2 text-slate-900 dark:text-slate-100" aria-label="Buka menu navigasi">
               <span class="material-symbols-outlined">menu</span>
             </button>
           </div>
@@ -171,10 +172,10 @@
       </div>
     </header>
 
-    <main id="main-content" class="flex-1 pt-24">
-      <section class="relative bg-white overflow-hidden pb-16 lg:pb-24 pt-10">
+    <main id="main-content" class="flex-1 pt-24 bg-white dark:bg-dark-bg transition-colors duration-300">
+      <section class="relative bg-white dark:bg-dark-bg overflow-hidden pb-16 lg:pb-24 pt-10 transition-colors duration-300">
         <div
-          class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary-light/40 via-white to-white pointer-events-none opacity-60">
+          class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary-light/40 dark:from-primary/10 via-white dark:via-dark-bg to-white dark:to-dark-bg pointer-events-none opacity-60">
         </div>
 
         <div
@@ -184,23 +185,23 @@
               <div class="space-y-4">
 
                 <h1
-                  class="text-slate-900 text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight font-display">
+                  class="text-slate-900 dark:text-white text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight font-display transition-colors">
                   Alat cerdas untuk <br />
                   <span class="text-primary">trading yang lebih cerdas.</span>
                 </h1>
 
-                <p class="text-slate-500 text-lg md:text-xl font-medium leading-relaxed max-w-xl mx-auto lg:mx-0">
+                <p class="text-slate-500 dark:text-slate-400 text-lg md:text-xl font-medium leading-relaxed max-w-xl mx-auto lg:mx-0 transition-colors">
                   Kalkulator praktis untuk harga rata-rata, batas ARA/ARB, dan estimasi profit bersih. Sederhanakan
                   keputusan trading Anda mulai hari ini.
                 </p>
               </div>
 
               <div class="flex flex-wrap gap-4 justify-center lg:justify-start">
-                <a class="flex items-center justify-center rounded-full h-14 px-8 bg-primary hover:bg-primary-hover text-white text-base font-bold shadow-lg shadow-primary/25 transition-all transform hover:-translate-y-1"
+                <a class="flex items-center justify-center rounded-full h-14 px-8 bg-primary hover:bg-primary-hover text-white text-base font-bold shadow-lg dark:shadow-none shadow-primary/25 transition-all transform hover:-translate-y-1"
                   href="#tools">
                   Mulai Hitung
                 </a>
-                <a class="flex items-center justify-center rounded-full h-14 px-8 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 text-base font-bold transition-all"
+                <a class="flex items-center justify-center rounded-full h-14 px-8 bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-base font-bold transition-all shadow-sm dark:shadow-none"
                   href="#guides">
                   Cara Kerja
                 </a>
@@ -208,24 +209,24 @@
 
               <div class="flex items-center justify-center lg:justify-start gap-8 pt-2">
                 <div class="flex flex-col">
-                  <span class="text-2xl font-bold text-slate-900 font-display">Gratis</span>
-                  <span class="text-sm text-slate-500 font-medium">Selamanya</span>
+                  <span class="text-2xl font-bold text-slate-900 dark:text-white font-display">Gratis</span>
+                  <span class="text-sm text-slate-500 dark:text-slate-400 font-medium">Selamanya</span>
                 </div>
-                <div class="w-px h-10 bg-slate-200"></div>
+                <div class="w-px h-10 bg-slate-200 dark:bg-dark-border"></div>
                 <div class="flex flex-col">
-                  <span class="text-2xl font-bold text-slate-900 font-display">Tanpa Iklan</span>
-                  <span class="text-sm text-slate-500 font-medium">Tampilan Bersih</span>
+                  <span class="text-2xl font-bold text-slate-900 dark:text-white font-display">Tanpa Iklan</span>
+                  <span class="text-sm text-slate-500 dark:text-slate-400 font-medium">Tampilan Bersih</span>
                 </div>
-                <div class="w-px h-10 bg-slate-200"></div>
+                <div class="w-px h-10 bg-slate-200 dark:bg-dark-border"></div>
                 <div class="flex flex-col">
-                  <span class="text-2xl font-bold text-slate-900 font-display">Cepat</span>
-                  <span class="text-sm text-slate-500 font-medium">Real-time</span>
+                  <span class="text-2xl font-bold text-slate-900 dark:text-white font-display">Cepat</span>
+                  <span class="text-sm text-slate-500 dark:text-slate-400 font-medium">Real-time</span>
                 </div>
               </div>
             </div>
 
             <div
-              class="relative w-full aspect-square md:aspect-[4/3] lg:aspect-square max-h-[560px] rounded-3xl overflow-hidden shadow-2xl shadow-slate-200 z-10 order-1 lg:order-2 bg-slate-50">
+              class="relative w-full aspect-square md:aspect-[4/3] lg:aspect-square max-h-[560px] rounded-3xl overflow-hidden shadow-2xl shadow-slate-200 dark:shadow-none z-10 order-1 lg:order-2 bg-slate-50 dark:bg-dark-surface">
               <picture>
                 <source srcset="assets/images/hero-illustration.webp" type="image/webp">
                 <source srcset="assets/images/hero-illustration.png" type="image/png">
@@ -239,53 +240,25 @@
         </div>
       </section>
 
-      <div class="w-full bg-white border-y border-slate-100 py-4 overflow-hidden">
-        <div
-          class="flex gap-16 whitespace-nowrap animate-marquee items-center justify-center text-sm font-bold text-slate-500 font-display uppercase tracking-widest">
-          <span class="flex items-center gap-3 hover:text-slate-900 transition-colors cursor-default">
-            IHSG
-            <span class="text-accent-mint bg-accent-mint-light px-2 py-0.5 rounded flex items-center gap-1">
-              7,245.32 <span class="material-symbols-outlined text-[16px]">arrow_upward</span>
+      <div class="w-full bg-white dark:bg-dark-bg border-y border-slate-100 dark:border-dark-border py-4 overflow-hidden transition-colors">
+        <div id="stock-marquee"
+          class="flex gap-16 whitespace-nowrap animate-marquee items-center justify-center text-sm font-bold text-slate-500 dark:text-slate-400 font-display uppercase tracking-widest">
+          <!-- Real-time stock data will be injected here -->
+          <div class="flex items-center gap-8">
+            <span class="flex items-center gap-3 hover:text-slate-900 dark:hover:text-white transition-colors cursor-default">
+              Memuat data pasar...
             </span>
-          </span>
-
-          <span class="flex items-center gap-3 hover:text-slate-900 transition-colors cursor-default">
-            LQ45
-            <span class="text-red-500 bg-red-50 px-2 py-0.5 rounded flex items-center gap-1">
-              985.12 <span class="material-symbols-outlined text-[16px]">arrow_downward</span>
-            </span>
-          </span>
-
-          <span class="flex items-center gap-3 hover:text-slate-900 transition-colors cursor-default">
-            BBCA
-            <span class="text-accent-mint bg-accent-mint-light px-2 py-0.5 rounded flex items-center gap-1">
-              9,850 <span class="material-symbols-outlined text-[16px]">arrow_upward</span>
-            </span>
-          </span>
-
-          <span class="flex items-center gap-3 hover:text-slate-900 transition-colors cursor-default">
-            BBRI
-            <span class="text-accent-mint bg-accent-mint-light px-2 py-0.5 rounded flex items-center gap-1">
-              5,650 <span class="material-symbols-outlined text-[16px]">arrow_upward</span>
-            </span>
-          </span>
-
-          <span class="flex items-center gap-3 hover:text-slate-900 transition-colors cursor-default">
-            TLKM
-            <span class="text-red-500 bg-red-50 px-2 py-0.5 rounded flex items-center gap-1">
-              3,980 <span class="material-symbols-outlined text-[16px]">arrow_downward</span>
-            </span>
-          </span>
+          </div>
         </div>
       </div>
 
-      <section class="py-24 px-6 bg-white" id="tools">
+      <section class="py-24 px-6 bg-white dark:bg-dark-bg transition-colors" id="tools">
         <div class="layout-container flex flex-col items-center max-w-[1280px] mx-auto">
           <div class="text-center mb-20 max-w-3xl">
-            <h2 class="text-slate-900 text-3xl md:text-4xl font-extrabold tracking-tight mb-6 font-display">
+            <h2 class="text-slate-900 dark:text-white text-3xl md:text-4xl font-extrabold tracking-tight mb-6 font-display transition-colors">
               Kalkulator Utama
             </h2>
-            <p class="text-slate-500 text-lg leading-relaxed">
+            <p class="text-slate-500 dark:text-slate-400 text-lg leading-relaxed transition-colors">
               Semua yang Anda butuhkan untuk merencanakan transaksi dan mengelola risiko, dirancang khusus untuk
               struktur pasar Indonesia.
             </p>
@@ -294,24 +267,24 @@
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
             <!-- Average Price -->
             <div
-              class="group glass-card relative flex flex-col bg-white rounded-3xl border border-slate-100 shadow-soft hover:shadow-hover hover:-translate-y-2 transition-all duration-300 overflow-hidden">
+              class="group glass-card relative flex flex-col bg-white dark:bg-dark-surface rounded-3xl border border-slate-100 dark:border-dark-border shadow-soft dark:shadow-none hover:shadow-hover dark:hover:shadow-none hover:-translate-y-2 transition-all duration-300 overflow-hidden">
               <div class="absolute top-0 left-0 w-full h-1.5 bg-primary"></div>
               <div class="p-8 flex flex-col h-full">
                 <div
-                  class="size-14 rounded-2xl bg-primary-light text-primary flex items-center justify-center mb-8 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                  class="size-14 rounded-2xl bg-primary-light dark:bg-primary/10 text-primary flex items-center justify-center mb-8 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
                   <span class="material-symbols-outlined text-[32px]">calculate</span>
                 </div>
 
-                <h3 class="text-2xl font-bold text-slate-900 mb-3 font-display">Harga Rata-rata</h3>
+                <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-3 font-display transition-colors">Harga Rata-rata</h3>
 
-                <p class="text-slate-500 mb-8 leading-relaxed flex-grow">
+                <p class="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed flex-grow transition-colors">
                   Terlanjur beli di harga tinggi? Rencanakan strategi average down dengan tepat. Hitung harga
                   rata-rata baru Anda secara instan sebelum eksekusi.
                 </p>
 
                 <div class="mt-auto flex items-center justify-between">
                   <button
-                    class="w-full py-3 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm hover:bg-primary hover:text-white transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-primary/20">
+                    class="w-full py-3 rounded-xl bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white font-bold text-sm hover:bg-primary hover:text-white transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-primary/20">
                     Buka Kalkulator
                     <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
                   </button>
@@ -321,24 +294,24 @@
 
             <!-- ARA/ARB -->
             <div
-              class="group glass-card relative flex flex-col bg-white rounded-3xl border border-slate-100 shadow-soft hover:shadow-hover hover:-translate-y-2 transition-all duration-300 overflow-hidden">
+              class="group glass-card relative flex flex-col bg-white dark:bg-dark-surface rounded-3xl border border-slate-100 dark:border-dark-border shadow-soft dark:shadow-none hover:shadow-hover dark:hover:shadow-none hover:-translate-y-2 transition-all duration-300 overflow-hidden">
               <div class="absolute top-0 left-0 w-full h-1.5 bg-accent-yellow"></div>
               <div class="p-8 flex flex-col h-full">
                 <div
-                  class="size-14 rounded-2xl bg-accent-yellow-light text-accent-yellow flex items-center justify-center mb-8 group-hover:bg-accent-yellow group-hover:text-white transition-colors duration-300">
+                  class="size-14 rounded-2xl bg-accent-yellow-light dark:bg-accent-yellow/10 text-accent-yellow flex items-center justify-center mb-8 group-hover:bg-accent-yellow group-hover:text-white transition-colors duration-300">
                   <span class="material-symbols-outlined text-[32px]">vertical_align_center</span>
                 </div>
 
-                <h3 class="text-2xl font-bold text-slate-900 mb-3 font-display">Cek ARA/ARB</h3>
+                <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-3 font-display transition-colors">Cek ARA/ARB</h3>
 
-                <p class="text-slate-500 mb-8 leading-relaxed flex-grow">
+                <p class="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed flex-grow transition-colors">
                   Ketahui batasnya. Hitung batas harga Auto Rejection Atas (ARA) dan Auto Rejection Bawah (ARB) untuk
                   saham apa pun secara instan.
                 </p>
 
                 <div class="mt-auto flex items-center justify-between">
                   <button
-                    class="w-full py-3 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm hover:bg-accent-yellow hover:text-white transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-accent-yellow/20">
+                    class="w-full py-3 rounded-xl bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white font-bold text-sm hover:bg-accent-yellow hover:text-white transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-accent-yellow/20">
                     Buka Kalkulator
                     <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
                   </button>
@@ -348,24 +321,24 @@
 
             <!-- Profit Simulator -->
             <div
-              class="group glass-card relative flex flex-col bg-white rounded-3xl border border-slate-100 shadow-soft hover:shadow-hover hover:-translate-y-2 transition-all duration-300 overflow-hidden">
+              class="group glass-card relative flex flex-col bg-white dark:bg-dark-surface rounded-3xl border border-slate-100 dark:border-dark-border shadow-soft dark:shadow-none hover:shadow-hover dark:hover:shadow-none hover:-translate-y-2 transition-all duration-300 overflow-hidden">
               <div class="absolute top-0 left-0 w-full h-1.5 bg-accent-mint"></div>
               <div class="p-8 flex flex-col h-full">
                 <div
-                  class="size-14 rounded-2xl bg-accent-mint-light text-accent-mint flex items-center justify-center mb-8 group-hover:bg-accent-mint group-hover:text-white transition-colors duration-300">
+                  class="size-14 rounded-2xl bg-accent-mint-light dark:bg-accent-mint/10 text-accent-mint flex items-center justify-center mb-8 group-hover:bg-accent-mint group-hover:text-white transition-colors duration-300">
                   <span class="material-symbols-outlined text-[32px]">savings</span>
                 </div>
 
-                <h3 class="text-2xl font-bold text-slate-900 mb-3 font-display">Simulasi Profit</h3>
+                <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-3 font-display transition-colors">Simulasi Profit</h3>
 
-                <p class="text-slate-500 mb-8 leading-relaxed flex-grow">
+                <p class="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed flex-grow transition-colors">
                   Visualisasikan keuntungan Anda. Estimasikan profit bersih setelah memperhitungkan fee broker
                   (beli/jual) dan pajak secara otomatis.
                 </p>
 
                 <div class="mt-auto flex items-center justify-between">
                   <button
-                    class="w-full py-3 rounded-xl bg-slate-50 text-slate-900 font-bold text-sm hover:bg-accent-mint hover:text-white transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-accent-mint/20">
+                    class="w-full py-3 rounded-xl bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white font-bold text-sm hover:bg-accent-mint hover:text-white transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-accent-mint/20">
                     Buka Kalkulator
                     <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
                   </button>
@@ -376,11 +349,11 @@
         </div>
       </section>
 
-      <section class="py-24 px-6 bg-slate-50 border-t border-slate-200" id="guides">
+      <section class="py-24 px-6 bg-slate-50 dark:bg-dark-surface border-t border-slate-200 dark:border-dark-border transition-colors" id="guides">
         <div class="layout-container max-w-[1280px] mx-auto flex flex-col lg:flex-row items-center gap-16">
           <div class="w-full lg:w-1/2">
             <div
-              class="rounded-3xl overflow-hidden shadow-2xl shadow-slate-200 aspect-video transition-transform hover:scale-[1.02] duration-500">
+              class="rounded-3xl overflow-hidden shadow-2xl shadow-slate-200 dark:shadow-none aspect-video transition-transform hover:scale-[1.02] duration-500">
               <picture>
                 <source srcset="assets/images/desktop-mockup.webp" type="image/webp">
                 <source srcset="assets/images/desktop-mockup.png" type="image/png">
@@ -394,45 +367,45 @@
           <div class="w-full lg:w-1/2 flex flex-col gap-8">
             <div>
               <div class="text-primary font-bold text-sm uppercase tracking-wider mb-2">Pusat Pembelajaran</div>
-              <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 font-display">Baru mulai trading?</h2>
+              <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white font-display transition-colors">Baru mulai trading?</h2>
             </div>
 
-            <p class="text-slate-600 text-lg leading-relaxed">
+            <p class="text-slate-600 dark:text-slate-400 text-lg leading-relaxed transition-colors">
               Lihat panduan lengkap tentang cara membaca grafik, memahami regulasi IDX, dan menggunakan kalkulator ini
               secara efektif.
             </p>
 
             <div class="grid grid-cols-1 gap-4">
-              <a class="glass-card flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-200 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all group"
+              <a class="glass-card flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all group"
                 href="#">
                 <div
-                  class="bg-blue-50 text-primary p-3 rounded-xl group-hover:bg-primary group-hover:text-white transition-colors">
+                  class="bg-blue-50 dark:bg-primary/10 text-primary p-3 rounded-xl group-hover:bg-primary group-hover:text-white transition-colors">
                   <span class="material-symbols-outlined text-[24px]">menu_book</span>
                 </div>
                 <div>
-                  <h4 class="font-bold text-slate-900 group-hover:text-primary transition-colors text-lg">
+                  <h4 class="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors text-lg transition-colors">
                     Memahami Auto Rejection
                   </h4>
-                  <p class="text-sm text-slate-500 mt-1">Pelajari batas ARA dan ARB terbaru di 2024.</p>
+                  <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 transition-colors">Pelajari batas ARA dan ARB terbaru di 2024.</p>
                 </div>
-                <div class="ml-auto text-slate-300 group-hover:text-primary transition-colors">
+                <div class="ml-auto text-slate-300 dark:text-slate-600 group-hover:text-primary transition-colors">
                   <span class="material-symbols-outlined">chevron_right</span>
                 </div>
               </a>
 
-              <a class="glass-card flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-200 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all group"
+              <a class="glass-card flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all group"
                 href="#">
                 <div
-                  class="bg-blue-50 text-primary p-3 rounded-xl group-hover:bg-primary group-hover:text-white transition-colors">
+                  class="bg-blue-50 dark:bg-primary/10 text-primary p-3 rounded-xl group-hover:bg-primary group-hover:text-white transition-colors">
                   <span class="material-symbols-outlined text-[24px]">analytics</span>
                 </div>
                 <div>
-                  <h4 class="font-bold text-slate-900 group-hover:text-primary transition-colors text-lg">
+                  <h4 class="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors text-lg transition-colors">
                     Strategi Average Down
                   </h4>
-                  <p class="text-sm text-slate-500 mt-1">Kapan menambah posisi dan kapan cut loss.</p>
+                  <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 transition-colors">Kapan menambah posisi dan kapan cut loss.</p>
                 </div>
-                <div class="ml-auto text-slate-300 group-hover:text-primary transition-colors">
+                <div class="ml-auto text-slate-300 dark:text-slate-600 group-hover:text-primary transition-colors">
                   <span class="material-symbols-outlined">chevron_right</span>
                 </div>
               </a>
@@ -442,70 +415,22 @@
       </section>
     </main>
 
-    <footer class="bg-white border-t border-slate-100 pt-20 pb-10">
-      <div class="layout-container px-6 md:px-10 max-w-[1280px] mx-auto">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-          <div class="col-span-1 md:col-span-1 flex flex-col gap-6">
-            <div class="flex items-center gap-3 text-slate-900">
-              <div class="size-8 bg-primary text-white rounded-lg flex items-center justify-center">
-                <span class="material-symbols-outlined text-[20px]">candlestick_chart</span>
-              </div>
-              <span class="font-extrabold text-xl font-display">StockCalcID</span>
-            </div>
-
-            <p class="text-slate-500 text-sm leading-relaxed">
-              Alat kalkulasi saham yang simpel, gratis, dan akurat untuk Bursa Efek Indonesia (IDX). Dibuat untuk
-              trader, oleh trader.
-            </p>
-          </div>
-
-          <div>
-            <h4 class="font-bold text-slate-900 mb-6 font-display">Kalkulator</h4>
-            <ul class="flex flex-col gap-3 text-sm text-slate-500 font-medium">
-              <li><a class="hover:text-primary transition-colors" href="#">Kalkulator Rata-rata</a></li>
-              <li><a class="hover:text-primary transition-colors" href="#">Cek ARA/ARB</a></li>
-              <li><a class="hover:text-primary transition-colors" href="#">Simulasi Profit</a></li>
-              <li><a class="hover:text-primary transition-colors" href="#">Imbal Hasil Dividen</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 class="font-bold text-slate-900 mb-6 font-display">Sumber Daya</h4>
-            <ul class="flex flex-col gap-3 text-sm text-slate-500 font-medium">
-              <li><a class="hover:text-primary transition-colors" href="#">Panduan Pemula</a></li>
-              <li><a class="hover:text-primary transition-colors" href="#">Daftar Fee Broker</a></li>
-              <li><a class="hover:text-primary transition-colors" href="#">Glosarium</a></li>
-              <li><a class="hover:text-primary transition-colors" href="#">Tanya Jawab</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 class="font-bold text-slate-900 mb-6 font-display">Legal</h4>
-            <ul class="flex flex-col gap-3 text-sm text-slate-500 font-medium">
-              <li><a class="hover:text-primary transition-colors" href="#">Kebijakan Privasi</a></li>
-              <li><a class="hover:text-primary transition-colors" href="#">Syarat &amp; Ketentuan</a></li>
-              <li><a class="hover:text-primary transition-colors" href="#">Disclaimer</a></li>
-            </ul>
-          </div>
+    <footer class="bg-white/70 dark:bg-dark-bg/70 backdrop-blur border-t border-gray-100 dark:border-dark-border py-12 transition-colors">
+      <div class="max-w-7xl mx-auto px-4 text-center">
+        <div class="flex items-center justify-center gap-2 mb-4 text-slate-900 dark:text-white font-display font-bold text-lg">
+          <span class="material-symbols-outlined text-primary">candlestick_chart</span>
+          StockCalcID
         </div>
 
-        <div class="border-t border-slate-100 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <p class="text-slate-400 text-xs font-medium text-center md:text-left">
-            © 2024 StockCalcID. Bukan penasihat keuangan terdaftar.
-          </p>
+        <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">Alat sederhana untuk keputusan trading yang lebih tepat.</p>
 
-          <div class="flex gap-6">
-            <a class="text-slate-400 hover:text-primary transition-colors" href="#">
-              <span class="material-symbols-outlined text-[22px]">public</span>
-            </a>
-            <a class="text-slate-400 hover:text-primary transition-colors" href="#">
-              <span class="material-symbols-outlined text-[22px]">mail</span>
-            </a>
-            <a class="text-slate-400 hover:text-primary transition-colors" href="#">
-              <span class="material-symbols-outlined text-[22px]">alternate_email</span>
-            </a>
-          </div>
+        <div class="flex justify-center gap-6 text-sm text-slate-500 dark:text-slate-400 font-medium">
+          <a class="hover:text-primary transition-colors" href="#">Kebijakan Privasi</a>
+          <a class="hover:text-primary transition-colors" href="#">Syarat &amp; Ketentuan</a>
+          <a class="hover:text-primary transition-colors" href="#">Kontak</a>
         </div>
+
+        <p class="text-xs text-gray-400 dark:text-slate-500 mt-8">© 2026 StockCalcID.</p>
       </div>
     </footer>
   </div>
