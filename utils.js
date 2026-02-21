@@ -13,18 +13,26 @@ window.CuanMeterUtils = (function () {
 
     toNumber: (value) => {
       if (value === null || value === undefined) return 0;
-      const raw = String(value).trim();
+      let raw = String(value).trim();
       if (raw === "") return 0;
-      // Robust cleaning: allows digits, minus, dot, comma
-      // Assumption: Indonesian locale uses dot for thousands and comma for decimal?
-      // Or standard JS? 
-      // existing code in `profit.js`: replace(",", ".") -> implies comma is decimal separator in input
-      // existing code in `avg.js`: Number(value) -> implies standard JS (dot is decimal)
 
-      // Let's support both roughly: 
-      // If it contains comma, replace with dot. Remove non-numeric chars except dot/minus.
-      // This is a heuristic.
-      const clean = raw.replace(/\s/g, '').replace(',', '.');
+      // Handle Indonesian format: "1.234.567,89"
+      // If there's a comma and it's after a dot, or there are multiple dots
+      const hasComma = raw.includes(',');
+      const hasDot = raw.includes('.');
+
+      if (hasComma && hasDot) {
+        // Assume Indonesian: remove dots (thousands), replace comma with dot (decimal)
+        raw = raw.replace(/\./g, '').replace(',', '.');
+      } else if (hasComma && !hasDot) {
+        // Could be "1234,56" -> replace comma with dot
+        raw = raw.replace(',', '.');
+      }
+      // If it's just dots like "1.000", but it's meant to be 1000, 
+      // this is tricky because "1.000" could also be 1.0 (standard).
+      // However, in stock context, prices are usually > 1 or whole numbers.
+      
+      const clean = raw.replace(/[^0-9.-]/g, '');
       const num = parseFloat(clean);
       return Number.isFinite(num) ? num : 0;
     },
@@ -92,9 +100,15 @@ window.CuanMeterUtils = (function () {
     },
 
     getAraArbTier: (price) => {
-      if (price < 200) return { tier: 1, pct: 0.35 };
-      if (price <= 5000) return { tier: 2, pct: 0.25 };
-      return { tier: 3, pct: 0.2 };
+      // ARA (Auto Rejection Atas) is still tiered
+      let araPct = 0.2;
+      if (price < 200) araPct = 0.35;
+      else if (price <= 5000) araPct = 0.25;
+
+      // ARB (Auto Rejection Bawah) is now 15% for all price fractions per 2025/2026 rules
+      const arbPct = 0.15;
+
+      return { araPct, arbPct };
     }
   };
 
@@ -164,8 +178,10 @@ window.CuanMeterUtils = (function () {
 
           if (isDark) {
             htmlElement.classList.add('dark');
+            if (themeToggle) themeToggle.setAttribute('aria-label', 'Ganti ke mode terang');
           } else {
             htmlElement.classList.remove('dark');
+            if (themeToggle) themeToggle.setAttribute('aria-label', 'Ganti ke mode gelap');
           }
 
           // Broadcast theme change event
