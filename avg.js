@@ -251,7 +251,7 @@
             </div>
           </div>
           <button class="load-history-btn ml-4 p-2 text-slate-400 hover:text-primary rounded-lg hover:bg-slate-100"
-                  data-id="${entry.id}">
+                  data-id="${entry.id}" aria-label="Pulihkan perhitungan ini">
             <span class="material-symbols-outlined text-sm">restore</span>
           </button>
         </div>
@@ -268,6 +268,7 @@
 
         if (entry) {
           loadFromHistory(entry.data);
+          if (window.CuanMeterToast) window.CuanMeterToast.success('Perhitungan berhasil dipulihkan');
         }
       });
     });
@@ -309,6 +310,7 @@
     if (confirm('Apakah Anda yakin ingin menghapus semua riwayat perhitungan?')) {
       storage.clear(HISTORY_KEY);
       displayHistory();
+      if (window.CuanMeterToast) window.CuanMeterToast.info('Riwayat telah dihapus');
     }
   };
 
@@ -329,6 +331,7 @@
 
       storage.save(HISTORY_KEY, historyData, 10, 'average_price');
       displayHistory();
+      if (window.CuanMeterToast) window.CuanMeterToast.success('Perhitungan disimpan ke riwayat');
     }
   };
 
