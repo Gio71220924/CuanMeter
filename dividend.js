@@ -160,10 +160,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     calculateBtn.addEventListener('click', () => calculate(true));
 
-    // Auto calculate on input change (don't save to history automatically)
-    [divPerShareInput, sharePriceInput, sharesOwnedInput, taxToggle].forEach(el => {
-        el.addEventListener('input', () => calculate(false));
+    // Auto calculate on input change with masking for price fields
+    [divPerShareInput, sharePriceInput].forEach(el => {
+        el.addEventListener('input', (e) => {
+            formatInput(e.target);
+            calculate(false);
+        });
     });
+
+    sharesOwnedInput.addEventListener('input', () => calculate(false));
+    taxToggle.addEventListener('change', () => calculate(false));
 
     clearHistoryBtn.addEventListener('click', () => {
         if (confirm('Hapus semua riwayat dividen?')) {
