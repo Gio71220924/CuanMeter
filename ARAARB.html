@@ -98,7 +98,7 @@
       </div>
     </header>
 
-    <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-10 lg:pb-16 bg-white dark:bg-dark-bg transition-colors">
+    <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-10 lg:pb-16 bg-transparent transition-colors">
       <div class="max-w-3xl mx-auto text-center mb-12">
         <div
           class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-primary/10 border border-blue-100 dark:border-primary/20 text-primary text-xs font-bold uppercase tracking-wide mb-4 transition-colors"
@@ -415,12 +415,11 @@
     </div>
   </div>
 
+  <script src="landingPage.js" defer></script>
   <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
-          window.CuanMeterUtils.theme.init();
-        }
-      });
-    </script>
-  </body>
+    if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
+      window.CuanMeterUtils.theme.init();
+    }
+  </script>
+</body>
 </html>

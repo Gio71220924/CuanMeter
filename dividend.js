@@ -183,9 +183,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load
     renderHistory();
-
-    // Theme initialization
-    if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
-        window.CuanMeterUtils.theme.init();
-    }
 });

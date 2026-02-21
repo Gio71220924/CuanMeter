@@ -101,7 +101,7 @@
       </div>
     </header>
 
-      <main class="flex-1 pt-24 bg-white dark:bg-dark-bg transition-colors">
+      <main class="flex-1 pt-24 bg-transparent transition-colors">
         <div class="mx-auto max-w-[1280px] px-4 py-10 sm:px-6 lg:px-10 transition-colors">
           <!-- Page Header -->
           <div class="mb-10 text-center sm:text-left">
@@ -488,11 +488,11 @@
     </div>
   </div>
 
+  <script src="landingPage.js" defer></script>
   <script>
-      // Initialize theme from utils
-      if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
-        window.CuanMeterUtils.theme.init();
-      }
-    </script>
-  </body>
+    if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
+      window.CuanMeterUtils.theme.init();
+    }
+  </script>
+</body>
 </html>
