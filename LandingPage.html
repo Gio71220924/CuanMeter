@@ -16,74 +16,22 @@
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://stockcalcid.com/" />
 
-  <!-- Open Graph / Facebook -->
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://stockcalcid.com/" />
-  <meta property="og:title" content="StockCalcID - Kalkulator Saham Gratis untuk Trader Indonesia" />
-  <meta property="og:description"
-    content="Alat kalkulasi saham gratis untuk trader Indonesia. Hitung harga rata-rata, cek batas ARA/ARB, dan simulasi profit dengan akurat." />
-  <meta property="og:image" content="https://stockcalcid.com/assets/images/hero-illustration.png" />
-  <meta property="og:locale" content="id_ID" />
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:url" content="https://stockcalcid.com/" />
-  <meta name="twitter:title" content="StockCalcID - Kalkulator Saham Gratis" />
-  <meta name="twitter:description"
-    content="Alat kalkulasi saham gratis untuk trader Indonesia. Hitung harga rata-rata, cek ARA/ARB, dan simulasi profit." />
-  <meta name="twitter:image" content="https://stockcalcid.com/assets/images/hero-illustration.png" />
-
   <!-- Favicon -->
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/favicon.png" />
 
-  <!-- Preconnect for performance -->
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-  <!-- Preload critical assets -->
-  <link rel="preload"
-    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap"
-    as="style" />
-  <link rel="preload" href="assets/images/hero-illustration.webp" as="image" />
-  <link rel="preload" href="utils.js" as="script" />
-
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="manifest.json" />
-
-  <!-- Theme Color -->
-  <meta name="theme-color" content="#0ea5e9" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
-
-  <link href="https://fonts.googleapis.com" rel="preconnect" />
-  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
   <link
     href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap"
     rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
     rel="stylesheet" />
 
-  <!-- Compiled Tailwind CSS for production -->
+  <!-- Compiled Tailwind CSS -->
   <link id="tailwind-output" href="CSS/tailwind-output.css" rel="stylesheet" 
         onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://cdn.tailwindcss.com?plugins=forms,container-queries'; document.head.appendChild(s);" />
-
-  <script>
-    // Secondary check: if tailwind-output loaded but is effectively empty (missing utilities)
-    // or if the link tag failed silently
-    window.addEventListener('DOMContentLoaded', () => {
-      const outputLink = document.getElementById('tailwind-output');
-      const isTailwindLoaded = Array.from(document.styleSheets).some(ss => 
-        ss.href && ss.href.includes('tailwind-output.css') && ss.cssRules.length > 50
-      );
-      
-      if (!isTailwindLoaded && !window.tailwind) {
-        console.warn('Tailwind output CSS not found or incomplete, falling back to CDN');
-        const s = document.createElement('script');
-        s.src = 'https://cdn.tailwindcss.com?plugins=forms,container-queries';
-        document.head.appendChild(s);
-      }
-    });
-  </script>
 
   <script id="tailwind-config">
     tailwind.config = {
@@ -91,37 +39,27 @@
       theme: {
         extend: {
           colors: {
-            primary: "#0ea5e9", // Vibrant Sky Blue
+            primary: "#0ea5e9",
             "primary-hover": "#0284c7",
             "primary-light": "#e0f2fe",
-            "accent-mint": "#10b981", // Vibrant Mint/Emerald
-            "accent-mint-light": "#ecfdf5",
-            "accent-yellow": "#f59e0b", // Sunny Yellow/Amber
-            "accent-yellow-light": "#fffbeb",
-            "slate-850": "#1e293b",
-            // Dark mode colors
-            "dark-bg": "#0f172a", // slate-900
-            "dark-surface": "#1e293b", // slate-800
-            "dark-text": "#f1f5f9", // slate-100
-            "dark-text-secondary": "#cbd5e1", // slate-300
-            "dark-border": "#334155", // slate-700
+            "accent-mint": "#10b981",
+            "accent-yellow": "#f59e0b",
+            "dark-bg": "#0f172a",
+            "dark-surface": "#1e293b",
+            "dark-border": "#334155",
           },
           fontFamily: {
             display: ["Manrope", "sans-serif"],
             body: ["Noto Sans", "sans-serif"],
           },
-          borderRadius: {
-            DEFAULT: "0.5rem",
-            lg: "0.75rem",
-            xl: "1rem",
-            "2xl": "1.5rem",
-            "3xl": "2rem",
-            full: "9999px",
+          animation: {
+            marquee: "marquee 15s linear infinite",
           },
-          boxShadow: {
-            soft: "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
-            hover: "0 20px 40px -5px rgba(14, 165, 233, 0.1)",
-            "dark-none": "none",
+          keyframes: {
+            marquee: {
+              '0%': { transform: 'translateX(0)' },
+              '100%': { transform: 'translateX(-50%)' },
+            },
           },
         },
       },
@@ -129,17 +67,13 @@
   </script>
 </head>
 
-<body class="glass-page bg-white dark:bg-dark-bg text-slate-600 dark:text-slate-300 font-body selection:bg-primary/20 selection:text-primary transition-colors duration-300">
-  <!-- Skip to Content for Accessibility -->
-  <a href="#main-content" class="skip-to-content">Skip to main content</a>
-
+<body class="glass-page bg-white dark:bg-dark-bg text-slate-600 dark:text-slate-300 font-body transition-colors duration-300">
   <div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden transition-colors">
-    <header class="glass-header fixed top-0 left-0 right-0 z-50 border-b border-slate-100 dark:border-dark-border font-display transition-colors">
+    <header class="glass-header fixed top-0 left-0 right-0 z-50 border-b border-slate-100 dark:border-dark-border font-display bg-white/80 dark:bg-dark-bg/80 backdrop-blur transition-colors">
       <div class="flex justify-center w-full">
         <div class="flex items-center justify-between w-full max-w-[1280px] px-6 py-4 md:px-10">
           <div class="flex items-center gap-3 cursor-pointer group">
-            <div
-              class="size-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 dark:shadow-none transition-transform group-hover:scale-105">
+            <div class="size-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 dark:shadow-none transition-transform group-hover:scale-105">
               <span class="material-symbols-outlined text-[24px]">candlestick_chart</span>
             </div>
             <h2 class="header-brand text-xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white font-display transition-colors">
@@ -147,24 +81,19 @@
             </h2>
           </div>
 
-          <nav class="hidden md:flex items-center gap-10">
-            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors" href="AveragePrice.html">
-              Kalkulator Rata-rata Saham
-            </a>
-            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors" href="ARAARB.html">
-              Cek ARA/ARB
-            </a>
-            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors" href="ProfitCalc.html">
-              Simulasi Profit
-            </a>
+          <nav class="hidden md:flex items-center gap-8">
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="AveragePrice.html">Rata-rata</a>
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="ARAARB.html">ARA/ARB</a>
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="ProfitCalc.html">Profit</a>
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="DividendYield.html">Dividen</a>
           </nav>
 
           <div class="flex items-center gap-4">
-            <button id="theme-toggle" class="p-2 text-slate-900 dark:text-slate-100 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" aria-label="Ganti tema (gelap/terang)">
+            <button id="theme-toggle" class="p-2 text-slate-900 dark:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-dark-surface transition-colors" aria-label="Ganti tema">
               <span class="material-symbols-outlined dark:hidden">dark_mode</span>
               <span class="material-symbols-outlined hidden dark:block">light_mode</span>
             </button>
-            <button class="md:hidden p-2 text-slate-900 dark:text-slate-100" aria-label="Buka menu navigasi">
+            <button class="md:hidden p-2 text-slate-900 dark:text-white">
               <span class="material-symbols-outlined">menu</span>
             </button>
           </div>
@@ -173,38 +102,26 @@
     </header>
 
     <main id="main-content" class="flex-1 pt-24 bg-white dark:bg-dark-bg transition-colors duration-300">
-      <section class="relative bg-white dark:bg-dark-bg overflow-hidden pb-16 lg:pb-24 pt-10 transition-colors duration-300">
-        <div
-          class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary-light/40 dark:from-primary/10 via-white dark:via-dark-bg to-white dark:to-dark-bg pointer-events-none opacity-60">
-        </div>
+      <!-- Hero Section -->
+      <section class="relative overflow-hidden pb-16 lg:pb-24 pt-10">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary-light/40 dark:from-primary/10 via-white dark:via-dark-bg to-white dark:to-dark-bg pointer-events-none opacity-60"></div>
 
-        <div
-          class="relative layout-container flex flex-col items-center justify-center px-6 md:px-10 max-w-[1280px] mx-auto">
+        <div class="relative layout-container flex flex-col items-center justify-center px-6 md:px-10 max-w-[1280px] mx-auto">
           <div class="w-full grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <div class="flex flex-col gap-8 text-center lg:text-left z-10 order-2 lg:order-1">
               <div class="space-y-4">
-
-                <h1
-                  class="text-slate-900 dark:text-white text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight font-display transition-colors">
+                <h1 class="text-slate-900 dark:text-white text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tight font-display transition-colors">
                   Alat cerdas untuk <br />
                   <span class="text-primary">trading yang lebih cerdas.</span>
                 </h1>
-
-                <p class="text-slate-500 dark:text-slate-400 text-lg md:text-xl font-medium leading-relaxed max-w-xl mx-auto lg:mx-0 transition-colors">
-                  Kalkulator praktis untuk harga rata-rata, batas ARA/ARB, dan estimasi profit bersih. Sederhanakan
-                  keputusan trading Anda mulai hari ini.
+                <p class="text-slate-500 dark:text-slate-400 text-lg md:text-xl font-medium leading-relaxed max-w-xl mx-auto lg:mx-0">
+                  Kalkulator praktis untuk harga rata-rata, batas ARA/ARB, dan estimasi profit bersih. Sederhanakan keputusan trading Anda mulai hari ini.
                 </p>
               </div>
 
               <div class="flex flex-wrap gap-4 justify-center lg:justify-start">
-                <a class="flex items-center justify-center rounded-full h-14 px-8 bg-primary hover:bg-primary-hover text-white text-base font-bold shadow-lg dark:shadow-none shadow-primary/25 transition-all transform hover:-translate-y-1"
-                  href="#tools">
-                  Mulai Hitung
-                </a>
-                <a class="flex items-center justify-center rounded-full h-14 px-8 bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-base font-bold transition-all shadow-sm dark:shadow-none"
-                  href="#guides">
-                  Cara Kerja
-                </a>
+                <a class="flex items-center justify-center rounded-full h-14 px-8 bg-primary hover:bg-primary-hover text-white text-base font-bold shadow-lg dark:shadow-none shadow-primary/25 transition-all transform hover:-translate-y-1" href="#tools">Mulai Hitung</a>
+                <a class="flex items-center justify-center rounded-full h-14 px-8 bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-base font-bold transition-all shadow-sm dark:shadow-none" href="#guides">Cara Kerja</a>
               </div>
 
               <div class="flex items-center justify-center lg:justify-start gap-8 pt-2">
@@ -225,188 +142,95 @@
               </div>
             </div>
 
-            <div
-              class="relative w-full aspect-square md:aspect-[4/3] lg:aspect-square max-h-[560px] rounded-3xl overflow-hidden shadow-2xl shadow-slate-200 dark:shadow-none z-10 order-1 lg:order-2 bg-slate-50 dark:bg-dark-surface">
+            <div class="relative w-full aspect-square md:aspect-[4/3] lg:aspect-square max-h-[560px] rounded-3xl overflow-hidden shadow-2xl dark:shadow-none z-10 order-1 lg:order-2 bg-slate-50 dark:bg-dark-surface border border-transparent dark:border-dark-border">
               <picture>
                 <source srcset="assets/images/hero-illustration.webp" type="image/webp">
                 <source srcset="assets/images/hero-illustration.png" type="image/png">
-                <img src="assets/images/hero-illustration.png"
-                  alt="Ilustrasi modern minimalis dengan grafik candlestick 3D, grafik tren naik, dan elemen geometris dalam gradien biru sky dan hijau mint - representasi visual analisis pasar saham"
-                  class="w-full h-full object-cover transition-transform duration-700 hover:scale-105" loading="eager"
-                  width="560" height="560" />
+                <img src="assets/images/hero-illustration.png" alt="Hero Illustration" class="w-full h-full object-cover" />
               </picture>
             </div>
           </div>
         </div>
       </section>
 
-      <div class="w-full bg-white dark:bg-dark-bg border-y border-slate-100 dark:border-dark-border py-4 overflow-hidden transition-colors">
-        <div id="stock-marquee"
-          class="flex gap-16 whitespace-nowrap animate-marquee items-center justify-center text-sm font-bold text-slate-500 dark:text-slate-400 font-display uppercase tracking-widest">
-          <!-- Real-time stock data will be injected here -->
+      <!-- Stock Marquee -->
+      <div class="w-full bg-white dark:bg-dark-bg border-y border-slate-100 dark:border-dark-border py-4 overflow-hidden">
+        <div id="stock-marquee" class="flex gap-16 whitespace-nowrap animate-marquee items-center justify-center text-sm font-bold text-slate-500 dark:text-slate-400 font-display uppercase tracking-widest">
           <div class="flex items-center gap-8">
-            <span class="flex items-center gap-3 hover:text-slate-900 dark:hover:text-white transition-colors cursor-default">
-              Memuat data pasar...
-            </span>
+            <span class="flex items-center gap-3">Memuat data pasar...</span>
           </div>
         </div>
       </div>
 
+      <!-- Tools Section -->
       <section class="py-24 px-6 bg-white dark:bg-dark-bg transition-colors" id="tools">
         <div class="layout-container flex flex-col items-center max-w-[1280px] mx-auto">
           <div class="text-center mb-20 max-w-3xl">
-            <h2 class="text-slate-900 dark:text-white text-3xl md:text-4xl font-extrabold tracking-tight mb-6 font-display transition-colors">
-              Kalkulator Utama
-            </h2>
-            <p class="text-slate-500 dark:text-slate-400 text-lg leading-relaxed transition-colors">
-              Semua yang Anda butuhkan untuk merencanakan transaksi dan mengelola risiko, dirancang khusus untuk
-              struktur pasar Indonesia.
-            </p>
+            <h2 class="text-slate-900 dark:text-white text-3xl md:text-4xl font-extrabold tracking-tight mb-6 font-display">Kalkulator Utama</h2>
+            <p class="text-slate-500 dark:text-slate-400 text-lg">Semua yang Anda butuhkan untuk merencanakan transaksi dan mengelola risiko.</p>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
             <!-- Average Price -->
-            <div
-              class="group glass-card relative flex flex-col bg-white dark:bg-dark-surface rounded-3xl border border-slate-100 dark:border-dark-border shadow-soft dark:shadow-none hover:shadow-hover dark:hover:shadow-none hover:-translate-y-2 transition-all duration-300 overflow-hidden">
-              <div class="absolute top-0 left-0 w-full h-1.5 bg-primary"></div>
-              <div class="p-8 flex flex-col h-full">
-                <div
-                  class="size-14 rounded-2xl bg-primary-light dark:bg-primary/10 text-primary flex items-center justify-center mb-8 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
-                  <span class="material-symbols-outlined text-[32px]">calculate</span>
-                </div>
-
-                <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-3 font-display transition-colors">Harga Rata-rata</h3>
-
-                <p class="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed flex-grow transition-colors">
-                  Terlanjur beli di harga tinggi? Rencanakan strategi average down dengan tepat. Hitung harga
-                  rata-rata baru Anda secara instan sebelum eksekusi.
-                </p>
-
-                <div class="mt-auto flex items-center justify-between">
-                  <button
-                    class="w-full py-3 rounded-xl bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white font-bold text-sm hover:bg-primary hover:text-white transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-primary/20">
-                    Buka Kalkulator
-                    <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-                  </button>
-                </div>
+            <div class="group glass-card flex flex-col bg-white dark:bg-dark-surface rounded-3xl border border-slate-100 dark:border-dark-border p-6 shadow-soft dark:shadow-none hover:-translate-y-2 transition-all duration-300">
+              <div class="size-12 rounded-2xl bg-primary-light dark:bg-primary/10 text-primary flex items-center justify-center mb-6">
+                <span class="material-symbols-outlined text-[28px]">calculate</span>
               </div>
+              <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 font-display">Harga Rata-rata</h3>
+              <p class="text-slate-500 dark:text-slate-400 text-sm mb-6 flex-grow">Rencanakan strategi average down dengan tepat dan cepat.</p>
+              <a href="AveragePrice.html" class="w-full py-3 rounded-xl bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white font-bold text-sm hover:bg-primary hover:text-white transition-all text-center">Buka</a>
             </div>
 
             <!-- ARA/ARB -->
-            <div
-              class="group glass-card relative flex flex-col bg-white dark:bg-dark-surface rounded-3xl border border-slate-100 dark:border-dark-border shadow-soft dark:shadow-none hover:shadow-hover dark:hover:shadow-none hover:-translate-y-2 transition-all duration-300 overflow-hidden">
-              <div class="absolute top-0 left-0 w-full h-1.5 bg-accent-yellow"></div>
-              <div class="p-8 flex flex-col h-full">
-                <div
-                  class="size-14 rounded-2xl bg-accent-yellow-light dark:bg-accent-yellow/10 text-accent-yellow flex items-center justify-center mb-8 group-hover:bg-accent-yellow group-hover:text-white transition-colors duration-300">
-                  <span class="material-symbols-outlined text-[32px]">vertical_align_center</span>
-                </div>
-
-                <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-3 font-display transition-colors">Cek ARA/ARB</h3>
-
-                <p class="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed flex-grow transition-colors">
-                  Ketahui batasnya. Hitung batas harga Auto Rejection Atas (ARA) dan Auto Rejection Bawah (ARB) untuk
-                  saham apa pun secara instan.
-                </p>
-
-                <div class="mt-auto flex items-center justify-between">
-                  <button
-                    class="w-full py-3 rounded-xl bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white font-bold text-sm hover:bg-accent-yellow hover:text-white transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-accent-yellow/20">
-                    Buka Kalkulator
-                    <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-                  </button>
-                </div>
+            <div class="group glass-card flex flex-col bg-white dark:bg-dark-surface rounded-3xl border border-slate-100 dark:border-dark-border p-6 shadow-soft dark:shadow-none hover:-translate-y-2 transition-all duration-300">
+              <div class="size-12 rounded-2xl bg-accent-yellow-light dark:bg-accent-yellow/10 text-accent-yellow flex items-center justify-center mb-6">
+                <span class="material-symbols-outlined text-[28px]">vertical_align_center</span>
               </div>
+              <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 font-display">Cek ARA/ARB</h3>
+              <p class="text-slate-500 dark:text-slate-400 text-sm mb-6 flex-grow">Hitung batas Auto Rejection Atas & Bawah secara instan.</p>
+              <a href="ARAARB.html" class="w-full py-3 rounded-xl bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white font-bold text-sm hover:bg-accent-yellow hover:text-white transition-all text-center">Buka</a>
             </div>
 
             <!-- Profit Simulator -->
-            <div
-              class="group glass-card relative flex flex-col bg-white dark:bg-dark-surface rounded-3xl border border-slate-100 dark:border-dark-border shadow-soft dark:shadow-none hover:shadow-hover dark:hover:shadow-none hover:-translate-y-2 transition-all duration-300 overflow-hidden">
-              <div class="absolute top-0 left-0 w-full h-1.5 bg-accent-mint"></div>
-              <div class="p-8 flex flex-col h-full">
-                <div
-                  class="size-14 rounded-2xl bg-accent-mint-light dark:bg-accent-mint/10 text-accent-mint flex items-center justify-center mb-8 group-hover:bg-accent-mint group-hover:text-white transition-colors duration-300">
-                  <span class="material-symbols-outlined text-[32px]">savings</span>
-                </div>
-
-                <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-3 font-display transition-colors">Simulasi Profit</h3>
-
-                <p class="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed flex-grow transition-colors">
-                  Visualisasikan keuntungan Anda. Estimasikan profit bersih setelah memperhitungkan fee broker
-                  (beli/jual) dan pajak secara otomatis.
-                </p>
-
-                <div class="mt-auto flex items-center justify-between">
-                  <button
-                    class="w-full py-3 rounded-xl bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white font-bold text-sm hover:bg-accent-mint hover:text-white transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-accent-mint/20">
-                    Buka Kalkulator
-                    <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-                  </button>
-                </div>
+            <div class="group glass-card flex flex-col bg-white dark:bg-dark-surface rounded-3xl border border-slate-100 dark:border-dark-border p-6 shadow-soft dark:shadow-none hover:-translate-y-2 transition-all duration-300">
+              <div class="size-12 rounded-2xl bg-accent-mint-light dark:bg-accent-mint/10 text-accent-mint flex items-center justify-center mb-6">
+                <span class="material-symbols-outlined text-[28px]">savings</span>
               </div>
+              <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 font-display">Simulasi Profit</h3>
+              <p class="text-slate-500 dark:text-slate-400 text-sm mb-6 flex-grow">Estimasikan profit bersih setelah fee broker dan pajak.</p>
+              <a href="ProfitCalc.html" class="w-full py-3 rounded-xl bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white font-bold text-sm hover:bg-accent-mint hover:text-white transition-all text-center">Buka</a>
+            </div>
+
+            <!-- Dividend Yield -->
+            <div class="group glass-card flex flex-col bg-white dark:bg-dark-surface rounded-3xl border border-slate-100 dark:border-dark-border p-6 shadow-soft dark:shadow-none hover:-translate-y-2 transition-all duration-300">
+              <div class="size-12 rounded-2xl bg-primary-light dark:bg-primary/10 text-primary flex items-center justify-center mb-6">
+                <span class="material-symbols-outlined text-[28px]">payments</span>
+              </div>
+              <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 font-display">Kalkulator Dividen</h3>
+              <p class="text-slate-500 dark:text-slate-400 text-sm mb-6 flex-grow">Hitung imbal hasil dividen bersih dari kepemilikan saham.</p>
+              <a href="DividendYield.html" class="w-full py-3 rounded-xl bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white font-bold text-sm hover:bg-primary hover:text-white transition-all text-center">Buka</a>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="py-24 px-6 bg-slate-50 dark:bg-dark-surface border-t border-slate-200 dark:border-dark-border transition-colors" id="guides">
+      <!-- Guides Section -->
+      <section class="py-24 px-6 bg-slate-50 dark:bg-dark-surface border-t border-slate-200 dark:border-dark-border" id="guides">
         <div class="layout-container max-w-[1280px] mx-auto flex flex-col lg:flex-row items-center gap-16">
           <div class="w-full lg:w-1/2">
-            <div
-              class="rounded-3xl overflow-hidden shadow-2xl shadow-slate-200 dark:shadow-none aspect-video transition-transform hover:scale-[1.02] duration-500">
-              <picture>
-                <source srcset="assets/images/desktop-mockup.webp" type="image/webp">
-                <source srcset="assets/images/desktop-mockup.png" type="image/png">
-                <img src="assets/images/desktop-mockup.png"
-                  alt="Dashboard modern dark mode menampilkan grafik candlestick saham IHSG, kartu harga saham BBCA, BBRI, TLKM, tabel data trading dengan glassmorphism UI - platform analisis saham profesional"
-                  class="w-full h-full object-cover" loading="lazy" width="800" height="450" />
-              </picture>
+            <div class="rounded-3xl overflow-hidden shadow-2xl dark:shadow-none border border-transparent dark:border-dark-border aspect-video">
+              <img src="assets/images/desktop-mockup.png" alt="Desktop Mockup" class="w-full h-full object-cover" />
             </div>
           </div>
-
           <div class="w-full lg:w-1/2 flex flex-col gap-8">
-            <div>
-              <div class="text-primary font-bold text-sm uppercase tracking-wider mb-2">Pusat Pembelajaran</div>
-              <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white font-display transition-colors">Baru mulai trading?</h2>
-            </div>
-
-            <p class="text-slate-600 dark:text-slate-400 text-lg leading-relaxed transition-colors">
-              Lihat panduan lengkap tentang cara membaca grafik, memahami regulasi IDX, dan menggunakan kalkulator ini
-              secara efektif.
-            </p>
-
+            <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white font-display">Baru mulai trading?</h2>
+            <p class="text-slate-600 dark:text-slate-400 text-lg leading-relaxed">Lihat panduan lengkap tentang cara menggunakan kalkulator ini secara efektif.</p>
             <div class="grid grid-cols-1 gap-4">
-              <a class="glass-card flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all group"
-                href="#">
-                <div
-                  class="bg-blue-50 dark:bg-primary/10 text-primary p-3 rounded-xl group-hover:bg-primary group-hover:text-white transition-colors">
-                  <span class="material-symbols-outlined text-[24px]">menu_book</span>
-                </div>
+              <a href="#" class="glass-card flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-dark-bg border border-slate-200 dark:border-dark-border hover:border-primary transition-all">
+                <div class="bg-blue-50 dark:bg-primary/10 text-primary p-3 rounded-xl"><span class="material-symbols-outlined">menu_book</span></div>
                 <div>
-                  <h4 class="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors text-lg transition-colors">
-                    Memahami Auto Rejection
-                  </h4>
-                  <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 transition-colors">Pelajari batas ARA dan ARB terbaru di 2024.</p>
-                </div>
-                <div class="ml-auto text-slate-300 dark:text-slate-600 group-hover:text-primary transition-colors">
-                  <span class="material-symbols-outlined">chevron_right</span>
-                </div>
-              </a>
-
-              <a class="glass-card flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all group"
-                href="#">
-                <div
-                  class="bg-blue-50 dark:bg-primary/10 text-primary p-3 rounded-xl group-hover:bg-primary group-hover:text-white transition-colors">
-                  <span class="material-symbols-outlined text-[24px]">analytics</span>
-                </div>
-                <div>
-                  <h4 class="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors text-lg transition-colors">
-                    Strategi Average Down
-                  </h4>
-                  <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 transition-colors">Kapan menambah posisi dan kapan cut loss.</p>
-                </div>
-                <div class="ml-auto text-slate-300 dark:text-slate-600 group-hover:text-primary transition-colors">
-                  <span class="material-symbols-outlined">chevron_right</span>
+                  <h4 class="font-bold text-slate-900 dark:text-white">Memahami ARA & ARB</h4>
+                  <p class="text-sm text-slate-500 dark:text-slate-400">Pelajari batas terbaru di 2026.</p>
                 </div>
               </a>
             </div>
@@ -415,83 +239,18 @@
       </section>
     </main>
 
-    <footer class="bg-white/70 dark:bg-dark-bg/70 backdrop-blur border-t border-gray-100 dark:border-dark-border py-12 transition-colors">
-      <div class="max-w-7xl mx-auto px-4 text-center">
+    <footer class="bg-white/70 dark:bg-dark-bg/70 backdrop-blur border-t border-gray-100 dark:border-dark-border py-12 text-center">
+      <div class="max-w-7xl mx-auto px-4">
         <div class="flex items-center justify-center gap-2 mb-4 text-slate-900 dark:text-white font-display font-bold text-lg">
-          <span class="material-symbols-outlined text-primary">candlestick_chart</span>
-          StockCalcID
+          <span class="material-symbols-outlined text-primary">candlestick_chart</span> StockCalcID
         </div>
-
         <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">Alat sederhana untuk keputusan trading yang lebih tepat.</p>
-
-        <div class="flex justify-center gap-6 text-sm text-slate-500 dark:text-slate-400 font-medium">
-          <a class="hover:text-primary transition-colors" href="#">Kebijakan Privasi</a>
-          <a class="hover:text-primary transition-colors" href="#">Syarat &amp; Ketentuan</a>
-          <a class="hover:text-primary transition-colors" href="#">Kontak</a>
-        </div>
-
-        <p class="text-xs text-gray-400 dark:text-slate-500 mt-8">© 2026 StockCalcID.</p>
+        <p class="text-xs text-gray-400 dark:text-slate-500">© 2026 StockCalcID.</p>
       </div>
     </footer>
   </div>
 
-  <!-- Scroll to Top Button -->
-  <button id="scroll-to-top" aria-label="Scroll to top">
-    <span class="material-symbols-outlined">arrow_upward</span>
-  </button>
-
-  <!-- Scripts -->
   <script src="utils.js"></script>
-  <script src="toast.js" defer></script>
   <script src="landingPage.js" defer></script>
-  <script src="animations.js" defer></script>
-  <script src="analytics.js" defer></script>
-  <script src="pwa-install.js" defer></script>
-
-  <!-- Structured Data for SEO -->
-  <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "StockCalcID",
-      "applicationCategory": "FinanceApplication",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "IDR"
-      },
-      "description": "Kalkulator saham gratis untuk trader Indonesia. Hitung harga rata-rata, cek ARA/ARB, dan simulasi profit.",
-      "operatingSystem": "Web Browser",
-      "url": "https://stockcalcid.com",
-      "inLanguage": "id",
-      "featureList": [
-        "Kalkulator Harga Rata-rata Saham",
-        "Cek Batas ARA/ARB",
-        "Simulasi Profit & Loss",
-        "Gratis Selamanya",
-        "Tanpa Iklan"
-      ],
-      "author": {
-        "@type": "Organization",
-        "name": "StockCalcID"
-      }
-    }
-    </script>
-
-  <!-- Organization Structured Data -->
-  <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "StockCalcID",
-      "url": "https://stockcalcid.com",
-      "logo": "https://stockcalcid.com/assets/images/favicon.png",
-      "description": "Platform kalkulator saham gratis untuk trader Indonesia dengan fitur hitung rata-rata, ARA/ARB, dan simulasi profit.",
-      "sameAs": [
-        "https://stockcalcid.com"
-      ]
-    }
-    </script>
 </body>
-
 </html>
