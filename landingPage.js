@@ -130,166 +130,6 @@ function toggleMobileMenu() {
     }
 }
 
-// Calculator Navigation Buttons
-function initCalculatorButtons() {
-    try {
-        // Average Price Calculator
-        const avgPriceBtn = document.querySelector('#tools .grid > div:nth-child(1) button');
-        if (avgPriceBtn) {
-            avgPriceBtn.addEventListener('click', () => {
-                try {
-                    window.location.href = 'AveragePrice.html';
-                } catch (error) {
-                    console.error('Error navigating to Average Price calculator:', error);
-                    if (window.CuanMeterToast) {
-                        window.CuanMeterToast.error('Gagal membuka kalkulator');
-                    }
-                }
-            });
-        }
-
-        // ARA/ARB Calculator
-        const araArbBtn = document.querySelector('#tools .grid > div:nth-child(2) button');
-        if (araArbBtn) {
-            araArbBtn.addEventListener('click', () => {
-                try {
-                    window.location.href = 'ARAARB.html';
-                } catch (error) {
-                    console.error('Error navigating to ARA/ARB calculator:', error);
-                    if (window.CuanMeterToast) {
-                        window.CuanMeterToast.error('Gagal membuka kalkulator');
-                    }
-                }
-            });
-        }
-
-        // Profit Calculator
-        const profitBtn = document.querySelector('#tools .grid > div:nth-child(3) button');
-        if (profitBtn) {
-            profitBtn.addEventListener('click', () => {
-                try {
-                    window.location.href = 'ProfitCalc.html';
-                } catch (error) {
-                    console.error('Error navigating to Profit calculator:', error);
-                    if (window.CuanMeterToast) {
-                        window.CuanMeterToast.error('Gagal membuka kalkulator');
-                    }
-                }
-            });
-        }
-    } catch (error) {
-        console.error('Error initializing calculator buttons:', error);
-    }
-}
-
-// Lazy Loading Images
-function initLazyLoading() {
-    try {
-        const images = document.querySelectorAll('img[loading="lazy"]');
-
-        if ('IntersectionObserver' in window) {
-            const imageObserver = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const img = entry.target;
-                        if (img.dataset.src) {
-                            img.src = img.dataset.src;
-                            img.removeAttribute('data-src');
-                        }
-                        img.classList.add('loaded');
-                        observer.unobserve(img);
-                    }
-                });
-            }, {
-                rootMargin: '50px'
-            });
-
-            images.forEach(img => imageObserver.observe(img));
-        } else {
-            // Fallback for browsers without IntersectionObserver
-            images.forEach(img => {
-                if (img.dataset.src) {
-                    img.src = img.dataset.src;
-                }
-            });
-        }
-    } catch (error) {
-        console.error('Error initializing lazy loading:', error);
-    }
-}
-
-// Scroll to Top Button
-function initScrollToTop() {
-    try {
-        const scrollBtn = document.getElementById('scroll-to-top');
-        if (!scrollBtn) {
-            console.warn('Scroll to top button not found');
-            return;
-        }
-
-        let isScrolling = false;
-
-        window.addEventListener('scroll', () => {
-            if (!isScrolling) {
-                window.requestAnimationFrame(() => {
-                    if (window.pageYOffset > 300) {
-                        scrollBtn.classList.add('visible');
-                    } else {
-                        scrollBtn.classList.remove('visible');
-                    }
-                    isScrolling = false;
-                });
-                isScrolling = true;
-            }
-        }, { passive: true });
-
-        scrollBtn.addEventListener('click', () => {
-            try {
-                window.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
-                });
-            } catch (error) {
-                // Fallback for older browsers
-                window.scrollTo(0, 0);
-            }
-        });
-    } catch (error) {
-        console.error('Error initializing scroll to top:', error);
-    }
-}
-
-// Smooth Scroll for Anchor Links
-function initSmoothScroll() {
-    try {
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                try {
-                    const href = this.getAttribute('href');
-                    if (href === '#' || !href) return;
-
-                    const target = document.querySelector(href);
-                    if (target) {
-                        e.preventDefault();
-                        const headerOffset = 80;
-                        const elementPosition = target.getBoundingClientRect().top;
-                        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-                        window.scrollTo({
-                            top: offsetPosition,
-                            behavior: 'smooth'
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error in smooth scroll:', error);
-                }
-            });
-        });
-    } catch (error) {
-        console.error('Error initializing smooth scroll:', error);
-    }
-}
-
 // Stock Marquee Real-time Updates
 async function initStockMarquee() {
     const marqueeContainer = document.getElementById('stock-marquee');
@@ -311,9 +151,14 @@ async function initStockMarquee() {
         { ticker: 'OANDA:XAUUSD', label: 'Gold (XAUUSD)' }
     ];
 
+    // In production, this should be your actual API domain or a relative path
+    const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:3001'
+        : ''; // Adjust this for your production API URL
+
     async function updateMarquee() {
         try {
-            const response = await fetch('http://localhost:3001/api/prices');
+            const response = await fetch(`${API_BASE_URL}/api/prices`);
             if (!response.ok) throw new Error('Network response was not ok');
             const data = await response.json();
 
@@ -386,7 +231,6 @@ function checkUtils() {
 document.addEventListener('DOMContentLoaded', () => {
     try {
         checkUtils();
-        initCalculatorButtons();
         initLazyLoading();
         initSmoothScroll();
         initScrollToTop();
