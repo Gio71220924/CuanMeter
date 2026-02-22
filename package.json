@@ -3,12 +3,12 @@
     "version": "1.0.0",
     "description": "Kalkulator saham gratis untuk trader Indonesia - StockCalcID",
     "scripts": {
-        "start:web": "npm run watch:css & npx -y live-server --port=3000",
+        "start": "node server.js",
+        "start:web": "npm run watch:css & node server.js",
         "build": "npm run build:css && npm run build:js",
         "build:css": "npx tailwindcss -i CSS/LandingPage.css -o CSS/tailwind-output.css --minify",
         "watch:css": "npx tailwindcss -i CSS/LandingPage.css -o CSS/tailwind-output.css --watch",
-        "build:js": "echo 'JS minification placeholder - add terser if needed'",
-        "start": "npx -y live-server --port=3000"
+        "build:js": "echo 'JS minification placeholder - add terser if needed'"
     },
     "keywords": [
         "stock calculator",
