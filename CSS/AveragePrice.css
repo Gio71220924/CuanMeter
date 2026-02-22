@@ -56,6 +56,22 @@ body.glass-page {
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
 }
 
+/* Tab States */
+.tab-active {
+    background-color: #ffffff;
+    color: #0ea5e9;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.tab-inactive {
+    background-color: transparent;
+    color: #64748b;
+    box-shadow: none;
+}
+.tab-inactive:hover {
+    color: #334155;
+}
+
 /* Dark mode overrides */
 .dark .glass-header {
     background: rgba(15, 23, 42, 0.90);
@@ -127,4 +143,16 @@ body.glass-page {
 
 .dark .placeholder-gray-300 {
     color: #64748b !important;
+}
+
+/* Tab Dark Mode */
+.dark .tab-active {
+    background-color: #1e293b;
+    color: #0ea5e9;
+}
+.dark .tab-inactive {
+    color: #94a3b8;
+}
+.dark .tab-inactive:hover {
+    color: #cbd5e1;
 }
