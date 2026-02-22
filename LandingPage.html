@@ -171,6 +171,65 @@
         </div>
       </div>
 
+      <!-- Market Radar Section -->
+      <section class="py-12 px-6 bg-slate-50/50 dark:bg-dark-bg/50 border-b border-slate-100 dark:border-dark-border" id="market-radar-container">
+        <div class="layout-container max-w-[1280px] mx-auto">
+          <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div>
+              <h2 class="text-xl font-extrabold text-slate-900 dark:text-white font-display flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">radar</span>
+                Market Radar
+              </h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Sinyal akumulasi & distribusi Smart Money.</p>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <div class="flex bg-white dark:bg-dark-surface p-1 rounded-lg border border-slate-200 dark:border-dark-border" id="radar-timeframe">
+                    <button data-tf="2" class="px-3 py-1 text-xs font-bold rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">2D</button>
+                    <button data-tf="5" class="px-3 py-1 text-xs font-bold rounded bg-primary text-white shadow-sm transition-colors">5D</button>
+                    <button data-tf="10" class="px-3 py-1 text-xs font-bold rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">10D</button>
+                    <button data-tf="20" class="px-3 py-1 text-xs font-bold rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">20D</button>
+                </div>
+                <span id="radar-last-update" class="text-[10px] font-mono text-slate-400 bg-white dark:bg-dark-surface px-2 py-1 rounded border border-slate-200 dark:border-dark-border hidden md:inline-block">
+                  Memuat...
+                </span>
+            </div>
+          </div>
+
+          <div id="radar-loading" class="text-center py-8 text-sm text-slate-500 animate-pulse">
+            Sedang memindai pasar...
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Accumulation Column -->
+            <div class="space-y-4">
+              <div class="flex items-center gap-2 px-1">
+                <span class="size-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <h3 class="text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Potensi Akumulasi</h3>
+              </div>
+              <div id="radar-accumulation" class="space-y-3">
+                <!-- Items injected by JS -->
+              </div>
+            </div>
+
+            <!-- Distribution Column -->
+            <div class="space-y-4">
+              <div class="flex items-center gap-2 px-1">
+                <span class="size-2 rounded-full bg-rose-500 animate-pulse"></span>
+                <h3 class="text-sm font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wide">Indikasi Distribusi</h3>
+              </div>
+              <div id="radar-distribution" class="space-y-3">
+                <!-- Items injected by JS -->
+              </div>
+            </div>
+          </div>
+          
+          <p class="text-[10px] text-center text-slate-400 mt-8 italic">
+            *Data tertunda (EOD). Sinyal berdasarkan analisis volume flow & teknikal dasar. Bukan ajakan membeli/menjual.
+          </p>
+        </div>
+      </section>
+
       <!-- Tools Section -->
       <section class="py-24 px-6 bg-white dark:bg-dark-bg transition-colors" id="tools">
         <div class="layout-container flex flex-col items-center max-w-[1280px] mx-auto">
@@ -277,5 +336,6 @@
     });
   </script>
   <script src="landingPage.js" defer></script>
+  <script src="marketRadar.js" defer></script>
 </body>
 </html>
