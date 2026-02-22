@@ -231,6 +231,32 @@ function checkUtils() {
     }
 }
 
+function initLazyLoading() {
+    // Basic lazy loading for images if needed
+}
+
+function initSmoothScroll() {
+    // Add smooth scroll behavior to all links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            const href = this.getAttribute('href');
+            if (href === '#') return;
+            
+            const target = document.querySelector(href);
+            if (target) {
+                e.preventDefault();
+                target.scrollIntoView({
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+}
+
+function initScrollToTop() {
+    // Placeholder for scroll to top button logic if added later
+}
+
 // Initialize everything when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     try {
@@ -241,10 +267,8 @@ document.addEventListener('DOMContentLoaded', () => {
         initAnalytics();
         initStockMarquee();
 
-        // Initialize theme from utils
-        if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
-            window.CuanMeterUtils.theme.init();
-        }
+        // Theme initialization is now handled directly in the HTML scripts
+        // to prevent double-initialization or conflicts.
     } catch (error) {
         console.error('Error during initialization:', error);
         if (window.CuanMeterToast) {

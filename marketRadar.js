@@ -102,7 +102,6 @@
     const isDistCol = type === 'dist';
     const colorClass = isDistCol ? "text-rose-500" : "text-emerald-500";
     const bgClass = isDistCol ? "bg-rose-500/10" : "bg-emerald-500/10";
-    const icon = isDistCol ? "trending_down" : "trending_up"; 
     
     const price = item.orderflow?.recent_price || 0;
     const growth = item.orderflow?.growth_pct || 0;
@@ -111,8 +110,14 @@
     return `
       <div class="flex items-center justify-between p-3 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 hover:border-primary/30 transition-all">
         <div class="flex items-center gap-3">
-          <div class="size-8 rounded-lg ${bgClass} flex items-center justify-center ${colorClass}">
-            <span class="material-symbols-outlined text-[18px] font-bold">${icon}</span>
+          <div class="relative size-10 shrink-0 bg-slate-100 dark:bg-slate-700 rounded-lg overflow-hidden flex items-center justify-center border border-slate-200 dark:border-dark-border">
+            <img src="https://assets.stockbit.com/logos/companies/${item.t}.png" 
+                 alt="${item.t}" 
+                 class="w-full h-full object-contain p-1"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="hidden absolute inset-0 items-center justify-center text-[10px] font-black text-slate-400 uppercase">
+              ${item.t.slice(0, 2)}
+            </div>
           </div>
           <div>
             <div class="flex items-center gap-2">
