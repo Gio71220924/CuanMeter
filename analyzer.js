@@ -27,7 +27,7 @@
   if (!els.analyzeBtn) return;
 
   const { formatters } = window.CuanMeterUtils;
-  const PROXY_URL = 'http://localhost:3001/search';
+  const PROXY_URL = 'http://localhost:3000/search';
   let searchTimeout = null;
 
   // --- Render suggestion item HTML ---
