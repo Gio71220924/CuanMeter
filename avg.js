@@ -161,28 +161,10 @@
     }
   };
 
-  const formatInput = (input) => {
-    if (!input) return;
-    const selectionStart = input.selectionStart;
-    const oldLength = input.value.length;
-
-    let value = input.value.replace(/[^0-9]/g, "");
-    if (value === "") {
-      input.value = "";
-      return;
-    }
-    
-    input.value = formatters.nf0.format(parseInt(value));
-
-    const newLength = input.value.length;
-    const newPosition = selectionStart + (newLength - oldLength);
-    input.setSelectionRange(newPosition, newPosition);
-  };
-
   const bindRowEvents = (row) => {
     const { priceInput, lotsInput, removeBtn } = normalizeRow(row);
     priceInput?.addEventListener("input", (e) => {
-      formatInput(e.target);
+      formatters.formatInput(e.target);
       render();
     });
     lotsInput?.addEventListener("input", render);
@@ -358,7 +340,7 @@
 
   getOrderRows().forEach(bindRowEvents);
   els.currentAvgPrice.addEventListener("input", (e) => {
-    formatInput(e.target);
+    formatters.formatInput(e.target);
     render();
   });
   els.currentLots.addEventListener("input", render);

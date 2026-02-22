@@ -65,7 +65,7 @@
         onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://cdn.tailwindcss.com?plugins=forms,container-queries'; document.head.appendChild(s);" />
 
   <script src="utils.js"></script>
-  <script id="tailwind-config">
+  <script>
     // Apply theme class immediately to prevent FOUC
     (function() {
       const savedTheme = localStorage.getItem('theme');
@@ -74,37 +74,6 @@
         document.documentElement.classList.add('dark');
       }
     })();
-
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            primary: "#0ea5e9",
-            "primary-hover": "#0284c7",
-            "primary-light": "#e0f2fe",
-            "accent-mint": "#10b981",
-            "accent-yellow": "#f59e0b",
-            "dark-bg": "#0f172a",
-            "dark-surface": "#1e293b",
-            "dark-border": "#334155",
-          },
-          fontFamily: {
-            display: ["Manrope", "sans-serif"],
-            body: ["Noto Sans", "sans-serif"],
-          },
-          animation: {
-            marquee: "marquee 15s linear infinite",
-          },
-          keyframes: {
-            marquee: {
-              '0%': { transform: 'translateX(0)' },
-              '100%': { transform: 'translateX(-50%)' },
-            },
-          },
-        },
-      },
-    };
   </script>
 </head>
 

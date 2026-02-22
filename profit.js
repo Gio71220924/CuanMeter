@@ -26,43 +26,24 @@
 
   if (!els.buyPrice || !els.sellPrice || !els.lots) return;
 
-  const formatInput = (input) => {
-    if (!input) return;
-    const selectionStart = input.selectionStart;
-    const oldLength = input.value.length;
-
-    let value = input.value.replace(/[^0-9]/g, "");
-    if (value === "") {
-      input.value = "";
-      return;
-    }
-    
-    input.value = formatters.nf0.format(parseInt(value));
-
-    const newLength = input.value.length;
-    const newPosition = selectionStart + (newLength - oldLength);
-    input.setSelectionRange(newPosition, newPosition);
-  };
-
   const formatCost = (value) => {
     if (!Number.isFinite(value) || value <= 0) return "Rp 0";
     return `-(Rp ${formatters.nf0.format(Math.round(value))})`;
   };
 
   const formatCurrencySigned = (value) => {
-    const rounded = Math.round(value);
-    if (rounded === 0) return formatters.formatCurrency(0);
-    const absValue = Math.abs(rounded);
-    const formatted = formatters.formatCurrency(absValue);
-    return rounded < 0 ? `-${formatted}` : formatted;
+    if (value === 0) return formatters.formatCurrencyPrecise(0);
+    const absValue = Math.abs(value);
+    const formatted = formatters.formatCurrencyPrecise(absValue);
+    return value < 0 ? `-${formatted}` : formatted;
   };
 
   const getFormData = () => {
     const buyPrice = formatters.toNonNegativeNumber(els.buyPrice.value);
     const sellPrice = formatters.toNonNegativeNumber(els.sellPrice.value);
     const lots = formatters.toNonNegativeInt(els.lots.value);
-    const buyFeePct = formatters.toNonNegativeNumber(els.buyFeePct?.value);
-    const sellFeePct = formatters.toNonNegativeNumber(els.sellFeePct?.value);
+    const buyFeePct = parseFloat(els.buyFeePct?.value) || 0;
+    const sellFeePct = parseFloat(els.sellFeePct?.value) || 0;
 
     return {
       buyPrice,
@@ -79,8 +60,8 @@
     const lots = formatters.toNonNegativeInt(els.lots.value);
     const shares = lots * LOT_SIZE;
 
-    const buyFeePct = formatters.toNonNegativeNumber(els.buyFeePct?.value);
-    const sellFeePct = formatters.toNonNegativeNumber(els.sellFeePct?.value);
+    const buyFeePct = parseFloat(els.buyFeePct?.value) || 0;
+    const sellFeePct = parseFloat(els.sellFeePct?.value) || 0;
 
     return { buyPrice, sellPrice, lots, shares, buyFeePct, sellFeePct };
   };
@@ -143,16 +124,16 @@
     const result = calculate();
 
     const netProfitRounded = Math.round(result.netProfit);
-    const isProfit = netProfitRounded >= 0;
+    const isProfit = result.netProfit >= 0; // Use precise profit for coloring logic
     applyTheme(isProfit);
 
-    if (els.totalBuyValue) els.totalBuyValue.textContent = formatters.formatCurrency(result.buyGross);
-    if (els.totalSellValue) els.totalSellValue.textContent = formatters.formatCurrency(result.sellGross);
+    if (els.totalBuyValue) els.totalBuyValue.textContent = formatters.formatCurrencyPrecise(result.buyGross);
+    if (els.totalSellValue) els.totalSellValue.textContent = formatters.formatCurrencyPrecise(result.sellGross);
     if (els.totalCostsValue) els.totalCostsValue.textContent = formatCost(result.totalCosts);
 
     if (els.netProfit) els.netProfit.textContent = formatCurrencySigned(result.netProfit);
     
-    if (els.breakEvenPrice) els.breakEvenPrice.textContent = formatters.formatCurrency(result.bep);
+    if (els.breakEvenPrice) els.breakEvenPrice.textContent = formatters.formatCurrencyPrecise(result.bep);
 
     if (els.roiPct) {
       const sign = result.roiPct > 0 ? "+" : "";
@@ -198,7 +179,7 @@
     const rerenderOnInput = (node) => {
       node?.addEventListener("input", (e) => {
         if (node === els.buyPrice || node === els.sellPrice) {
-          formatInput(e.target);
+          formatters.formatInput(e.target);
         }
         render();
       });

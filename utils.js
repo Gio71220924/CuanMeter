@@ -42,6 +42,14 @@ window.CuanMeterUtils = (function () {
       return `Rp ${formatted},-`;
     },
 
+    formatCurrencyPrecise: (value) => {
+      // Show decimals if the value has them, otherwise standard integer format
+      if (value % 1 === 0) {
+          return `Rp ${nf0.format(value)}`;
+      }
+      return `Rp ${nf2.format(value)}`;
+    },
+
     formatCurrencyCompact: (value) => {
       const absValue = Math.abs(value);
       const sign = value < 0 ? "-" : "";
@@ -64,6 +72,53 @@ window.CuanMeterUtils = (function () {
     formatPct: (value, decimals = 2) => {
       if (decimals === 1) return nfPct1.format(value);
       return nfPct.format(value);
+    },
+
+    formatInput: (inputElement) => {
+      if (!inputElement) return;
+      
+      const selectionStart = inputElement.selectionStart;
+      const originalValue = inputElement.value;
+      const originalLength = originalValue.length;
+
+      // Allow digits and comma only
+      // If user types dot '.', treat it as comma ',' for convenience? 
+      // Standard ID format uses comma for decimal. Let's strictly allow comma for decimal input.
+      // But we must allow dots if they are already there (thousand separators), 
+      // actually we strip non-digits/non-commas first.
+      
+      let clean = originalValue.replace(/[^0-9,]/g, "");
+      
+      // Ensure only one comma (the first one)
+      const parts = clean.split(',');
+      let integerPart = parts[0];
+      let decimalPart = parts.length > 1 ? parts.slice(1).join('') : null;
+      
+      if (integerPart === "" && decimalPart === null) {
+        inputElement.value = "";
+        return;
+      }
+      
+      // Format integer part with thousand separators
+      const formattedInteger = integerPart ? nf0.format(parseInt(integerPart)) : "";
+      
+      let newValue = formattedInteger;
+      if (decimalPart !== null) {
+        newValue += "," + decimalPart;
+      }
+      
+      inputElement.value = newValue;
+
+      // Restore cursor position
+      const newLength = newValue.length;
+      
+      if (selectionStart === originalLength) {
+          inputElement.setSelectionRange(newLength, newLength);
+      } else {
+          let newPos = selectionStart + (newLength - originalLength);
+          if (newPos < 0) newPos = 0;
+          inputElement.setSelectionRange(newPos, newPos);
+      }
     },
   };
 
