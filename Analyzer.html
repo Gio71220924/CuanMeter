@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analisis Saham Pro - StockCalcID</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+  <link id="tailwind-output" href="CSS/tailwind-output.css" rel="stylesheet" 
+        onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://cdn.tailwindcss.com?plugins=forms,container-queries'; document.head.appendChild(s);" />
+
+  <script src="utils.js"></script>
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+
+  <link rel="stylesheet" href="CSS/Analyzer.css" />
+  <script src="toast.js" defer></script>
+  <script src="analyzer.js" defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
+        window.CuanMeterUtils.theme.init();
+      }
+    });
+  </script>
+</head>
+
+<body class="glass-page bg-white dark:bg-dark-bg text-slate-600 dark:text-slate-300 font-body transition-colors duration-300">
+  <div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden transition-colors">
+  <header class="glass-header fixed top-0 left-0 right-0 z-50 border-b border-slate-100 dark:border-dark-border font-display bg-white/80 dark:bg-dark-bg/80 backdrop-blur transition-colors">
+    <div class="flex justify-center w-full">
+      <div class="flex items-center justify-between w-full max-w-[1280px] px-6 py-4 md:px-10">
+        <div class="flex items-center gap-3 cursor-pointer group">
+          <div class="size-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 dark:shadow-none transition-transform group-hover:scale-105">
+            <span class="material-symbols-outlined text-[24px]">candlestick_chart</span>
+          </div>
+          <a href="LandingPage.html" class="header-brand text-xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white font-display transition-colors">
+            StockCalcID
+          </a>
+        </div>
+
+        <nav class="hidden md:flex items-center gap-8">
+          <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="AveragePrice.html">Rata-rata</a>
+          <a class="header-link text-primary dark:text-primary transition-colors text-sm font-bold" href="Analyzer.html">Analyzer</a>
+          <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="ARAARB.html">ARA/ARB</a>
+          <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="ProfitCalc.html">Profit</a>
+          <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="PositionSize.html">Amunisi</a>
+          <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold" href="DividendYield.html">Dividen</a>
+        </nav>
+
+        <div class="flex items-center gap-4">
+          <button id="theme-toggle" class="p-2 text-slate-900 dark:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-dark-surface transition-colors" aria-label="Ganti tema">
+            <span class="material-symbols-outlined dark:hidden">dark_mode</span>
+            <span class="material-symbols-outlined hidden dark:block">light_mode</span>
+          </button>
+          <button class="md:hidden p-2 text-slate-900 dark:text-white">
+            <span class="material-symbols-outlined">menu</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-grow pt-24 pb-16 px-4 sm:px-6 lg:px-8 bg-transparent relative transition-colors">
+    <div class="max-w-6xl mx-auto">
+        
+        <!-- Search Section -->
+        <div class="mb-8 flex flex-col md:flex-row items-center gap-4 bg-white dark:bg-dark-surface p-6 rounded-3xl border border-slate-100 dark:border-dark-border shadow-md overflow-visible">
+            <div class="relative flex items-center gap-3 w-full md:w-auto flex-1 bg-slate-50 dark:bg-dark-bg rounded-2xl border border-slate-200 dark:border-dark-border px-5 py-4 focus-within:ring-2 focus-within:ring-primary transition-all cursor-text overflow-visible" onclick="document.getElementById('tickerInput').focus()">
+                <span class="material-symbols-outlined text-slate-400 pointer-events-none select-none text-[28px]">search</span>
+                <input id="tickerInput" type="text" placeholder="Masukkan Kode Saham..." class="w-full bg-transparent text-slate-900 dark:text-white font-black uppercase placeholder:normal-case outline-none border-none p-0 text-xl sm:text-2xl" maxlength="7" autocomplete="off">
+                <div id="suggestBox" class="hidden absolute top-full left-0 right-0 mt-3 bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border rounded-2xl shadow-2xl z-[100] max-h-80 overflow-y-auto overflow-x-hidden"></div>
+            </div>
+            
+            <div class="flex items-center gap-2 w-full md:w-auto">
+                <input id="dateFrom" type="date" class="flex-1 py-3 px-4 rounded-xl border border-slate-200 dark:border-dark-border bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-primary outline-none">
+                <span class="text-slate-400">-</span>
+                <input id="dateTo" type="date" class="flex-1 py-3 px-4 rounded-xl border border-slate-200 dark:border-dark-border bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-primary outline-none">
+            </div>
+
+            <button id="analyzeBtn" class="w-full md:w-auto px-8 py-3 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined">analytics</span>
+                Analisa
+            </button>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden py-20 text-center">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p class="mt-4 text-slate-500 dark:text-slate-400 text-sm animate-pulse">Sedang mengambil data bandar...</p>
+        </div>
+
+        <!-- Results Container -->
+        <div id="resultsContainer" class="hidden space-y-8">
+            
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Foreign -->
+                <div class="glass-card bg-white dark:bg-dark-surface p-6 rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 w-20 h-20 bg-blue-500/10 rounded-full blur-xl"></div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="material-symbols-outlined text-blue-500">public</span>
+                        <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase">Net Foreign</h3>
+                    </div>
+                    <p id="valForeign" class="text-2xl font-black text-slate-900 dark:text-white">Rp 0</p>
+                    <p id="statusForeign" class="text-xs font-bold mt-1 text-slate-400">Netral</p>
+                </div>
+
+                <!-- Local (Institusi) -->
+                <div class="glass-card bg-white dark:bg-dark-surface p-6 rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 w-20 h-20 bg-purple-500/10 rounded-full blur-xl"></div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="material-symbols-outlined text-purple-500">domain</span>
+                        <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase">Net Local</h3>
+                    </div>
+                    <p id="valLocal" class="text-2xl font-black text-slate-900 dark:text-white">Rp 0</p>
+                    <p id="statusLocal" class="text-xs font-bold mt-1 text-slate-400">Netral</p>
+                </div>
+
+                <!-- Retail -->
+                <div class="glass-card bg-white dark:bg-dark-surface p-6 rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 w-20 h-20 bg-orange-500/10 rounded-full blur-xl"></div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="material-symbols-outlined text-orange-500">person</span>
+                        <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase">Net Retail</h3>
+                    </div>
+                    <p id="valRetail" class="text-2xl font-black text-slate-900 dark:text-white">Rp 0</p>
+                    <p id="statusRetail" class="text-xs font-bold mt-1 text-slate-400">Netral</p>
+                </div>
+            </div>
+
+            <!-- Broker Summary -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Top Buyers -->
+                <div class="glass-card bg-white dark:bg-dark-surface rounded-2xl border border-slate-100 dark:border-dark-border overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 dark:border-dark-border bg-emerald-50/50 dark:bg-emerald-500/5">
+                        <h3 class="text-lg font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                            <span class="material-symbols-outlined">shopping_cart</span> Top Buyer
+                        </h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-50 dark:bg-dark-bg text-slate-500 dark:text-slate-400">
+                                <tr>
+                                    <th class="px-4 py-3">Broker</th>
+                                    <th class="px-4 py-3 text-right">Net Value</th>
+                                    <th class="px-4 py-3 text-right">Avg Price</th>
+                                </tr>
+                            </thead>
+                            <tbody id="listTopBuyers" class="divide-y divide-slate-100 dark:divide-dark-border"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Top Sellers -->
+                <div class="glass-card bg-white dark:bg-dark-surface rounded-2xl border border-slate-100 dark:border-dark-border overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 dark:border-dark-border bg-rose-50/50 dark:bg-rose-500/5">
+                        <h3 class="text-lg font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                            <span class="material-symbols-outlined">sell</span> Top Seller
+                        </h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-50 dark:bg-dark-bg text-slate-500 dark:text-slate-400">
+                                <tr>
+                                    <th class="px-4 py-3">Broker</th>
+                                    <th class="px-4 py-3 text-right">Net Value</th>
+                                    <th class="px-4 py-3 text-right">Avg Price</th>
+                                </tr>
+                            </thead>
+                            <tbody id="listTopSellers" class="divide-y divide-slate-100 dark:divide-dark-border"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base Setup */
+html { scroll-behavior: smooth; }
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+.dark ::-webkit-scrollbar-thumb { background: #475569; }
+
+/* Glass Header */
+.glass-header {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+.dark .glass-header {
+    background: rgba(15, 23, 42, 0.90);
+    border-color: rgba(51, 65, 85, 0.5) !important;
+}
+
+/* Glass Page Background */
+body.glass-page {
+    background: radial-gradient(900px circle at 18% -12%, rgba(14, 165, 233, 0.18), transparent 60%),
+                radial-gradient(800px circle at 92% 8%, rgba(16, 185, 129, 0.14), transparent 55%),
+                #ffffff;
+    color: #0f172a;
+}
+.dark body.glass-page {
+    background: radial-gradient(900px circle at 18% -12%, rgba(14, 165, 233, 0.15), transparent 60%),
+                radial-gradient(800px circle at 92% 8%, rgba(16, 185, 129, 0.10), transparent 55%),
+                #0f172a; /* Fallback for dark-bg */
+    color: #f1f5f9;
+}
+
+/* Glass Card */
+.glass-card {
+    background-color: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+}
+.dark .glass-card {
+    background-color: rgba(30, 41, 59, 0.70); /* Fallback for dark-surface */
+    border-color: rgba(51, 65, 85, 0.6);
+}
+
+/* CRITICAL: COLOR OVERRIDES FOR MISSING TAILWIND CONFIG */
+/* Define colors manually to ensure input visibility */
+
+.dark .bg-dark-bg { background-color: #0f172a !important; }
+.dark .bg-dark-surface { background-color: #1e293b !important; }
+.dark .border-dark-border { border-color: #334155 !important; }
+
+/* Input Specific Fixes */
+input {
+    color: #0f172a; /* Default Text */
+}
+.dark input {
+    color: #ffffff !important; /* Dark Mode Text */
+    background-color: transparent !important; /* Force transparent if in container */
+}
+
+/* Container Input Fix */
+.dark input::placeholder {
+    color: #94a3b8 !important;
+}
+
+/* Force Input Container Background in Dark Mode */
+.dark .bg-slate-50 {
+    background-color: #0f172a !important; /* Make container dark */
+    border-color: #334155 !important;
+}
+
+/* Make sure input is on top */
+#tickerInput {
+    position: relative;
+    z-index: 20;
+    text-transform: uppercase;
+    font-weight: 900 !important;
+    font-size: 1.5rem !important; /* text-2xl equivalent */
+    line-height: 2rem !important;
+}
+
+.dark #tickerInput {
+    color: #ffffff !important;
+}
+
+#tickerInput::placeholder {
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    text-transform: none;
+}
+
+/* Suggestion Box Styling */
+#suggestBox {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    min-width: 300px;
+    margin-top: 0.5rem;
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    z-index: 100;
+    max-height: 16rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+@media (max-width: 640px) {
+    #suggestBox {
+        min-width: 100%;
+    }
+}
+
+.dark #suggestBox {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5);
+}
+
+#suggestBox > div {
+    transition: all 0.2s ease;
+}
+
+#suggestBox > div:hover {
+    padding-left: 1.25rem;
+}
