@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* Base Setup */
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scrollbar-gutter: stable; }
 body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
 /* Scrollbar */
