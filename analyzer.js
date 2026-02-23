@@ -349,13 +349,11 @@
     els.results.classList.remove("hidden");
   };
 
-  // Init Defaults (Last 7 Days)
+  // Init Defaults (Today)
   const today = new Date();
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(today.getDate() - 7);
 
   if (els.dateTo) els.dateTo.valueAsDate = today;
-  if (els.dateFrom) els.dateFrom.valueAsDate = sevenDaysAgo;
+  if (els.dateFrom) els.dateFrom.valueAsDate = today;
 
   els.analyzeBtn.addEventListener("click", fetchData);
 
