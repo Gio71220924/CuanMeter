@@ -267,22 +267,46 @@
     const buyers = summary.top_net_buyers || [];
     const sellers = summary.top_net_sellers || [];
 
+    // Max value for proportional bar widths
+    const maxBuy = Math.max(...buyers.slice(0, 5).map(b => Math.abs(b.net || 0)), 1);
+    const maxSell = Math.max(...sellers.slice(0, 5).map(s => Math.abs(s.net || 0)), 1);
+
+    // Helper: build a table row with background bar via CSS gradient
+    const brokerRow = (code, type, net, avg, pct, isBuyer) => {
+      const color = isBuyer ? '16,185,129' : '244,63,94'; // emerald / rose in RGB
+      const sign = isBuyer ? '+' : '';
+      const txtColor = isBuyer ? 'text-emerald-500' : 'text-rose-500';
+
+      // Bar grows left→right for buyers, right→left for sellers
+      const gradient = isBuyer
+        ? `linear-gradient(to right, rgba(${color},0.15) ${pct}%, transparent ${pct}%)`
+        : `linear-gradient(to left,  rgba(${color},0.15) ${pct}%, transparent ${pct}%)`;
+
+      return `
+        <tr class="hover:brightness-110 transition-all duration-150"
+            style="background: ${gradient};">
+          <td class="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="display:inline-block; min-width:2rem; text-align:center; font-family:monospace; font-size:11px; font-weight:800; background:rgba(148,163,184,0.25); color:#e2e8f0; border-radius:4px; padding:2px 6px; letter-spacing:0.05em;">${code}</span>
+              <span style="font-size:10px; color:#94a3b8; font-weight:500; text-transform:uppercase; letter-spacing:0.05em;">${type || ''}</span>
+            </div>
+          </td>
+          <td class="px-4 py-3 text-right font-bold ${txtColor} tabular-nums">
+            ${sign}${formatMoneyBig(net)}
+          </td>
+          <td class="px-4 py-3 text-right text-slate-500 dark:text-slate-400 text-xs tabular-nums">
+            ${avg > 0 ? formatters.nf0.format(avg) : '-'}
+          </td>
+        </tr>
+      `;
+    };
+
     // Render Buyers
     if (buyers.length > 0) {
       els.listTopBuyers.innerHTML = buyers.slice(0, 5).map(b => {
         const avg = (b.bvol && b.bvol > 0) ? Math.round(b.bval / b.bvol) : 0;
-        return `
-              <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td class="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">
-                      <span class="inline-block w-8 text-center bg-slate-100 dark:bg-slate-700 rounded px-1">${b.code}</span>
-                      <span class="ml-2 text-xs text-slate-400 font-normal">${b.type || ''}</span>
-                  </td>
-                  <td class="px-4 py-3 text-right font-bold text-emerald-500">+${formatMoneyBig(b.net)}</td>
-                  <td class="px-4 py-3 text-right text-slate-500 dark:text-slate-400 text-xs">
-                      ${avg > 0 ? formatters.nf0.format(avg) : '-'} 
-                  </td>
-              </tr>
-            `;
+        const pct = Math.round((Math.abs(b.net || 0) / maxBuy) * 100);
+        return brokerRow(b.code, b.type, b.net, avg, pct, true);
       }).join('');
     } else {
       els.listTopBuyers.innerHTML = `<tr><td colspan="3" class="px-4 py-8 text-center text-slate-400">Tidak ada data pembeli</td></tr>`;
@@ -292,18 +316,8 @@
     if (sellers.length > 0) {
       els.listTopSellers.innerHTML = sellers.slice(0, 5).map(s => {
         const avg = (s.svol && s.svol > 0) ? Math.round(s.sval / s.svol) : 0;
-        return `
-              <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td class="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">
-                      <span class="inline-block w-8 text-center bg-slate-100 dark:bg-slate-700 rounded px-1">${s.code}</span>
-                      <span class="ml-2 text-xs text-slate-400 font-normal">${s.type || ''}</span>
-                  </td>
-                  <td class="px-4 py-3 text-right font-bold text-rose-500">${formatMoneyBig(s.net)}</td>
-                  <td class="px-4 py-3 text-right text-slate-500 dark:text-slate-400 text-xs">
-                      ${avg > 0 ? formatters.nf0.format(avg) : '-'}
-                  </td>
-              </tr>
-            `;
+        const pct = Math.round((Math.abs(s.net || 0) / maxSell) * 100);
+        return brokerRow(s.code, s.type, s.net, avg, pct, false);
       }).join('');
     } else {
       els.listTopSellers.innerHTML = `<tr><td colspan="3" class="px-4 py-8 text-center text-slate-400">Tidak ada data penjual</td></tr>`;

@@ -179,3 +179,30 @@ input {
 #suggestBox>div:hover {
     padding-left: 1.25rem;
 }
+
+/* ── Broker Table Visual Bars ──────────────────────────── */
+/* Needed because Tailwind can't detect dynamically-built class names */
+
+/* Row must be positioned so the absolute bar cell stacks behind text */
+#listTopBuyers tr,
+#listTopSellers tr {
+    position: relative;
+}
+
+/* Buyer bar (green, grows left → right) */
+.bg-emerald-500\/8 {
+    background-color: rgba(16, 185, 129, 0.08);
+}
+
+.dark .bg-emerald-500\/12 {
+    background-color: rgba(16, 185, 129, 0.12);
+}
+
+/* Seller bar (red, grows right → left) */
+.bg-rose-500\/8 {
+    background-color: rgba(244, 63, 94, 0.08);
+}
+
+.dark .bg-rose-500\/12 {
+    background-color: rgba(244, 63, 94, 0.12);
+}
