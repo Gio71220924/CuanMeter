@@ -206,6 +206,8 @@
     els.loading.classList.remove("hidden");
     els.results.classList.add("hidden");
     els.suggestBox.classList.add("hidden");
+    const emptyState = document.getElementById("emptyState");
+    if (emptyState) emptyState.classList.add("hidden");
 
     try {
       const url = `${API_BASE}?symbol=${ticker}&from=${from}&to=${to}`;
