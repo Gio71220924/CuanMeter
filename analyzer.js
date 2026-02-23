@@ -237,7 +237,25 @@
 
     } catch (err) {
       console.error("Fetch Error:", err);
-      if (window.CuanMeterToast) window.CuanMeterToast.error(err.message);
+
+      // User-friendly error message
+      const msg = err.message || "Terjadi kesalahan. Coba lagi nanti.";
+      if (window.CuanMeterToast) window.CuanMeterToast.error(msg);
+
+      // Show empty state again with error context
+      const emptyState = document.getElementById("emptyState");
+      if (emptyState) {
+        emptyState.classList.remove("hidden");
+        // Inject transient error banner inside empty state if it doesn't exist yet
+        if (!emptyState.querySelector('#analyzerErrBanner')) {
+          const banner = document.createElement('div');
+          banner.id = 'analyzerErrBanner';
+          banner.className = 'mt-6 flex items-center gap-3 px-4 py-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-sm text-rose-700 dark:text-rose-400 max-w-lg mx-auto';
+          banner.innerHTML = `<span class="material-symbols-outlined shrink-0">error</span><span>${msg}</span>`;
+          emptyState.appendChild(banner);
+          setTimeout(() => banner.remove(), 6000); // auto-dismiss after 6s
+        }
+      }
     } finally {
       els.loading.classList.add("hidden");
     }

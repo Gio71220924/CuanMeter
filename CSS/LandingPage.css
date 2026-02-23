@@ -281,6 +281,12 @@ body.menu-open {
     animation: marquee 35s linear infinite;
 }
 
+/* Pause marquee on hover so users can read prices */
+.animate-marquee:hover,
+.animate-marquee.marquee-paused {
+    animation-play-state: paused;
+}
+
 /* Duplicate content for seamless loop */
 .animate-marquee::after {
     content: attr(data-content);

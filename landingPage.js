@@ -166,6 +166,7 @@ function initStockMarquee() {
     let offset = 0;
     let rafId = null;
     let trackWidth = 0; // CACHED — never read offsetWidth inside tick()
+    let paused = false; // true when user hovers over marquee
 
     function updateTrackWidth() {
         const copyA = document.getElementById('mq-a');
@@ -174,10 +175,19 @@ function initStockMarquee() {
 
     function tick() {
         if (!trackWidth) { rafId = requestAnimationFrame(tick); return; }
-        offset += SPEED;
-        if (offset >= trackWidth) offset -= trackWidth; // seamless: subtract, don't reset
-        wrapper.style.transform = `translateX(-${offset}px)`;
+        if (!paused) {
+            offset += SPEED;
+            if (offset >= trackWidth) offset -= trackWidth; // seamless: subtract, don't reset
+            wrapper.style.transform = `translateX(-${offset}px)`;
+        }
         rafId = requestAnimationFrame(tick);
+    }
+
+    // Pause on hover so users can read the prices
+    const marqueeContainer = wrapper.parentElement;
+    if (marqueeContainer) {
+        marqueeContainer.addEventListener('mouseenter', () => { paused = true; });
+        marqueeContainer.addEventListener('mouseleave', () => { paused = false; });
     }
 
     // ── DOM helpers ────────────────────────────────────────────────────────
