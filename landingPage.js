@@ -155,8 +155,10 @@ function initStockMarquee() {
         { ticker: 'OANDA:XAUUSD', label: 'Gold' }
     ];
 
-    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-        ? 'http://localhost:3001' : '';
+    // API base: use window.STOCKCALC_TV_URL if set (production), else auto-detect dev
+    const API_BASE = window.STOCKCALC_TV_URL ||
+        ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? `http://${window.location.hostname}:3001` : '');
 
     const fmt = window.CuanMeterUtils ? window.CuanMeterUtils.formatters.nf2 : { format: v => v.toFixed(2) };
     const prevPrices = {};
