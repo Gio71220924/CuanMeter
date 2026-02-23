@@ -27,7 +27,10 @@
   if (!els.analyzeBtn) return;
 
   const { formatters } = window.CuanMeterUtils;
-  const PROXY_URL = 'http://localhost:3000/search';
+  // Proxy URL: use window.STOCKCALC_PROXY_URL if set, or relative path (works in production)
+  const PROXY_URL = window.STOCKCALC_PROXY_URL ||
+    ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? `http://${window.location.hostname}:3000/search` : '/search');
   let searchTimeout = null;
 
   // --- Render suggestion item HTML ---

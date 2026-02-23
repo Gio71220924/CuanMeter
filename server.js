@@ -63,6 +63,38 @@ const TV_HEADERS = {
     'Accept': 'application/json',
 };
 
+// ─── Input validation helpers ────────────────────────────────────────────────
+// Only allow alphanumeric, dot, dash, colon — no special chars
+const TICKER_RE = /^[A-Z0-9.:\-]{1,20}$/i;
+const SEARCH_RE = /^[A-Za-z0-9\s.:\-]{1,50}$/;
+
+function validateTicker(t) {
+    const clean = (t || '').trim().toUpperCase();
+    if (!TICKER_RE.test(clean)) return null;
+    return clean;
+}
+
+function validateSearch(q) {
+    const clean = (q || '').trim();
+    if (!SEARCH_RE.test(clean)) return null;
+    return clean;
+}
+
+// ─── Simple in-memory rate limiter (max 30 req/min per IP) ──────────────────
+const rateLimitMap = new Map();
+function isRateLimited(ip) {
+    const now = Date.now();
+    const window = 60_000; // 1 minute
+    const MAX = 30;
+    let entry = rateLimitMap.get(ip);
+    if (!entry || now - entry.start > window) {
+        entry = { start: now, count: 0 };
+        rateLimitMap.set(ip, entry);
+    }
+    entry.count++;
+    return entry.count > MAX;
+}
+
 // ─── /search  →  TradingView symbol search ───────────────────────────────────
 function handleSearch(query, exchange, res) {
     const params = new URLSearchParams({
@@ -185,17 +217,23 @@ const server = http.createServer((req, res) => {
 
     // API: /search
     if (req.method === 'GET' && pathname === '/search') {
-        const q = (parsed.query.q || '').trim();
-        const exchange = (parsed.query.exchange || 'IDX').trim();
-        if (!q) { sendJSON(res, 400, { error: 'Missing ?q=' }); return; }
+        const ip = req.socket.remoteAddress;
+        if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
+
+        const q = validateSearch(parsed.query.q);
+        const exchange = validateTicker(parsed.query.exchange || 'IDX') || 'IDX';
+        if (!q) { sendJSON(res, 400, { error: 'Invalid or missing ?q= (max 50 alphanumeric chars)' }); return; }
         console.log(`[Search] "${q}" (${exchange})`);
         return handleSearch(q, exchange, res);
     }
 
     // API: /price
     if (req.method === 'GET' && pathname === '/price') {
-        const ticker = (parsed.query.ticker || '').trim();
-        if (!ticker) { sendJSON(res, 400, { error: 'Missing ?ticker=' }); return; }
+        const ip = req.socket.remoteAddress;
+        if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
+
+        const ticker = validateTicker(parsed.query.ticker);
+        if (!ticker) { sendJSON(res, 400, { error: 'Invalid or missing ?ticker= (alphanumeric, max 20 chars)' }); return; }
         console.log(`[Price]  ${ticker}`);
         return handlePrice(ticker, res);
     }
