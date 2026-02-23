@@ -355,3 +355,36 @@ body.menu-open {
 .dark .skeleton {
     background: #334155;
 }
+
+/* ─── Marquee price flash animations ─────────────────────────────────────── */
+@keyframes flash-up {
+    0% {
+        background-color: rgba(16, 185, 129, 0.5);
+        transform: scale(1.06);
+    }
+
+    100% {
+        background-color: transparent;
+        transform: scale(1);
+    }
+}
+
+@keyframes flash-down {
+    0% {
+        background-color: rgba(239, 68, 68, 0.5);
+        transform: scale(1.06);
+    }
+
+    100% {
+        background-color: transparent;
+        transform: scale(1);
+    }
+}
+
+.marquee-flash-up {
+    animation: flash-up 0.6s ease-out forwards;
+}
+
+.marquee-flash-down {
+    animation: flash-down 0.6s ease-out forwards;
+}

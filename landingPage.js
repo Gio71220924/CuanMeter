@@ -134,8 +134,8 @@ function toggleMobileMenu() {
     }
 }
 
-// Stock Marquee Real-time Updates
-async function initStockMarquee() {
+// Stock Marquee Real-time Updates via SSE
+function initStockMarquee() {
     const marqueeContainer = document.getElementById('stock-marquee');
     if (!marqueeContainer) return;
 
@@ -155,56 +155,108 @@ async function initStockMarquee() {
         { ticker: 'OANDA:XAUUSD', label: 'Gold (XAUUSD)' }
     ];
 
-    // In production, this should be your actual API domain or a relative path
-    const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
         ? 'http://localhost:3001'
-        : ''; // Adjust this for your production API URL
+        : '';
 
-    async function updateMarquee() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/prices`);
-            if (!response.ok) throw new Error('Network response was not ok');
-            const data = await response.json();
+    const fmt = window.CuanMeterUtils ? window.CuanMeterUtils.formatters.nf2 : { format: v => v.toFixed(2) };
 
-            let htmlContent = '';
-            
-            // Duplicate the items for smooth marquee effect
-            const displayItems = [...symbols, ...symbols];
+    // Track previous prices to detect direction of change
+    const prevPrices = {};
 
-            displayItems.forEach(item => {
-                const stockData = data[item.ticker] || { price: 0, change: 0, pct: 0 };
-                const isUp = stockData.change >= 0;
-                const colorClass = isUp 
-                    ? 'text-accent-mint bg-accent-mint/10' 
-                    : 'text-red-500 bg-red-500/10';
-                const icon = isUp ? 'arrow_upward' : 'arrow_downward';
-                const sign = isUp ? '+' : '';
-
-                htmlContent += `
-                    <span class="flex items-center gap-3 hover:text-slate-900 dark:hover:text-white transition-colors cursor-default">
-                        ${item.label}
-                        <span class="${colorClass} px-2 py-0.5 rounded flex items-center gap-1 transition-colors">
-                            ${window.CuanMeterUtils ? window.CuanMeterUtils.formatters.nf2.format(stockData.price) : stockData.price}
-                            <span class="material-symbols-outlined text-[16px]">${icon}</span>
-                            <span class="text-[10px] ml-1">(${sign}${stockData.pct.toFixed(2)}%)</span>
-                        </span>
+    // Build initial marquee DOM (only once)
+    function buildMarquee(data) {
+        const displaySymbols = [...symbols, ...symbols]; // duplicate for seamless loop
+        marqueeContainer.innerHTML = displaySymbols.map((item, i) => {
+            const d = data[item.ticker] || { price: 0, change: 0, pct: 0 };
+            const up = d.change >= 0;
+            const sign = up ? '+' : '';
+            const colorClass = up ? 'text-accent-mint bg-accent-mint/10' : 'text-red-500 bg-red-500/10';
+            const icon = up ? 'arrow_upward' : 'arrow_downward';
+            return `
+                <span class="flex items-center gap-3 hover:text-slate-900 dark:hover:text-white transition-colors cursor-default" data-ticker="${item.ticker}" data-idx="${i}">
+                    ${item.label}
+                    <span class="price-badge ${colorClass} px-2 py-0.5 rounded flex items-center gap-1 transition-all duration-300">
+                        <span class="price-val">${fmt.format(d.price)}</span>
+                        <span class="material-symbols-outlined text-[16px] price-icon">${icon}</span>
+                        <span class="text-[10px] ml-1 price-pct">(${sign}${d.pct.toFixed(2)}%)</span>
                     </span>
-                `;
-            });
+                </span>
+            `;
+        }).join('');
 
-            marqueeContainer.innerHTML = htmlContent;
-        } catch (error) {
-            console.error('Error fetching stock prices:', error);
-            // Optionally show an error state in the marquee
-        }
+        // Save initial prices
+        symbols.forEach(s => { prevPrices[s.ticker] = (data[s.ticker] || {}).price || 0; });
     }
 
-    // Initial update
-    updateMarquee();
+    // Flash animation: briefly highlight the badge
+    function flashBadge(el, direction) {
+        const flashClass = direction === 'up' ? 'marquee-flash-up' : 'marquee-flash-down';
+        el.classList.add(flashClass);
+        setTimeout(() => el.classList.remove(flashClass), 600);
+    }
 
-    // Update every 3 seconds
-    setInterval(updateMarquee, 3000);
+    // Patch only changed values in the DOM
+    function patchMarquee(data) {
+        symbols.forEach(item => {
+            const d = data[item.ticker];
+            if (!d) return;
+
+            const prev = prevPrices[item.ticker] || 0;
+            const changed = d.price !== prev;
+            const direction = d.price > prev ? 'up' : 'down';
+
+            // Update all instances (original + duplicate) for this ticker
+            marqueeContainer.querySelectorAll(`[data-ticker="${item.ticker}"]`).forEach(span => {
+                const badge = span.querySelector('.price-badge');
+                const valEl = span.querySelector('.price-val');
+                const iconEl = span.querySelector('.price-icon');
+                const pctEl = span.querySelector('.price-pct');
+                if (!badge || !valEl) return;
+
+                const up = d.change >= 0;
+                const sign = up ? '+' : '';
+                const newColor = up ? 'text-accent-mint bg-accent-mint/10' : 'text-red-500 bg-red-500/10';
+
+                valEl.textContent = fmt.format(d.price);
+                if (iconEl) iconEl.textContent = up ? 'arrow_upward' : 'arrow_downward';
+                if (pctEl) pctEl.textContent = `(${sign}${d.pct.toFixed(2)}%)`;
+
+                // Update color class
+                badge.className = `price-badge ${newColor} px-2 py-0.5 rounded flex items-center gap-1 transition-all duration-300`;
+
+                // Flash only on actual price change
+                if (changed) flashBadge(badge, direction);
+            });
+
+            prevPrices[item.ticker] = d.price;
+        });
+    }
+
+    let built = false;
+
+    // ── SSE connection ──────────────────────────────────────────────────────
+    function connectSSE() {
+        const es = new EventSource(`${API_BASE}/api/prices/stream`);
+
+        es.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (!built) { buildMarquee(data); built = true; }
+                else { patchMarquee(data); }
+            } catch (e) { console.error('SSE parse error', e); }
+        };
+
+        es.onerror = () => {
+            console.warn('[Marquee] SSE disconnected, reconnecting in 5s...');
+            es.close();
+            setTimeout(connectSSE, 5000);
+        };
+    }
+
+    connectSSE();
 }
+
 
 // Analytics (placeholder for Google Analytics or other)
 function initAnalytics() {
@@ -241,7 +293,7 @@ function initSmoothScroll() {
         anchor.addEventListener('click', function (e) {
             const href = this.getAttribute('href');
             if (href === '#') return;
-            
+
             const target = document.querySelector(href);
             if (target) {
                 e.preventDefault();
