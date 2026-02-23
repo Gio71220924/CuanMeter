@@ -278,7 +278,7 @@ body.menu-open {
 }
 
 .animate-marquee {
-    animation: marquee 15s linear infinite;
+    animation: marquee 35s linear infinite;
 }
 
 /* Duplicate content for seamless loop */

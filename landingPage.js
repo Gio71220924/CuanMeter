@@ -134,10 +134,10 @@ function toggleMobileMenu() {
     }
 }
 
-// Stock Marquee Real-time Updates via SSE
+// Stock Marquee — endless seamless loop via requestAnimationFrame
 function initStockMarquee() {
-    const marqueeContainer = document.getElementById('stock-marquee');
-    if (!marqueeContainer) return;
+    const wrapper = document.getElementById('stock-marquee');
+    if (!wrapper) return;
 
     const symbols = [
         { ticker: 'IDX:COMPOSITE', label: 'IHSG' },
@@ -152,62 +152,84 @@ function initStockMarquee() {
         { ticker: 'IDX:MBMA', label: 'MBMA' },
         { ticker: 'IDX:BBRI', label: 'BBRI' },
         { ticker: 'BINANCE:BTCUSDT', label: 'BTC/USDT' },
-        { ticker: 'OANDA:XAUUSD', label: 'Gold (XAUUSD)' }
+        { ticker: 'OANDA:XAUUSD', label: 'Gold' }
     ];
 
-    const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:3001'
-        : '';
+    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://localhost:3001' : '';
 
     const fmt = window.CuanMeterUtils ? window.CuanMeterUtils.formatters.nf2 : { format: v => v.toFixed(2) };
-
-    // Track previous prices to detect direction of change
     const prevPrices = {};
 
-    // Build initial marquee DOM (only once)
+    // ── Pixel-based rAF scroll ─────────────────────────────────────────────
+    const SPEED = 0.6; // px per frame (~36px/s at 60fps)
+    let offset = 0;
+    let rafId = null;
+    let trackWidth = 0; // CACHED — never read offsetWidth inside tick()
+
+    function updateTrackWidth() {
+        const copyA = document.getElementById('mq-a');
+        if (copyA) trackWidth = copyA.offsetWidth;
+    }
+
+    function tick() {
+        if (!trackWidth) { rafId = requestAnimationFrame(tick); return; }
+        offset += SPEED;
+        if (offset >= trackWidth) offset -= trackWidth; // seamless: subtract, don't reset
+        wrapper.style.transform = `translateX(-${offset}px)`;
+        rafId = requestAnimationFrame(tick);
+    }
+
+    // ── DOM helpers ────────────────────────────────────────────────────────
+    function makeItemHTML(item, d) {
+        const up = d.change >= 0;
+        const sign = up ? '+' : '';
+        const cls = up ? 'text-accent-mint bg-accent-mint/10' : 'text-red-500 bg-red-500/10';
+        const icon = up ? 'arrow_upward' : 'arrow_downward';
+        return `
+          <span class="flex items-center gap-3 cursor-default" data-ticker="${item.ticker}">
+            <span class="font-bold">${item.label}</span>
+            <span class="price-badge ${cls} px-2 py-0.5 rounded flex items-center gap-1 transition-all duration-300">
+              <span class="price-val">${fmt.format(d.price)}</span>
+              <span class="material-symbols-outlined text-[16px] price-icon">${icon}</span>
+              <span class="text-[10px] ml-1 price-pct">(${sign}${d.pct.toFixed(2)}%)</span>
+            </span>
+          </span>
+          <span class="text-slate-300 dark:text-slate-600 select-none">·</span>`;
+    }
+
     function buildMarquee(data) {
-        const displaySymbols = [...symbols, ...symbols]; // duplicate for seamless loop
-        marqueeContainer.innerHTML = displaySymbols.map((item, i) => {
-            const d = data[item.ticker] || { price: 0, change: 0, pct: 0 };
-            const up = d.change >= 0;
-            const sign = up ? '+' : '';
-            const colorClass = up ? 'text-accent-mint bg-accent-mint/10' : 'text-red-500 bg-red-500/10';
-            const icon = up ? 'arrow_upward' : 'arrow_downward';
-            return `
-                <span class="flex items-center gap-3 hover:text-slate-900 dark:hover:text-white transition-colors cursor-default" data-ticker="${item.ticker}" data-idx="${i}">
-                    ${item.label}
-                    <span class="price-badge ${colorClass} px-2 py-0.5 rounded flex items-center gap-1 transition-all duration-300">
-                        <span class="price-val">${fmt.format(d.price)}</span>
-                        <span class="material-symbols-outlined text-[16px] price-icon">${icon}</span>
-                        <span class="text-[10px] ml-1 price-pct">(${sign}${d.pct.toFixed(2)}%)</span>
-                    </span>
-                </span>
-            `;
-        }).join('');
+        // Kill CSS animation — we own the transform now
+        wrapper.style.animation = 'none';
+        wrapper.style.gap = '0'; // remove flex gap — pr-16 on each copy handles spacing
 
-        // Save initial prices
+        const html = symbols.map(s => makeItemHTML(s, data[s.ticker] || { price: 0, change: 0, pct: 0 })).join('');
+        wrapper.innerHTML =
+            `<span id="mq-a" class="inline-flex items-center gap-8 pr-16">${html}</span>` +
+            `<span id="mq-b" class="inline-flex items-center gap-8 pr-16" aria-hidden="true">${html}</span>`;
+
         symbols.forEach(s => { prevPrices[s.ticker] = (data[s.ticker] || {}).price || 0; });
+
+        // Measure width AFTER browser renders the new DOM
+        requestAnimationFrame(() => { updateTrackWidth(); });
+
+        if (!rafId) rafId = requestAnimationFrame(tick);
     }
 
-    // Flash animation: briefly highlight the badge
-    function flashBadge(el, direction) {
-        const flashClass = direction === 'up' ? 'marquee-flash-up' : 'marquee-flash-down';
-        el.classList.add(flashClass);
-        setTimeout(() => el.classList.remove(flashClass), 600);
+    function flashBadge(el, dir) {
+        const cls = dir === 'up' ? 'marquee-flash-up' : 'marquee-flash-down';
+        el.classList.add(cls);
+        setTimeout(() => el.classList.remove(cls), 600);
     }
 
-    // Patch only changed values in the DOM
     function patchMarquee(data) {
         symbols.forEach(item => {
-            const d = data[item.ticker];
-            if (!d) return;
-
+            const d = data[item.ticker]; if (!d) return;
             const prev = prevPrices[item.ticker] || 0;
             const changed = d.price !== prev;
-            const direction = d.price > prev ? 'up' : 'down';
+            const dir = d.price > prev ? 'up' : 'down';
 
-            // Update all instances (original + duplicate) for this ticker
-            marqueeContainer.querySelectorAll(`[data-ticker="${item.ticker}"]`).forEach(span => {
+            wrapper.querySelectorAll(`[data-ticker="${item.ticker}"]`).forEach(span => {
                 const badge = span.querySelector('.price-badge');
                 const valEl = span.querySelector('.price-val');
                 const iconEl = span.querySelector('.price-icon');
@@ -216,47 +238,40 @@ function initStockMarquee() {
 
                 const up = d.change >= 0;
                 const sign = up ? '+' : '';
-                const newColor = up ? 'text-accent-mint bg-accent-mint/10' : 'text-red-500 bg-red-500/10';
 
                 valEl.textContent = fmt.format(d.price);
                 if (iconEl) iconEl.textContent = up ? 'arrow_upward' : 'arrow_downward';
                 if (pctEl) pctEl.textContent = `(${sign}${d.pct.toFixed(2)}%)`;
 
-                // Update color class
-                badge.className = `price-badge ${newColor} px-2 py-0.5 rounded flex items-center gap-1 transition-all duration-300`;
-
-                // Flash only on actual price change
-                if (changed) flashBadge(badge, direction);
+                badge.className = `price-badge ${up ? 'text-accent-mint bg-accent-mint/10' : 'text-red-500 bg-red-500/10'} px-2 py-0.5 rounded flex items-center gap-1 transition-all duration-300`;
+                if (changed) flashBadge(badge, dir);
             });
 
             prevPrices[item.ticker] = d.price;
         });
+        // Re-measure after text changes (prices may widen/narrow the track slightly)
+        requestAnimationFrame(updateTrackWidth);
     }
 
+    // ── SSE ────────────────────────────────────────────────────────────────
     let built = false;
-
-    // ── SSE connection ──────────────────────────────────────────────────────
     function connectSSE() {
         const es = new EventSource(`${API_BASE}/api/prices/stream`);
-
-        es.onmessage = (event) => {
+        es.onmessage = e => {
             try {
-                const data = JSON.parse(event.data);
+                const data = JSON.parse(e.data);
                 if (!built) { buildMarquee(data); built = true; }
                 else { patchMarquee(data); }
-            } catch (e) { console.error('SSE parse error', e); }
+            } catch (err) { console.error('SSE parse error', err); }
         };
-
         es.onerror = () => {
-            console.warn('[Marquee] SSE disconnected, reconnecting in 5s...');
+            console.warn('[Marquee] SSE disconnected — reconnecting in 5s');
             es.close();
             setTimeout(connectSSE, 5000);
         };
     }
-
     connectSSE();
 }
-
 
 // Analytics (placeholder for Google Analytics or other)
 function initAnalytics() {
