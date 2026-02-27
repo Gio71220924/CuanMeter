@@ -349,11 +349,14 @@
     els.results.classList.remove("hidden");
   };
 
-  // Init Defaults (Today)
-  const today = new Date();
+  // Init Defaults (Today - Local Time)
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  const localDate = new Date(now.getTime() - (offset * 60 * 1000));
+  const dateStr = localDate.toISOString().split('T')[0];
 
-  if (els.dateTo) els.dateTo.valueAsDate = today;
-  if (els.dateFrom) els.dateFrom.valueAsDate = today;
+  if (els.dateTo) els.dateTo.value = dateStr;
+  if (els.dateFrom) els.dateFrom.value = dateStr;
 
   els.analyzeBtn.addEventListener("click", fetchData);
 
