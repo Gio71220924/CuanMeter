@@ -478,8 +478,143 @@
       render();
   });
 
+  // --- History ---
+  const saveCurrentCalculation = () => {
+    if (appState.mode === 'standard') {
+      const res = calculateStandard();
+      if (res.currentAvgPrice > 0 && res.currentLots > 0 && res.totalShares > 0) {
+        storage.save(HISTORY_KEY, {
+          mode: 'standard',
+          currentAvgPrice: res.currentAvgPrice,
+          currentLots: res.currentLots,
+          newAvg: Math.round(res.newAvg),
+          totalLots: res.totalLots,
+          totalCost: res.totalCost,
+          deltaPct: res.deltaPct
+        }, 10, 'avg_price');
+        renderHistory();
+      }
+    } else {
+      const res = calculateTarget();
+      if (res.valid) {
+        storage.save(HISTORY_KEY, {
+          mode: 'target',
+          currentAvg: res.currentAvg,
+          currentLots: res.currentLots,
+          targetAvg: res.targetAvg,
+          buyPrice: res.buyPrice,
+          requiredLots: res.requiredLots,
+          requiredCapital: res.requiredCapital,
+          resultingAvg: Math.round(res.resultingAvg)
+        }, 10, 'avg_price');
+        renderHistory();
+      }
+    }
+  };
+
+  const renderHistory = () => {
+    if (!els.historyList) return;
+    const history = storage.load(HISTORY_KEY);
+
+    if (history.length === 0) {
+      els.historyList.innerHTML = `
+        <div id="noHistoryMessage" class="p-8 text-center text-slate-500 dark:text-slate-400 transition-colors">
+          <span class="material-symbols-outlined text-4xl mb-3 block">history</span>
+          <p>Belum ada riwayat perhitungan</p>
+          <p class="text-sm mt-1">Lakukan perhitungan untuk menyimpannya di sini</p>
+        </div>
+      `;
+      return;
+    }
+
+    let html = '';
+    history.forEach(item => {
+      const d = item.data;
+      const date = new Date(item.timestamp).toLocaleDateString('id-ID', {
+        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+      });
+
+      if (d.mode === 'standard') {
+        const deltaText = d.deltaPct !== null && Number.isFinite(d.deltaPct)
+          ? `${d.deltaPct > 0 ? '+' : ''}${formatters.formatPct(d.deltaPct, 1)}%`
+          : '';
+        const deltaColor = d.deltaPct > 0 ? 'text-danger' : 'text-success';
+
+        html += `
+          <div class="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-dark-bg/20 transition-colors group">
+            <div class="flex items-center gap-4">
+              <div class="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined">calculate</span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-black text-slate-900 dark:text-white">Avg Rp ${formatters.nf0.format(d.newAvg)}</span>
+                  ${deltaText ? `<span class="text-xs font-bold ${deltaColor}">${deltaText}</span>` : ''}
+                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${date}</span>
+                </div>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Awal: Rp ${formatters.nf0.format(d.currentAvgPrice)} x ${formatters.nf0.format(d.currentLots)} Lot • Total: ${formatters.nf0.format(d.totalLots)} Lot</p>
+              </div>
+            </div>
+            <div class="flex items-center justify-between md:justify-end gap-6">
+              <div class="text-right">
+                <span class="block text-lg font-black text-primary">Rp ${formatters.nf0.format(d.newAvg)}</span>
+                <span class="block text-[10px] font-bold text-slate-400 uppercase">Rata-rata Baru</span>
+              </div>
+              <button onclick="window.CuanMeterUtils.storage.deleteItem('${HISTORY_KEY}', ${item.id}); window.dispatchEvent(new Event('historyUpdate'));" class="p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </div>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-dark-bg/20 transition-colors group">
+            <div class="flex items-center gap-4">
+              <div class="size-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center">
+                <span class="material-symbols-outlined">target</span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-black text-slate-900 dark:text-white">Target Avg Rp ${formatters.nf0.format(d.targetAvg)}</span>
+                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${date}</span>
+                </div>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Beli ${formatters.nf0.format(d.requiredLots)} Lot @ Rp ${formatters.nf0.format(d.buyPrice)} • Modal: ${formatCurrencyFull(d.requiredCapital)}</p>
+              </div>
+            </div>
+            <div class="flex items-center justify-between md:justify-end gap-6">
+              <div class="text-right">
+                <span class="block text-lg font-black text-accent">${formatters.nf0.format(d.requiredLots)} Lot</span>
+                <span class="block text-[10px] font-bold text-slate-400 uppercase">Harus Dibeli</span>
+              </div>
+              <button onclick="window.CuanMeterUtils.storage.deleteItem('${HISTORY_KEY}', ${item.id}); window.dispatchEvent(new Event('historyUpdate'));" class="p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    });
+
+    els.historyList.innerHTML = html;
+  };
+
+  els.calculateBtn.addEventListener("click", () => {
+    render();
+    saveCurrentCalculation();
+  });
+
+  els.clearHistoryBtn?.addEventListener('click', () => {
+    if (confirm('Hapus semua riwayat perhitungan rata-rata?')) {
+      storage.clear(HISTORY_KEY);
+      renderHistory();
+    }
+  });
+
+  window.addEventListener('historyUpdate', renderHistory);
+
   // Init
   getOrderRows().forEach(bindRowEvents);
   setMode('standard'); // Default
-  
+  renderHistory();
+
 })();
