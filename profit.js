@@ -225,4 +225,20 @@
 
   bindEvents();
   render();
+
+  // Stock search integration
+  if (window.StockSearch) {
+    const target = els.buyPrice.closest('.grid.gap-6');
+    if (target) {
+      window.StockSearch.init({
+        insertBefore: target,
+        label: 'Cari Saham IDX',
+        placeholder: 'Ketik kode saham, misal BBCA...',
+        onSelect: ({ price }) => {
+          els.buyPrice.value = formatters.nf0.format(price);
+          render();
+        }
+      });
+    }
+  }
 })();

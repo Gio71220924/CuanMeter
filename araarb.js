@@ -175,4 +175,20 @@
 
   bindEvents();
   render();
+
+  // Stock search integration
+  if (window.StockSearch) {
+    const target = els.prevClose.closest('.space-y-3');
+    if (target) {
+      window.StockSearch.init({
+        insertBefore: target,
+        label: 'Cari Saham IDX',
+        placeholder: 'Ketik kode saham, misal BBRI...',
+        onSelect: ({ price }) => {
+          els.prevClose.value = formatters.nf0.format(price);
+          render();
+        }
+      });
+    }
+  }
 })();

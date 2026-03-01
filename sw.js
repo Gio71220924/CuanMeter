@@ -3,7 +3,7 @@
  * Provides offline caching and PWA functionality
  */
 
-const CACHE_VERSION = 'cuanmeter-v1.1.0';
+const CACHE_VERSION = 'cuanmeter-v1.2.0';
 const CACHE_NAME = `${CACHE_VERSION}`;
 
 // Assets to cache immediately
@@ -17,6 +17,10 @@ const CORE_ASSETS = [
     '/PositionSize.html',
     '/DividendYield.html',
     '/guides/ara-arb.html',
+    '/guides/profit-saham.html',
+    '/guides/position-sizing.html',
+    '/guides/average-down.html',
+    '/stockSearch.js',
     '/CSS/LandingPage.css',
     '/CSS/AveragePrice.css',
     '/CSS/ARAARB.css',

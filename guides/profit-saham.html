@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/images/favicon.png" />
+
+  <title>Cara Menghitung Profit Saham - StockCalcID</title>
+  <meta name="title" content="Cara Menghitung Profit Saham - StockCalcID" />
+  <meta name="description"
+    content="Panduan lengkap menghitung profit dan rugi trading saham, termasuk fee broker, pajak, dan break-even point." />
+  <meta name="keywords"
+    content="profit saham, cara hitung profit saham, fee broker, pajak saham, break even point, keuntungan trading" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://stockcalcid.com/guides/profit-saham.html" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://stockcalcid.com/guides/profit-saham.html" />
+  <meta property="og:title" content="Cara Menghitung Profit Saham - StockCalcID" />
+  <meta property="og:description"
+    content="Panduan lengkap menghitung profit dan rugi trading saham, termasuk fee broker, pajak, dan break-even point." />
+  <meta property="og:image" content="https://stockcalcid.com/assets/images/desktop-mockup.png" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://stockcalcid.com/guides/profit-saham.html" />
+  <meta property="twitter:title" content="Cara Menghitung Profit Saham - StockCalcID" />
+  <meta property="twitter:description"
+    content="Panduan lengkap menghitung profit dan rugi trading saham, termasuk fee broker, pajak, dan break-even point." />
+  <meta property="twitter:image" content="https://stockcalcid.com/assets/images/desktop-mockup.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
+
+  <link id="tailwind-output" href="../CSS/tailwind-output.css" rel="stylesheet"
+    onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://cdn.tailwindcss.com?plugins=forms,container-queries'; document.head.appendChild(s);" />
+
+  <script src="../utils.js"></script>
+  <script>
+    (function () {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+  <script src="../toast.js" defer></script>
+  <script src="../mobileMenu.js" defer></script>
+</head>
+
+<body
+  class="glass-page bg-white dark:bg-dark-bg text-slate-600 dark:text-slate-300 font-body transition-colors duration-300">
+  <div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden transition-colors">
+
+    <header
+      class="glass-header fixed top-0 left-0 right-0 z-50 border-b border-slate-100 dark:border-dark-border font-display bg-white/80 dark:bg-dark-bg/80 backdrop-blur transition-colors">
+      <div class="flex justify-center w-full">
+        <div class="flex items-center justify-between w-full max-w-[1280px] px-6 py-4 md:px-10">
+          <div class="flex items-center gap-3 cursor-pointer group">
+            <div
+              class="size-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 dark:shadow-none transition-transform group-hover:scale-105">
+              <span class="material-symbols-outlined text-[24px]">candlestick_chart</span>
+            </div>
+            <a href="../LandingPage.html"
+              class="header-brand text-xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white font-display transition-colors">
+              StockCalcID
+            </a>
+          </div>
+
+          <nav class="hidden md:flex items-center gap-8">
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold"
+              href="../AveragePrice.html">Rata-rata</a>
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold"
+              href="../Analyzer.html">Analyzer</a>
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold"
+              href="../ARAARB.html">ARA/ARB</a>
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold"
+              href="../ProfitCalc.html">Profit</a>
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold"
+              href="../PositionSize.html">Amunisi</a>
+            <a class="header-link text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors text-sm font-bold"
+              href="../DividendYield.html">Dividen</a>
+          </nav>
+
+          <div class="flex items-center gap-4">
+            <button id="theme-toggle"
+              class="p-2 text-slate-900 dark:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-dark-surface transition-colors"
+              aria-label="Ganti tema">
+              <span class="material-symbols-outlined dark:hidden">dark_mode</span>
+              <span class="material-symbols-outlined hidden dark:block">light_mode</span>
+            </button>
+            <button class="md:hidden p-2 text-slate-900 dark:text-white">
+              <span class="material-symbols-outlined">menu</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-grow pt-24 pb-16 px-4 sm:px-6 lg:px-8 bg-transparent relative transition-colors">
+      <div class="max-w-4xl mx-auto">
+
+        <!-- Breadcrumb -->
+        <nav class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-8">
+          <a href="../LandingPage.html" class="hover:text-primary transition-colors">Beranda</a>
+          <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+          <span class="text-slate-900 dark:text-white font-semibold">Cara Menghitung Profit Saham</span>
+        </nav>
+
+        <!-- Article Header -->
+        <div class="mb-12">
+          <div
+            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-primary/10 text-primary text-xs font-bold uppercase tracking-wide mb-4 transition-colors">
+            <span class="material-symbols-outlined text-[16px]">menu_book</span>
+            Panduan
+          </div>
+          <h1
+            class="font-display text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white leading-tight mb-4 transition-colors">
+            Cara Menghitung Profit Saham
+          </h1>
+          <p class="text-lg text-slate-500 dark:text-slate-400 leading-relaxed">
+            Pelajari cara menghitung keuntungan dan kerugian trading saham secara akurat, termasuk komponen biaya yang sering terlewat.
+          </p>
+        </div>
+
+        <!-- Article Content -->
+        <article class="space-y-10">
+
+          <!-- Section 1: Komponen Biaya Trading -->
+          <section
+            class="glass-surface dark:bg-dark-surface rounded-2xl shadow-card p-6 md:p-8 border border-slate-100 dark:border-dark-border transition-colors">
+            <div class="flex items-center gap-3 mb-5">
+              <div
+                class="w-10 h-10 rounded-full bg-blue-50 dark:bg-primary/10 flex items-center justify-center text-primary transition-colors">
+                <span class="material-symbols-outlined">receipt_long</span>
+              </div>
+              <h2 class="text-xl font-bold font-display text-slate-900 dark:text-white transition-colors">Komponen Biaya Trading</h2>
+            </div>
+            <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed">
+              <p>
+                Saat trading saham di Indonesia, ada beberapa biaya yang perlu diperhitungkan selain harga beli dan jual:
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                <div class="bg-slate-50 dark:bg-dark-bg rounded-xl p-4 border border-slate-200 dark:border-dark-border transition-colors">
+                  <h3 class="font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-[18px]">shopping_cart</span>
+                    Fee Beli (Broker)
+                  </h3>
+                  <p class="text-sm">Biasanya <strong class="text-slate-900 dark:text-white">0.15%</strong> dari nilai pembelian. Dibayarkan saat membeli saham.</p>
+                </div>
+                <div class="bg-slate-50 dark:bg-dark-bg rounded-xl p-4 border border-slate-200 dark:border-dark-border transition-colors">
+                  <h3 class="font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-[18px]">sell</span>
+                    Fee Jual (Broker + Pajak)
+                  </h3>
+                  <p class="text-sm">Biasanya <strong class="text-slate-900 dark:text-white">0.25%</strong> dari nilai penjualan. Sudah termasuk pajak transaksi 0.1%.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Section 2: Rumus Profit Bersih -->
+          <section
+            class="glass-surface dark:bg-dark-surface rounded-2xl shadow-card p-6 md:p-8 border border-slate-100 dark:border-dark-border transition-colors">
+            <div class="flex items-center gap-3 mb-5">
+              <div
+                class="w-10 h-10 rounded-full bg-green-50 dark:bg-green-500/10 flex items-center justify-center text-green-500 transition-colors">
+                <span class="material-symbols-outlined">function</span>
+              </div>
+              <h2 class="text-xl font-bold font-display text-slate-900 dark:text-white transition-colors">Rumus Profit Bersih</h2>
+            </div>
+
+            <div class="bg-slate-50 dark:bg-dark-bg rounded-xl p-5 border border-slate-200 dark:border-dark-border mb-6 transition-colors">
+              <p class="text-sm font-bold text-slate-900 dark:text-white mb-3">Formula:</p>
+              <div class="space-y-2 text-sm font-mono text-slate-700 dark:text-slate-300">
+                <p>Nilai Beli = Harga Beli x Jumlah Lembar</p>
+                <p>Nilai Jual = Harga Jual x Jumlah Lembar</p>
+                <p>Fee Beli = Nilai Beli x 0.15%</p>
+                <p>Fee Jual = Nilai Jual x 0.25%</p>
+                <p class="font-bold text-primary pt-2 border-t border-slate-200 dark:border-dark-border">
+                  Profit Bersih = Nilai Jual - Fee Jual - Nilai Beli - Fee Beli
+                </p>
+              </div>
+            </div>
+
+            <div class="bg-slate-50 dark:bg-dark-bg rounded-xl p-5 border border-slate-200 dark:border-dark-border transition-colors">
+              <h3 class="font-bold text-slate-900 dark:text-white mb-3">Contoh: Saham BBCA</h3>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mb-3">Beli 10 lot (1.000 lembar) di Rp 9.000, jual di Rp 9.500</p>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-slate-600 dark:text-slate-400">Nilai Beli</span>
+                  <span class="font-bold text-slate-900 dark:text-white">Rp 9.000.000</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-600 dark:text-slate-400">Fee Beli (0.15%)</span>
+                  <span class="font-bold text-red-500">-Rp 13.500</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-600 dark:text-slate-400">Nilai Jual</span>
+                  <span class="font-bold text-slate-900 dark:text-white">Rp 9.500.000</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-600 dark:text-slate-400">Fee Jual (0.25%)</span>
+                  <span class="font-bold text-red-500">-Rp 23.750</span>
+                </div>
+                <div class="flex justify-between pt-2 border-t border-slate-200 dark:border-dark-border">
+                  <span class="font-bold text-slate-900 dark:text-white">Profit Bersih</span>
+                  <span class="font-black text-accent-mint text-lg">Rp 462.750</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-600 dark:text-slate-400">ROI</span>
+                  <span class="font-bold text-accent-mint">+5.13%</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Section 3: Break Even Point -->
+          <section
+            class="glass-surface dark:bg-dark-surface rounded-2xl shadow-card p-6 md:p-8 border border-slate-100 dark:border-dark-border transition-colors">
+            <div class="flex items-center gap-3 mb-5">
+              <div
+                class="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center text-amber-500 transition-colors">
+                <span class="material-symbols-outlined">balance</span>
+              </div>
+              <h2 class="text-xl font-bold font-display text-slate-900 dark:text-white transition-colors">Break Even Point (BEP)</h2>
+            </div>
+            <div class="space-y-4 text-slate-600 dark:text-slate-400 leading-relaxed">
+              <p>
+                <strong class="text-slate-900 dark:text-white">Break Even Point</strong> adalah harga jual minimum agar Anda tidak rugi setelah memperhitungkan seluruh biaya trading.
+              </p>
+              <div class="bg-slate-50 dark:bg-dark-bg rounded-xl p-4 border border-slate-200 dark:border-dark-border transition-colors">
+                <p class="text-sm font-mono font-bold text-primary">
+                  BEP = (Nilai Beli + Fee Beli) / (Jumlah Lembar x (1 - Fee Jual%))
+                </p>
+              </div>
+              <p>
+                Pada contoh BBCA di atas, BEP-nya adalah sekitar <strong class="text-slate-900 dark:text-white">Rp 9.036</strong>. Artinya, Anda baru untung jika menjual di atas harga tersebut.
+              </p>
+            </div>
+          </section>
+
+          <!-- Section 4: Tips -->
+          <section
+            class="glass-surface dark:bg-dark-surface rounded-2xl shadow-card p-6 md:p-8 border border-slate-100 dark:border-dark-border transition-colors">
+            <div class="flex items-center gap-3 mb-5">
+              <div
+                class="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center text-purple-500 transition-colors">
+                <span class="material-symbols-outlined">tips_and_updates</span>
+              </div>
+              <h2 class="text-xl font-bold font-display text-slate-900 dark:text-white transition-colors">Tips Mengelola Profit</h2>
+            </div>
+            <div class="space-y-4">
+              <div class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-primary mt-0.5 text-[20px]">check_circle</span>
+                <p class="text-slate-600 dark:text-slate-400">
+                  <strong class="text-slate-900 dark:text-white">Selalu hitung fee sebelum entry.</strong>
+                  Jangan hanya melihat selisih harga. Profit kecil bisa habis oleh biaya trading, terutama untuk scalping jangka pendek.
+                </p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-primary mt-0.5 text-[20px]">check_circle</span>
+                <p class="text-slate-600 dark:text-slate-400">
+                  <strong class="text-slate-900 dark:text-white">Bandingkan fee antar broker.</strong>
+                  Fee beli/jual bervariasi antar sekuritas. Selisih 0.05% bisa signifikan untuk trader aktif.
+                </p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-primary mt-0.5 text-[20px]">check_circle</span>
+                <p class="text-slate-600 dark:text-slate-400">
+                  <strong class="text-slate-900 dark:text-white">Gunakan target profit realistis.</strong>
+                  Target 3-5% per trade lebih sustainable dibandingkan mengejar profit besar yang jarang tercapai.
+                </p>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-primary mt-0.5 text-[20px]">check_circle</span>
+                <p class="text-slate-600 dark:text-slate-400">
+                  <strong class="text-slate-900 dark:text-white">Catat semua transaksi.</strong>
+                  Dokumentasi trading membantu Anda mengevaluasi strategi dan memperbaiki keputusan di masa depan.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- CTA -->
+          <div class="text-center py-8">
+            <p class="text-slate-500 dark:text-slate-400 mb-4">Ingin langsung simulasi profit saham?</p>
+            <a href="../ProfitCalc.html"
+              class="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-primary hover:bg-primary-hover text-white font-bold shadow-lg shadow-primary/25 transition-all transform hover:-translate-y-1 text-lg">
+              <span class="material-symbols-outlined">calculate</span>
+              Buka Kalkulator Profit
+            </a>
+          </div>
+
+        </article>
+      </div>
+    </main>
+
+    <footer
+      class="bg-white/70 dark:bg-dark-bg/70 backdrop-blur border-t border-gray-100 dark:border-dark-border py-12 transition-colors">
+      <div class="max-w-7xl mx-auto px-4 text-center">
+        <div
+          class="flex items-center justify-center gap-2 mb-4 text-slate-900 dark:text-white font-display font-bold text-lg">
+          <span class="material-symbols-outlined text-primary">candlestick_chart</span>
+          StockCalcID
+        </div>
+        <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">Alat sederhana untuk keputusan trading yang lebih tepat.</p>
+        <p class="text-xs text-gray-400 dark:text-slate-500 mt-8">&copy; 2026 StockCalcID.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.CuanMeterUtils && window.CuanMeterUtils.theme) {
+        window.CuanMeterUtils.theme.init();
+      }
+    });
+  </script>
+</body>
+
+</html>

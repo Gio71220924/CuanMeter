@@ -164,4 +164,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load
     renderHistory();
+
+    // Stock search integration
+    if (window.StockSearch) {
+        const target = sharePriceInput.closest('section');
+        if (target) {
+            window.StockSearch.init({
+                insertBefore: target,
+                label: 'Cari Saham IDX',
+                placeholder: 'Ketik kode saham, misal BBRI...',
+                onSelect: ({ price }) => {
+                    sharePriceInput.value = window.CuanMeterUtils
+                        ? window.CuanMeterUtils.formatters.nf0.format(price)
+                        : price.toLocaleString('id-ID');
+                    calculate(false);
+                }
+            });
+        }
+    }
 });

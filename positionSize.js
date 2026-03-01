@@ -113,4 +113,20 @@
     };
 
     init();
+
+    // Stock search integration
+    if (window.StockSearch) {
+        const target = els.entryPrice.closest('section');
+        if (target) {
+            window.StockSearch.init({
+                insertBefore: target,
+                label: 'Cari Saham IDX',
+                placeholder: 'Ketik kode saham, misal TLKM...',
+                onSelect: ({ price }) => {
+                    els.entryPrice.value = formatters.nf0.format(price);
+                    calculate();
+                }
+            });
+        }
+    }
 })();
