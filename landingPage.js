@@ -333,7 +333,33 @@ function initSmoothScroll() {
 }
 
 function initScrollToTop() {
-    // Placeholder for scroll to top button logic if added later
+    const btn = document.createElement('button');
+    btn.id = 'scrollToTopBtn';
+    btn.setAttribute('aria-label', 'Kembali ke atas');
+    btn.className = 'fixed bottom-6 right-6 z-40 p-3 rounded-full bg-primary text-white shadow-lg shadow-primary/25 opacity-0 pointer-events-none translate-y-4 transition-all duration-300 hover:bg-primary-hover hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2';
+    btn.innerHTML = '<span class="material-symbols-outlined">arrow_upward</span>';
+    document.body.appendChild(btn);
+
+    btn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            requestAnimationFrame(() => {
+                if (window.scrollY > 400) {
+                    btn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+                    btn.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
+                } else {
+                    btn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+                    btn.classList.remove('opacity-100', 'pointer-events-auto', 'translate-y-0');
+                }
+                ticking = false;
+            });
+            ticking = true;
+        }
+    });
 }
 
 // Initialize everything when DOM is ready
