@@ -87,30 +87,10 @@
         els.slDistancePct.textContent = "0%";
     };
 
-    const formatInput = (input) => {
-        // Save cursor position
-        const selectionStart = input.selectionStart;
-        const oldLength = input.value.length;
-
-        let value = input.value.replace(/[^0-9]/g, "");
-        if (value === "") {
-            input.value = "";
-            return;
-        }
-        
-        const formatted = formatters.nf0.format(parseInt(value));
-        input.value = formatted;
-
-        // Restore cursor position
-        const newLength = input.value.length;
-        const newPosition = selectionStart + (newLength - oldLength);
-        input.setSelectionRange(newPosition, newPosition);
-    };
-
     const init = () => {
         [els.totalEquity, els.entryPrice, els.stopLoss].forEach(el => {
             el.addEventListener("input", (e) => {
-                formatInput(e.target);
+                formatters.formatInput(e.target);
                 calculate();
             });
         });
