@@ -8,7 +8,7 @@
         "build": "npm run build:css && npm run build:js",
         "build:css": "npx tailwindcss -i CSS/LandingPage.css -o CSS/tailwind-output.css --minify",
         "watch:css": "npx tailwindcss -i CSS/LandingPage.css -o CSS/tailwind-output.css --watch",
-        "build:js": "echo 'JS minification placeholder - add terser if needed'"
+        "build:js": "node build.js"
     },
     "keywords": [
         "stock calculator",
@@ -22,9 +22,10 @@
     "author": "StockCalcID",
     "license": "MIT",
     "devDependencies": {
-        "tailwindcss": "^3.4.0",
-        "postcss": "^8.4.32",
         "autoprefixer": "^10.4.16",
-        "cssnano": "^6.0.2"
+        "cssnano": "^6.0.2",
+        "postcss": "^8.4.32",
+        "tailwindcss": "^3.4.0",
+        "terser": "^5.46.0"
     }
 }
