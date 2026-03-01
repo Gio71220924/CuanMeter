@@ -362,6 +362,67 @@ function initScrollToTop() {
     });
 }
 
+function renderIHSGChart() {
+    const container = document.getElementById('ihsg-chart-container');
+    if (!container) return;
+
+    // Clear previous widget
+    container.innerHTML = '';
+
+    const isDark = document.documentElement.classList.contains('dark');
+
+    const widget = document.createElement('div');
+    widget.className = 'tradingview-widget-container';
+    widget.style.height = '100%';
+    widget.style.width = '100%';
+
+    const widgetInner = document.createElement('div');
+    widgetInner.className = 'tradingview-widget-container__widget';
+    widgetInner.style.height = '100%';
+    widgetInner.style.width = '100%';
+    widget.appendChild(widgetInner);
+
+    container.appendChild(widget);
+
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    script.async = true;
+    script.textContent = JSON.stringify({
+        "autosize": true,
+        "symbol": "IDX:COMPOSITE",
+        "interval": "D",
+        "timezone": "Asia/Jakarta",
+        "theme": isDark ? "dark" : "light",
+        "style": "1",
+        "locale": "id_ID",
+        "backgroundColor": isDark ? "rgba(30, 30, 30, 1)" : "rgba(255, 255, 255, 1)",
+        "gridColor": isDark ? "rgba(66, 66, 66, 0.3)" : "rgba(233, 233, 233, 0.5)",
+        "hide_top_toolbar": false,
+        "hide_legend": false,
+        "allow_symbol_change": true,
+        "save_image": false,
+        "calendar": false,
+        "studies": ["STD;MA%Cross"],
+        "support_host": "https://www.tradingview.com"
+    });
+    widget.appendChild(script);
+}
+
+function initIHSGChart() {
+    renderIHSGChart();
+
+    // Re-render chart when dark mode toggles
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            if (mutation.attributeName === 'class') {
+                renderIHSGChart();
+            }
+        }
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+}
+
 // Initialize everything when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     try {
@@ -371,6 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initScrollToTop();
         initAnalytics();
         initStockMarquee();
+        initIHSGChart();
 
         // Theme initialization is now handled directly in the HTML scripts
         // to prevent double-initialization or conflicts.
