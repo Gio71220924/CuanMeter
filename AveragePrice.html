@@ -63,6 +63,7 @@
   <link rel="stylesheet" href="CSS/AveragePrice.css" />
   <link rel="stylesheet" href="CSS/Analyzer.css" />
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
   <script src="toast.js" defer></script>
   <script src="mobileMenu.js" defer></script>
   <script src="avg.js" defer></script>
@@ -219,6 +220,10 @@
                   class="flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 dark:text-slate-400 transition-all hover:text-slate-700 dark:hover:text-slate-300">
                   Target Average
                 </button>
+                <button id="modeScenarioBtn"
+                  class="flex-1 py-2 px-4 rounded-lg text-sm font-bold text-slate-500 dark:text-slate-400 transition-all hover:text-slate-700 dark:hover:text-slate-300">
+                  Skenario
+                </button>
               </div>
 
               <div class="flex items-center justify-between mb-6">
@@ -250,6 +255,49 @@
                     placeholder="Misal: 1000" type="text" inputmode="numeric" autocomplete="off" />
                 </div>
                 <p class="text-xs text-slate-400 dark:text-slate-500">Masukkan harga rata-rata impian Anda.</p>
+              </div>
+
+              <!-- Scenario Input (Hidden by default) -->
+              <div id="scenarioInputSection" class="hidden mb-6">
+                <div class="flex items-center justify-between mb-4">
+                  <label class="text-sm font-semibold text-slate-500 dark:text-slate-400">Langkah-langkah Skenario</label>
+                  <button id="addScenarioStepBtn" type="button"
+                    class="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all text-sm font-bold">
+                    <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                    Tambah Langkah
+                  </button>
+                </div>
+
+                <div id="scenarioSteps" class="space-y-3">
+                  <div class="scenario-step bg-slate-50 dark:bg-dark-bg p-4 rounded-2xl border border-slate-200 dark:border-dark-border relative group/row transition-colors">
+                    <div class="flex items-center gap-3 mb-3">
+                      <span class="step-badge inline-flex items-center justify-center size-7 rounded-full bg-primary/10 text-primary text-xs font-bold">1</span>
+                      <span class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Langkah 1</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div class="space-y-1">
+                        <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Harga Beli</label>
+                        <div class="relative">
+                          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 font-medium text-sm">Rp</span>
+                          <input class="step-price w-full h-10 pl-9 pr-3 rounded-lg border-slate-200 dark:border-dark-border bg-white dark:bg-dark-surface text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 text-base font-semibold transition-all focus:outline-none"
+                            placeholder="0" type="text" inputmode="numeric" autocomplete="off" />
+                        </div>
+                      </div>
+                      <div class="space-y-1">
+                        <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Jumlah (Lot)</label>
+                        <div class="relative">
+                          <input class="step-lots w-full h-10 pl-3 pr-10 rounded-lg border-slate-200 dark:border-dark-border bg-white dark:bg-dark-surface text-slate-900 dark:text-white focus:border-primary focus:ring-primary/20 text-base font-semibold transition-all focus:outline-none"
+                            placeholder="0" type="number" min="0" step="1" autocomplete="off" />
+                          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Lot</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button type="button" aria-label="Hapus langkah"
+                      class="remove-scenario-step absolute -right-2 -top-2 bg-white dark:bg-dark-surface text-red-500 shadow-md border border-slate-100 dark:border-dark-border rounded-full p-1 opacity-0 group-hover/row:opacity-100 transition-all hover:bg-red-50 dark:hover:bg-red-500/10 hover:scale-110 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-500">
+                      <span class="material-symbols-outlined text-[16px]">close</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div id="orderRows" class="space-y-4">
@@ -331,7 +379,7 @@
 
           <!-- RESULT PANEL -->
           <div class="lg:col-span-5 sticky top-28">
-            <div
+            <div id="standardResultPanel"
               class="glass-dark bg-white dark:bg-dark-surface text-slate-900 dark:text-white rounded-3xl shadow-float overflow-hidden relative border border-slate-100 dark:border-dark-border border-t-4 border-t-primary transition-colors">
               <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-primary opacity-10 blur-3xl">
               </div>
@@ -418,6 +466,60 @@
                   *Disclaimer: Perhitungan ini hanya estimasi dan belum termasuk fee broker, pajak, serta biaya lain
                   yang
                   mungkin berlaku. Trading memiliki risiko.
+                </p>
+              </div>
+            </div>
+
+            <!-- Scenario Result Panel (Hidden by default) -->
+            <div id="scenarioResultPanel" class="hidden glass-dark bg-white dark:bg-dark-surface text-slate-900 dark:text-white rounded-3xl shadow-float overflow-hidden relative border border-slate-100 dark:border-dark-border border-t-4 border-t-primary transition-colors">
+              <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-primary opacity-10 blur-3xl"></div>
+              <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 rounded-full bg-accent opacity-5 blur-3xl"></div>
+
+              <div class="p-8 relative z-10">
+                <div class="text-center mb-6">
+                  <p class="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-2 transition-colors">
+                    Harga Rata-rata Akhir</p>
+                  <div class="flex items-baseline justify-center gap-1 mb-2">
+                    <span class="text-2xl font-medium text-slate-400 dark:text-slate-500 font-display transition-colors">Rp</span>
+                    <h2 id="scenarioFinalAvg" class="text-6xl font-black tracking-tight font-display text-slate-900 dark:text-white transition-colors">0</h2>
+                  </div>
+                  <div id="scenarioDeltaBadge"
+                    class="hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-xs font-bold border border-green-500/20">
+                    <span class="material-symbols-outlined text-[14px]">trending_down</span>
+                    <span id="scenarioDeltaText">0% dari awal</span>
+                  </div>
+                </div>
+
+                <!-- Summary Stats -->
+                <div class="grid grid-cols-3 gap-3 mb-6">
+                  <div class="bg-slate-50/50 dark:bg-dark-bg/50 rounded-xl p-3 text-center border border-slate-200/50 dark:border-dark-border">
+                    <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Total Lot</p>
+                    <p id="scenarioTotalLots" class="text-lg font-black text-primary">0</p>
+                  </div>
+                  <div class="bg-slate-50/50 dark:bg-dark-bg/50 rounded-xl p-3 text-center border border-slate-200/50 dark:border-dark-border">
+                    <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Total Modal</p>
+                    <p id="scenarioTotalCost" class="text-lg font-black text-accent">Rp 0</p>
+                  </div>
+                  <div class="bg-slate-50/50 dark:bg-dark-bg/50 rounded-xl p-3 text-center border border-slate-200/50 dark:border-dark-border">
+                    <p class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Penurunan</p>
+                    <p id="scenarioDeltaPct" class="text-lg font-black text-success">0%</p>
+                  </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="bg-slate-50/50 dark:bg-dark-bg/50 rounded-xl p-4 border border-slate-200/50 dark:border-dark-border mb-6">
+                  <canvas id="scenarioChart"></canvas>
+                </div>
+
+                <!-- Step Breakdown -->
+                <div id="scenarioStepsBreakdown" class="space-y-2">
+                </div>
+              </div>
+
+              <div class="bg-slate-50/80 dark:bg-dark-bg/80 p-4 border-t border-slate-100 dark:border-dark-border flex justify-center transition-colors">
+                <p class="text-[10px] text-slate-400 dark:text-slate-500 text-center max-w-xs font-medium transition-colors">
+                  *Disclaimer: Perhitungan ini hanya estimasi dan belum termasuk fee broker, pajak, serta biaya lain
+                  yang mungkin berlaku. Trading memiliki risiko.
                 </p>
               </div>
             </div>

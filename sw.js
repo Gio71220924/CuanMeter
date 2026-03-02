@@ -3,7 +3,7 @@
  * Provides offline caching and PWA functionality
  */
 
-const CACHE_VERSION = 'cuanmeter-v1.2.0';
+const CACHE_VERSION = 'cuanmeter-v1.3.0';
 const CACHE_NAME = `${CACHE_VERSION}`;
 
 // Assets to cache immediately

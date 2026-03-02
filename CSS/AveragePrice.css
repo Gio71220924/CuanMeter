@@ -156,3 +156,8 @@ body.glass-page {
 .dark .tab-inactive:hover {
     color: #cbd5e1;
 }
+
+/* Scenario Chart */
+#scenarioChart { max-height: 220px; }
+.scenario-step { transition: all 0.2s ease; }
+.scenario-step:hover { border-color: #0ea5e9; }
