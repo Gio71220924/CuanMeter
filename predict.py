@@ -8,7 +8,7 @@ import warnings
 # Menghilangkan peringatan versi agar output JSON bersih
 warnings.filterwarnings("ignore", category=UserWarning)
 
-from ta.volatility import BollingerBands
+from ta.volatility import BollingerBands, AverageTrueRange
 from ta.momentum import StochasticOscillator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.trend import ADXIndicator
@@ -22,84 +22,86 @@ def get_prediction(ticker):
 
         # 2. Ambil data
         formatted_ticker = f"{ticker}.JK" if ".JK" not in ticker.upper() else ticker
-        df = yf.download(formatted_ticker, period="60d", interval="1d", progress=False, auto_adjust=True)
+        df = yf.download(formatted_ticker, period="100d", interval="1d", progress=False, auto_adjust=True)
 
-        if df.empty or len(df) < 20:
-            return {"status": "error", "message": f"Data {ticker} tidak ditemukan."}
+        if df.empty or len(df) < 30:
+            return {"status": "error", "message": f"Data {ticker} tidak cukup."}
 
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
 
-        # Data Series
         close_data = df['Close'].squeeze()
         high_data = df['High'].squeeze()
         low_data = df['Low'].squeeze()
         vol_data = df['Volume'].squeeze()
 
         # 3. Hitung Indikator
-        # BB & Stoch
-        bb = BollingerBands(close=close_data, window=20, window_dev=2)
+        bb = BollingerBands(close=close_data, window=20)
         df['BB_MIDDLE'] = bb.bollinger_mavg()
         df['BB_UPPER'] = bb.bollinger_hband()
         df['BB_LOWER'] = bb.bollinger_lband()
+        df['STOCH_%K'] = StochasticOscillator(high=high_data, low=low_data, close=close_data).stoch()
+        df['STOCH_%D'] = StochasticOscillator(high=high_data, low=low_data, close=close_data).stoch_signal()
+        df['ADX'] = ADXIndicator(high=high_data, low=low_data, close=close_data).adx()
+        df['OBV'] = OnBalanceVolumeIndicator(close=close_data, volume=vol_data).on_balance_volume()
+        
+        # Tambahan untuk Trading Plan
+        atr_ind = AverageTrueRange(high=high_data, low=low_data, close=close_data, window=14)
+        df['ATR'] = atr_ind.average_true_range()
 
-        stoch = StochasticOscillator(high=high_data, low=low_data, close=close_data, window=14)
-        df['STOCH_%K'] = stoch.stoch()
-        df['STOCH_%D'] = stoch.stoch_signal()
-
-        # ADX
-        adx_ind = ADXIndicator(high=high_data, low=low_data, close=close_data, window=14)
-        df['ADX'] = adx_ind.adx()
-
-        # OBV
-        obv_ind = OnBalanceVolumeIndicator(close=close_data, volume=vol_data)
-        df['OBV'] = obv_ind.on_balance_volume()
-
-        # 4. Prediksi untuk semua data historis (agar bisa digambar di chart)
-        # Kita ambil 60 data terakhir
+        # 4. Backtest Sederhana (Cek akurasi 60 hari terakhir)
         history_df = df.tail(60).copy()
-
-        # Jalankan prediksi ke seluruh baris (vektor)
-        X_history = history_df[features]
-        # Pastikan tidak ada NaN saat prediksi history (menggunakan syntax terbaru)
-        X_history = X_history.ffill().fillna(0)
-
+        X_history = history_df[features].ffill().fillna(0)
         history_predictions = model.predict(X_history)
+        history_df['pred'] = history_predictions
+        
+        # Hitung Win Rate: Jika Prediksi == Arah Harga 3 hari kemudian
+        wins = 0
+        total_signals = 0
+        for i in range(len(history_df) - 5):
+            sig = history_df['pred'].iloc[i]
+            if sig != 0: # Hanya hitung jika ada sinyal BUY/SELL
+                total_signals += 1
+                future_price = history_df['Close'].iloc[i+3]
+                current_price = history_df['Close'].iloc[i]
+                if (sig == 1 and future_price > current_price) or (sig == -1 and future_price < current_price):
+                    wins += 1
+        
+        win_rate = (wins / total_signals * 100) if total_signals > 0 else 0
 
-        history_df['prediction'] = history_predictions
+        # 5. Trading Plan (Berdasarkan baris terakhir)
+        last_price = float(close_data.iloc[-1])
+        atr_val = float(df['ATR'].iloc[-1])
+        last_pred = int(history_predictions[-1])
+        
+        # Risk:Reward 1:2
+        tp = last_price + (atr_val * 2) if last_pred == 1 else last_price - (atr_val * 2)
+        sl = last_price - (atr_val * 1.5) if last_pred == 1 else last_price + (atr_val * 1.5)
 
-        # Siapkan data untuk chart (Format: time, open, high, low, close, signal)
         chart_data = []
         for index, row in history_df.iterrows():
             chart_data.append({
                 "time": index.strftime('%Y-%m-%d'),
-                "open": float(row['Open']),
-                "high": float(row['High']),
-                "low": float(row['Low']),
-                "close": float(row['Close']),
-                "signal": int(row['prediction'])
+                "open": float(row['Open']), "high": float(row['High']),
+                "low": float(row['Low']), "close": float(row['Close']),
+                "signal": int(row['pred'])
             })
-
-        # Prediksi terakhir (untuk ringkasan)
-        last_pred = int(history_predictions[-1])
-        signal = "UP" if last_pred == 1 else "DOWN" if last_pred == -1 else "NEUTRAL"
-
-        try:
-            scores = model.decision_function(X_history.tail(1))[0]
-            strength = float(max(abs(scores)) if hasattr(scores, "__len__") else abs(scores))
-        except:
-            strength = 0
 
         return {
             "status": "success",
             "ticker": ticker.upper(),
-            "last_price": round(float(close_data.iloc[-1]), 2),
-            "prediction": signal,
-            "strength": round(strength, 2),
+            "prediction": "UP" if last_pred == 1 else "DOWN" if last_pred == -1 else "NEUTRAL",
+            "win_rate": round(win_rate, 1),
             "chart_history": chart_data,
+            "trading_plan": {
+                "entry": round(last_price, 0),
+                "target_profit": round(tp, 0),
+                "stop_loss": round(sl, 0),
+                "risk_reward": "1 : 2"
+            },
             "details": {
                 "stoch": round(float(df['STOCH_%K'].iloc[-1]), 2),
-                "bb_pos": "Overbought" if close_data.iloc[-1] > df['BB_UPPER'].iloc[-1] else "Oversold" if close_data.iloc[-1] < df['BB_LOWER'].iloc[-1] else "Normal",
+                "bb_pos": "Overbought" if last_price > df['BB_UPPER'].iloc[-1] else "Oversold" if last_price < df['BB_LOWER'].iloc[-1] else "Normal",
                 "adx": round(float(df['ADX'].iloc[-1]), 2),
                 "obv": round(float(df['OBV'].iloc[-1]), 0)
             }

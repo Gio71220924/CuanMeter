@@ -33,6 +33,11 @@
     mlBB: document.getElementById("ml-bb"),
     mlAdx: document.getElementById("ml-adx"),
     mlObv: document.getElementById("ml-obv"),
+    // New Insight Elements
+    mlWinRate: document.getElementById("ml-winrate"),
+    planEntry: document.getElementById("plan-entry"),
+    planTP: document.getElementById("plan-tp"),
+    planSL: document.getElementById("plan-sl"),
   };
 
   if (!els.analyzeBtn) return;
@@ -405,6 +410,12 @@
         els.mlBB.innerText = data.details.bb_pos;
         els.mlAdx.innerText = data.details.adx;
         els.mlObv.innerText = data.details.obv.toLocaleString();
+
+        // Data Insights Baru
+        if (els.mlWinRate) els.mlWinRate.innerText = `${data.win_rate}%`;
+        if (els.planEntry) els.planEntry.innerText = `Rp ${data.trading_plan.entry.toLocaleString()}`;
+        if (els.planTP) els.planTP.innerText = `Rp ${data.trading_plan.target_profit.toLocaleString()}`;
+        if (els.planSL) els.planSL.innerText = `Rp ${data.trading_plan.stop_loss.toLocaleString()}`;
 
         // Beri warna sesuai sinyal
         if (data.prediction === "UP") {

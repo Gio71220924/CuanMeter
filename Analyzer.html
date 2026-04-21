@@ -258,6 +258,56 @@
             </div>
           </div>
 
+          <!-- AI Insights Section -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Backtest Result -->
+            <div class="glass-card bg-slate-900 dark:bg-dark-surface p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="size-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
+                  <span class="material-symbols-outlined text-emerald-500">verified</span>
+                </div>
+                <div>
+                  <h3 class="text-white font-bold">Model Performance</h3>
+                  <p class="text-[10px] text-slate-500 uppercase tracking-wider">Akurasi 60 Hari Terakhir</p>
+                </div>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span id="ml-winrate" class="text-4xl font-black text-white">0%</span>
+                <span class="text-sm text-slate-400 font-medium">Win Rate</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-4 leading-relaxed">
+                Persentase akurasi model dalam memprediksi arah harga 3 hari ke depan pada saham ini.
+              </p>
+            </div>
+
+            <!-- Trading Plan -->
+            <div class="glass-card bg-indigo-600 p-6 rounded-2xl border border-indigo-500 shadow-xl relative overflow-hidden text-white">
+              <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
+              <div class="flex items-center gap-3 mb-6">
+                <div class="size-10 bg-white/20 rounded-xl flex items-center justify-center">
+                  <span class="material-symbols-outlined text-white">assignment_turned_in</span>
+                </div>
+                <h3 class="font-bold text-lg">AI Trading Plan</h3>
+              </div>
+              
+              <div class="grid grid-cols-3 gap-2">
+                <div class="bg-black/20 p-3 rounded-xl border border-white/10">
+                  <p class="text-[9px] uppercase font-bold text-indigo-200 mb-1">Buy/Entry</p>
+                  <p id="plan-entry" class="text-sm font-black">0</p>
+                </div>
+                <div class="bg-emerald-500/20 p-3 rounded-xl border border-white/10">
+                  <p class="text-[9px] uppercase font-bold text-emerald-200 mb-1">Target P.</p>
+                  <p id="plan-tp" class="text-sm font-black">0</p>
+                </div>
+                <div class="bg-rose-500/20 p-3 rounded-xl border border-white/10">
+                  <p class="text-[9px] uppercase font-bold text-rose-200 mb-1">Stop Loss</p>
+                  <p id="plan-sl" class="text-sm font-black">0</p>
+                </div>
+              </div>
+              <p class="text-[10px] mt-4 text-indigo-100 italic">*Rasio R:R 1:2 (Berdasarkan Volatilitas ATR)</p>
+            </div>
+          </div>
+
           <!-- AI Analysis Section -->
           <div class="glass-card bg-indigo-600/5 dark:bg-indigo-500/5 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 shadow-sm relative overflow-hidden">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
