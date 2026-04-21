@@ -101,10 +101,28 @@ def get_prediction(ticker):
             plan["tp_percent"] = 0
             plan["sl_percent"] = 0
 
+        # Ambil skor keyakinan (Strength) - PENTING agar tidak undefined
+        try:
+            scores = model.decision_function(X_history.tail(1))[0]
+            strength = float(max(abs(scores)) if hasattr(scores, "__len__") else abs(scores))
+        except:
+            strength = 0
+
+        # Siapkan data untuk chart
+        chart_data = []
+        for index, row in history_df.iterrows():
+            chart_data.append({
+                "time": index.strftime('%Y-%m-%d'),
+                "open": float(row['Open']), "high": float(row['High']),
+                "low": float(row['Low']), "close": float(row['Close']),
+                "signal": int(row['pred'])
+            })
+
         return {
             "status": "success",
             "ticker": ticker.upper(),
             "prediction": "UP" if last_pred == 1 else "DOWN" if last_pred == -1 else "NEUTRAL",
+            "strength": round(strength, 2),
             "win_rate": round(win_rate, 1),
             "chart_history": chart_data,
             "trading_plan": plan,
