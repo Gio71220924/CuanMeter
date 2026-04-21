@@ -22,6 +22,13 @@
     listTopBuyers: document.getElementById("listTopBuyers"),
     listTopSellers: document.getElementById("listTopSellers"),
     suggestBox: document.getElementById("suggestBox"),
+    
+    // ML Elements
+    mlBtn: document.getElementById("btn-ml"),
+    mlLoading: document.getElementById("ml-loading"),
+    mlContainer: document.getElementById("ml-container"),
+    mlSignal: document.getElementById("ml-signal"),
+    mlPrice: document.getElementById("ml-price"),
   };
 
   if (!els.analyzeBtn) return;
@@ -364,4 +371,52 @@
   els.tickerInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") fetchData();
   });
+
+  // --- AI Analysis Functions ---
+  const panggilAI = async () => {
+    const ticker = els.tickerInput.value.trim().toUpperCase();
+    if (!ticker) {
+      if (window.CuanMeterToast) window.CuanMeterToast.error("Pilih saham dulu!");
+      return;
+    }
+
+    // UI Feedback
+    els.mlBtn.disabled = true;
+    els.mlLoading.classList.remove('hidden');
+    els.mlContainer.classList.add('hidden');
+
+    try {
+      // Panggil server (port 3000 atau current origin)
+      const response = await fetch(`/ml-predict?ticker=${ticker}`);
+      const data = await response.json();
+
+      els.mlLoading.classList.add('hidden');
+      els.mlBtn.disabled = false;
+
+      if (data.status === "success") {
+        els.mlContainer.classList.remove('hidden');
+        els.mlSignal.innerText = data.prediction;
+        els.mlPrice.innerText = `Rp ${data.last_price.toLocaleString()}`;
+
+        // Beri warna sesuai sinyal
+        if (data.prediction === "UP") {
+          els.mlSignal.className = "text-2xl font-black text-emerald-500";
+        } else if (data.prediction === "DOWN") {
+          els.mlSignal.className = "text-2xl font-black text-rose-500";
+        } else {
+          els.mlSignal.className = "text-2xl font-black text-slate-500";
+        }
+      } else {
+        if (window.CuanMeterToast) window.CuanMeterToast.error(data.message || "Gagal analisa ML");
+      }
+    } catch (error) {
+      els.mlLoading.classList.add('hidden');
+      els.mlBtn.disabled = false;
+      console.error(error);
+      if (window.CuanMeterToast) window.CuanMeterToast.error("Server ML tidak merespon.");
+    }
+  };
+
+  // Expose to window for onclick access
+  window.panggilAI = panggilAI;
 })();
