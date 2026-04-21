@@ -281,30 +281,57 @@
             </div>
 
             <!-- Trading Plan -->
-            <div class="glass-card bg-indigo-600 p-6 rounded-2xl border border-indigo-500 shadow-xl relative overflow-hidden text-white">
-              <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
-              <div class="flex items-center gap-3 mb-6">
-                <div class="size-10 bg-white/20 rounded-xl flex items-center justify-center">
-                  <span class="material-symbols-outlined text-white">assignment_turned_in</span>
+            <div class="glass-card bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden text-white group">
+              <div class="absolute -right-12 -top-12 w-48 h-48 bg-indigo-600/20 rounded-full blur-3xl transition-transform group-hover:scale-110"></div>
+              
+              <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center gap-3">
+                  <div class="size-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-900/40">
+                    <span class="material-symbols-outlined text-white">rocket_launch</span>
+                  </div>
+                  <div>
+                    <h3 class="font-bold text-lg tracking-tight">AI TRADING PLAN</h3>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-widest">Recommended Setup</p>
+                  </div>
                 </div>
-                <h3 class="font-bold text-lg">AI Trading Plan</h3>
+                <div id="plan-badge" class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter bg-slate-800 border border-slate-700">WAITING</div>
               </div>
               
-              <div class="grid grid-cols-3 gap-2">
-                <div class="bg-black/20 p-3 rounded-xl border border-white/10">
-                  <p class="text-[9px] uppercase font-bold text-indigo-200 mb-1">Buy/Entry</p>
-                  <p id="plan-entry" class="text-sm font-black">0</p>
+              <div class="space-y-4 relative z-10">
+                <!-- Entry Row -->
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                  <div class="flex items-center gap-2">
+                    <span class="size-2 rounded-full bg-indigo-500"></span>
+                    <span class="text-xs font-bold text-slate-400 uppercase">Entry Price</span>
+                  </div>
+                  <span id="plan-entry" class="text-lg font-black tabular-nums">0</span>
                 </div>
-                <div class="bg-emerald-500/20 p-3 rounded-xl border border-white/10">
-                  <p class="text-[9px] uppercase font-bold text-emerald-200 mb-1">Target P.</p>
-                  <p id="plan-tp" class="text-sm font-black">0</p>
-                </div>
-                <div class="bg-rose-500/20 p-3 rounded-xl border border-white/10">
-                  <p class="text-[9px] uppercase font-bold text-rose-200 mb-1">Stop Loss</p>
-                  <p id="plan-sl" class="text-sm font-black">0</p>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <!-- TP Row -->
+                  <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                    <p class="text-[9px] font-bold text-emerald-500 uppercase mb-1">Target Profit</p>
+                    <div class="flex items-baseline justify-between">
+                      <span id="plan-tp" class="text-lg font-black text-emerald-400 tabular-nums">0</span>
+                      <span id="plan-tp-pct" class="text-[10px] font-bold text-emerald-500/80">+0%</span>
+                    </div>
+                  </div>
+                  <!-- SL Row -->
+                  <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                    <p class="text-[9px] font-bold text-rose-500 uppercase mb-1">Stop Loss</p>
+                    <div class="flex items-baseline justify-between">
+                      <span id="plan-sl" class="text-lg font-black text-rose-400 tabular-nums">0</span>
+                      <span id="plan-sl-pct" class="text-[10px] font-bold text-rose-500/80">-0%</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <p class="text-[10px] mt-4 text-indigo-100 italic">*Rasio R:R 1:2 (Berdasarkan Volatilitas ATR)</p>
+
+              <div id="plan-note-container" class="mt-6 pt-4 border-t border-slate-800">
+                <p class="text-[11px] text-slate-400 leading-relaxed italic" id="plan-note-text">
+                  * Klik mulai analisis untuk melihat strategi
+                </p>
+              </div>
             </div>
           </div>
 

@@ -38,6 +38,10 @@
     planEntry: document.getElementById("plan-entry"),
     planTP: document.getElementById("plan-tp"),
     planSL: document.getElementById("plan-sl"),
+    planTPPct: document.getElementById("plan-tp-pct"),
+    planSLPct: document.getElementById("plan-sl-pct"),
+    planBadge: document.getElementById("plan-badge"),
+    planNote: document.getElementById("plan-note-text"),
   };
 
   if (!els.analyzeBtn) return;
@@ -411,25 +415,33 @@
         els.mlAdx.innerText = data.details.adx;
         els.mlObv.innerText = data.details.obv.toLocaleString();
 
-        // Data Insights Baru
-        if (els.mlWinRate) els.mlWinRate.innerText = `${data.win_rate}%`;
+        // Data Insights Baru (Premium UI)
         if (els.planEntry) els.planEntry.innerText = `Rp ${data.trading_plan.entry.toLocaleString()}`;
-        if (els.planTP) els.planTP.innerText = data.trading_plan.target_profit > 0 ? `Rp ${data.trading_plan.target_profit.toLocaleString()}` : "-";
-        if (els.planSL) els.planSL.innerText = data.trading_plan.stop_loss > 0 ? `Rp ${data.trading_plan.stop_loss.toLocaleString()}` : "-";
+        if (els.planTP) {
+          els.planTP.innerText = data.trading_plan.target_profit > 0 ? `Rp ${data.trading_plan.target_profit.toLocaleString()}` : "-";
+          els.planTPPct.innerText = data.trading_plan.tp_percent > 0 ? `+${data.trading_plan.tp_percent}%` : "0%";
+        }
+        if (els.planSL) {
+          els.planSL.innerText = data.trading_plan.stop_loss > 0 ? `Rp ${data.trading_plan.stop_loss.toLocaleString()}` : "-";
+          els.planSLPct.innerText = data.trading_plan.sl_percent !== 0 ? `${data.trading_plan.sl_percent}%` : "0%";
+        }
+        if (els.planNote) els.planNote.innerText = data.trading_plan.note;
 
-        // Tambahkan Note di Trading Plan
-        const planCard = document.querySelector('#plan-entry').closest('.glass-card');
-        if (planCard) {
-          let noteEl = planCard.querySelector('.plan-note');
-          if (!noteEl) {
-            noteEl = document.createElement('p');
-            noteEl.className = 'plan-note text-[10px] mt-2 text-indigo-100 italic';
-            planCard.appendChild(noteEl);
-          }
-          noteEl.innerText = `* ${data.trading_plan.note}`;
+        // Update Badge & Colors
+        if (data.prediction === "UP") {
+          els.planBadge.innerText = "STRONG BUY";
+          els.planBadge.className = "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+        } else if (data.prediction === "DOWN") {
+          els.planBadge.innerText = "AVOID / SELL";
+          els.planBadge.className = "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter bg-rose-500/20 text-rose-400 border border-rose-500/30";
+        } else {
+          els.planBadge.innerText = "WAIT & SEE";
+          els.planBadge.className = "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter bg-slate-800 text-slate-400 border border-slate-700";
         }
 
-        // Beri warna sesuai sinyal
+        if (els.mlWinRate) els.mlWinRate.innerText = `${data.win_rate}%`;
+
+        // Beri warna sesuai sinyal utama
         if (data.prediction === "UP") {
           els.mlSignal.className = "text-xl font-black text-emerald-500";
         } else if (data.prediction === "DOWN") {
