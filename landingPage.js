@@ -143,14 +143,17 @@ function initStockMarquee() {
         { ticker: 'IDX:COMPOSITE', label: 'IHSG' },
         { ticker: 'IDX:LQ45', label: 'LQ45' },
         { ticker: 'IDX:BBCA', label: 'BBCA' },
-        { ticker: 'IDX:BUMI', label: 'BUMI' },
+        { ticker: 'IDX:BBRI', label: 'BBRI' },
         { ticker: 'IDX:BBNI', label: 'BBNI' },
+        { ticker: 'IDX:BUMI', label: 'BUMI' },
+        { ticker: 'IDX:TLKM', label: 'TLKM' },
+        { ticker: 'IDX:ASII', label: 'ASII' },
+        { ticker: 'IDX:ANTM', label: 'ANTM' },
         { ticker: 'IDX:ADMR', label: 'ADMR' },
         { ticker: 'IDX:PTBA', label: 'PTBA' },
         { ticker: 'IDX:AADI', label: 'AADI' },
-        { ticker: 'IDX:ANTM', label: 'ANTM' },
         { ticker: 'IDX:MBMA', label: 'MBMA' },
-        { ticker: 'IDX:BBRI', label: 'BBRI' },
+        { ticker: 'IDX:GOTO', label: 'GOTO' },
         { ticker: 'BINANCE:BTCUSDT', label: 'BTC/USDT' },
         { ticker: 'OANDA:XAUUSD', label: 'Gold' }
     ];
@@ -158,7 +161,7 @@ function initStockMarquee() {
     // API base: use window.STOCKCALC_TV_URL if set (production), else auto-detect dev
     const API_BASE = window.STOCKCALC_TV_URL ||
         ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-            ? `http://${window.location.hostname}:3001` : '');
+            ? `http://${window.location.hostname}:3000` : '');
 
     const fmt = window.CuanMeterUtils ? window.CuanMeterUtils.formatters.nf2 : { format: v => v.toFixed(2) };
     const prevPrices = {};

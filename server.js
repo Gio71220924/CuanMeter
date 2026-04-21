@@ -162,6 +162,57 @@ function handlePrice(ticker, res) {
     });
 }
 
+// ─── Data: Real-time Stock Prices for Marquee ────────────────────────────────
+let stockPrices = {
+    'IDX:COMPOSITE': { price: 0, change: 0, pct: 0 },
+    'IDX:LQ45': { price: 0, change: 0, pct: 0 },
+    'IDX:BBCA': { price: 0, change: 0, pct: 0 },
+    'IDX:BBRI': { price: 0, change: 0, pct: 0 },
+    'IDX:BBNI': { price: 0, change: 0, pct: 0 },
+    'IDX:BUMI': { price: 0, change: 0, pct: 0 },
+    'IDX:TLKM': { price: 0, change: 0, pct: 0 },
+    'IDX:ASII': { price: 0, change: 0, pct: 0 },
+    'IDX:ANTM': { price: 0, change: 0, pct: 0 },
+    'IDX:ADMR': { price: 0, change: 0, pct: 0 },
+    'IDX:PTBA': { price: 0, change: 0, pct: 0 },
+    'IDX:AADI': { price: 0, change: 0, pct: 0 },
+    'IDX:MBMA': { price: 0, change: 0, pct: 0 },
+    'IDX:GOTO': { price: 0, change: 0, pct: 0 },
+    'BINANCE:BTCUSDT': { price: 0, change: 0, pct: 0 },
+    'OANDA:XAUUSD': { price: 0, change: 0, pct: 0 },
+};
+
+function fetchMarketData() {
+    const tickers = Object.keys(stockPrices);
+    const body = JSON.stringify({
+        symbols: { tickers: tickers },
+        columns: ['close', 'change', 'change_abs'],
+    });
+
+    tvRequest({
+        hostname: 'scanner.tradingview.com',
+        path: '/global/scan',
+        method: 'POST',
+        headers: { ...TV_HEADERS, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+    }, body, (err, data) => {
+        if (err) { console.error('[Marquee Error]', err.message); return; }
+        
+        const items = data?.data || [];
+        items.forEach(item => {
+            const ticker = item.s;
+            const [price, pct, change] = item.d;
+            if (stockPrices[ticker]) {
+                stockPrices[ticker] = { price, change, pct };
+            }
+        });
+        console.log(`[Marquee] Updated ${items.length} prices from TradingView`);
+    });
+}
+
+// Update setiap 15 detik (aman & real-time)
+fetchMarketData();
+setInterval(fetchMarketData, 15000);
+
 // ─── /ml-predict  →  Run ML prediction script ────────────────────────────────
 function handleMLPredict(ticker, res) {
     console.log(`[ML Request] Menghitung prediksi untuk: ${ticker}`);
@@ -273,6 +324,27 @@ const server = http.createServer((req, res) => {
         const ticker = validateTicker(parsed.query.ticker);
         if (!ticker) { sendJSON(res, 400, { error: 'Invalid or missing ?ticker=' }); return; }
         return handleMLPredict(ticker, res);
+    }
+
+    // API: /api/prices/stream (SSE for Landing Page)
+    if (req.method === 'GET' && (pathname === '/api/prices/stream' || pathname === '/prices/stream')) {
+        res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*'
+        });
+
+        // Kirim data awal
+        res.write(`data: ${JSON.stringify(stockPrices)}\n\n`);
+
+        // Kirim data setiap 5 detik
+        const interval = setInterval(() => {
+            res.write(`data: ${JSON.stringify(stockPrices)}\n\n`);
+        }, 5000);
+
+        req.on('close', () => clearInterval(interval));
+        return;
     }
 
     // Static files
