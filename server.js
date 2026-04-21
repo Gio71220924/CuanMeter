@@ -162,6 +162,34 @@ function handlePrice(ticker, res) {
     });
 }
 
+// ─── /ml-predict  →  Run ML prediction script ────────────────────────────────
+function handleMLPredict(ticker, res) {
+    console.log(`[ML Request] Menghitung prediksi untuk: ${ticker}`);
+
+    // Menjalankan script python: python predict.py <ticker>
+    // Karena predict.py ada di root, dan server ini ada di CuanMeter/, 
+    // kita panggil path yang benar (parent dir)
+    const python = spawn('python', [path.join(ROOT, '..', 'predict.py'), ticker]);
+
+    let output = '';
+    python.stdout.on('data', (data) => {
+        output += data.toString();
+    });
+
+    python.stderr.on('data', (data) => {
+        console.error(`[Python Error] ${data}`);
+    });
+
+    python.on('close', (code) => {
+        try {
+            const jsonResult = JSON.parse(output);
+            sendJSON(res, 200, jsonResult);
+        } catch (e) {
+            sendJSON(res, 500, { error: "Gagal parsing JSON", detail: output });
+        }
+    });
+}
+
 // ─── Helper: send JSON with CORS ─────────────────────────────────────────────
 function sendJSON(res, status, obj) {
     res.writeHead(status, {
@@ -236,6 +264,16 @@ const server = http.createServer((req, res) => {
         if (!ticker) { sendJSON(res, 400, { error: 'Invalid or missing ?ticker= (alphanumeric, max 20 chars)' }); return; }
         console.log(`[Price]  ${ticker}`);
         return handlePrice(ticker, res);
+    }
+
+    // API: /ml-predict
+    if (req.method === 'GET' && pathname === '/ml-predict') {
+        const ip = req.socket.remoteAddress;
+        if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
+
+        const ticker = validateTicker(parsed.query.ticker);
+        if (!ticker) { sendJSON(res, 400, { error: 'Invalid or missing ?ticker=' }); return; }
+        return handleMLPredict(ticker, res);
     }
 
     // Static files
