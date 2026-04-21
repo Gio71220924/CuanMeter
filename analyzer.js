@@ -420,6 +420,19 @@
         else if (data.strength > 0.8) els.mlStrength.className = "text-xl font-black text-amber-500";
         else els.mlStrength.className = "text-xl font-black text-slate-400";
 
+        // Gambar Chart
+        if (data.chart_history) {
+          try {
+            if (typeof LightweightCharts !== 'undefined') {
+              renderChart(data.chart_history);
+            } else {
+              console.warn("Library LightweightCharts belum ter-load.");
+            }
+          } catch (chartError) {
+            console.error("Gagal menggambar chart:", chartError);
+          }
+        }
+
       } else {
         if (window.CuanMeterToast) window.CuanMeterToast.error(data.message || "Gagal analisa ML");
       }
@@ -429,6 +442,54 @@
       console.error(error);
       if (window.CuanMeterToast) window.CuanMeterToast.error("Server ML tidak merespon.");
     }
+  };
+
+  // --- Chart Rendering Function ---
+  let activeChart = null;
+
+  const renderChart = (data) => {
+    const container = document.getElementById('chart-container');
+    if (!container) return;
+
+    // Bersihkan chart lama jika ada
+    container.innerHTML = '';
+    
+    // Inisialisasi Chart (Standard v4.x)
+    const chart = LightweightCharts.createChart(container, {
+      layout: {
+        background: { color: 'transparent' },
+        textColor: document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b',
+      },
+      grid: {
+        vertLines: { color: 'rgba(148, 163, 184, 0.1)' },
+        horzLines: { color: 'rgba(148, 163, 184, 0.1)' },
+      },
+      timeScale: { borderColor: 'rgba(148, 163, 184, 0.2)' },
+    });
+
+    // Gunakan fungsi addCandlestickSeries yang benar sesuai versi
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: '#10b981', downColor: '#f43f5e', borderVisible: false,
+      wickUpColor: '#10b981', wickDownColor: '#f43f5e',
+    });
+
+    candleSeries.setData(data.map(d => ({
+      time: d.time, open: d.open, high: d.high, low: d.low, close: d.close
+    })));
+
+    // Tambahkan Penanda Sinyal (Markers)
+    const markers = [];
+    data.forEach(item => {
+      if (item.signal === 1) {
+        markers.push({ time: item.time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY' });
+      } else if (item.signal === -1) {
+        markers.push({ time: item.time, position: 'aboveBar', color: '#f43f5e', shape: 'arrowDown', text: 'SELL' });
+      }
+    });
+    candleSeries.setMarkers(markers);
+
+    chart.timeScale().fitContent();
+    activeChart = chart;
   };
 
   // Expose to window for onclick access

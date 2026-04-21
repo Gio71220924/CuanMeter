@@ -232,12 +232,20 @@ function handleMLPredict(ticker, res) {
 
     python.on('close', (code) => {
         try {
-            const jsonResult = JSON.parse(output);
+            // Bersihkan output: ambil hanya bagian antara { dan }
+            const start = output.indexOf('{');
+            const end = output.lastIndexOf('}');
+            if (start === -1 || end === -1) throw new Error("Format output Python tidak valid");
+
+            const cleanJson = output.substring(start, end + 1);
+            const jsonResult = JSON.parse(cleanJson);
             sendJSON(res, 200, jsonResult);
         } catch (e) {
+            console.error(`[Parse Error] ${e.message}. Raw output: ${output}`);
             sendJSON(res, 500, { error: "Gagal parsing JSON", detail: output });
         }
     });
+
 }
 
 // ─── Helper: send JSON with CORS ─────────────────────────────────────────────

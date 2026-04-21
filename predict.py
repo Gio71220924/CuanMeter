@@ -55,29 +55,40 @@ def get_prediction(ticker):
         obv_ind = OnBalanceVolumeIndicator(close=close_data, volume=vol_data)
         df['OBV'] = obv_ind.on_balance_volume()
 
-        # 4. Prediksi
-        last_row = df[features].tail(1)
+        # 4. Prediksi untuk semua data historis (agar bisa digambar di chart)
+        # Kita ambil 60 data terakhir
+        history_df = df.tail(60).copy()
 
+        # Jalankan prediksi ke seluruh baris (vektor)
+        X_history = history_df[features]
+        # Pastikan tidak ada NaN saat prediksi history (menggunakan syntax terbaru)
+        X_history = X_history.ffill().fillna(0)
 
-        if last_row.isnull().values.any():
-            return {
-                "status": "error",
-                "message": "Indikator belum lengkap."
-            }
+        history_predictions = model.predict(X_history)
 
-        prediction = model.predict(last_row)[0]
+        history_df['prediction'] = history_predictions
 
-        # Tambahan: Ambil skor keyakinan (Decision Function)
-        # Semakin jauh dari 0, semakin kuat sinyalnya
+        # Siapkan data untuk chart (Format: time, open, high, low, close, signal)
+        chart_data = []
+        for index, row in history_df.iterrows():
+            chart_data.append({
+                "time": index.strftime('%Y-%m-%d'),
+                "open": float(row['Open']),
+                "high": float(row['High']),
+                "low": float(row['Low']),
+                "close": float(row['Close']),
+                "signal": int(row['prediction'])
+            })
+
+        # Prediksi terakhir (untuk ringkasan)
+        last_pred = int(history_predictions[-1])
+        signal = "UP" if last_pred == 1 else "DOWN" if last_pred == -1 else "NEUTRAL"
+
         try:
-            scores = model.decision_function(last_row)[0]
-            # Ambil nilai absolut terbesar sebagai indikasi kekuatan
+            scores = model.decision_function(X_history.tail(1))[0]
             strength = float(max(abs(scores)) if hasattr(scores, "__len__") else abs(scores))
         except:
             strength = 0
-
-        # Mapping hasil
-        signal = "UP" if prediction == 1 else "DOWN" if prediction == -1 else "NEUTRAL"
 
         return {
             "status": "success",
@@ -85,6 +96,7 @@ def get_prediction(ticker):
             "last_price": round(float(close_data.iloc[-1]), 2),
             "prediction": signal,
             "strength": round(strength, 2),
+            "chart_history": chart_data,
             "details": {
                 "stoch": round(float(df['STOCH_%K'].iloc[-1]), 2),
                 "bb_pos": "Overbought" if close_data.iloc[-1] > df['BB_UPPER'].iloc[-1] else "Oversold" if close_data.iloc[-1] < df['BB_LOWER'].iloc[-1] else "Normal",
@@ -92,6 +104,7 @@ def get_prediction(ticker):
                 "obv": round(float(df['OBV'].iloc[-1]), 0)
             }
         }
+
 
     except Exception as e:
         return {
