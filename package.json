@@ -3,10 +3,9 @@
     "version": "1.0.0",
     "description": "Kalkulator saham gratis untuk trader Indonesia - StockCalcID",
     "scripts": {
-        "tv-server": "node server.js",
-        "web-server": "node CuanMeter/server.js",
+        "start": "node server.js",
         "watch:css": "npx tailwindcss -i CSS/LandingPage.css -o CSS/tailwind-output.css --watch",
-        "dev": "concurrently --names \"TV,WEB,CSS\" --prefix-colors \"cyan,green,yellow\" \"npm run tv-server\" \"npm run web-server\" \"npm run watch:css\"",
+        "dev": "concurrently --names \"SRV,CSS\" --prefix-colors \"cyan,yellow\" \"npm run start\" \"npm run watch:css\"",
         "build": "npm run build:css && npm run build:js",
         "build:css": "npx tailwindcss -i CSS/LandingPage.css -o CSS/tailwind-output.css --minify",
         "build:js": "node build.js"

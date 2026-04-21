@@ -167,9 +167,8 @@ function handleMLPredict(ticker, res) {
     console.log(`[ML Request] Menghitung prediksi untuk: ${ticker}`);
 
     // Menjalankan script python: python predict.py <ticker>
-    // Karena predict.py ada di root, dan server ini ada di CuanMeter/, 
-    // kita panggil path yang benar (parent dir)
-    const python = spawn('python', [path.join(ROOT, '..', 'predict.py'), ticker]);
+    // Karena predict.py ada di folder yang sama dengan server.js
+    const python = spawn('python', [path.join(ROOT, 'predict.py'), ticker]);
 
     let output = '';
     python.stdout.on('data', (data) => {
