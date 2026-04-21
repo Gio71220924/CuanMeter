@@ -16,7 +16,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 
 const PORT = 3000;
 const ROOT = __dirname;           // folder server.js berada
@@ -292,18 +292,6 @@ server.listen(PORT, () => {
     console.log('');
     console.log('  Tekan Ctrl+C untuk berhenti.');
     console.log('');
-
-    // Auto-buka browser
-    const openUrl = `${baseUrl}${DEFAULT}`;
-    const cmd = process.platform === 'win32'
-        ? `start "" "${openUrl}"`
-        : process.platform === 'darwin'
-            ? `open "${openUrl}"`
-            : `xdg-open "${openUrl}"`;
-
-    exec(cmd, (err) => {
-        if (err) console.log(`  Buka manual: ${openUrl}`);
-    });
 });
 
 server.on('error', (err) => {

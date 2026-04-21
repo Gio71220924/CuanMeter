@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "Kalkulator saham gratis untuk trader Indonesia - StockCalcID",
     "scripts": {
-        "start": "node server.js",
+        "start": "nodemon server.js",
         "watch:css": "npx tailwindcss -i CSS/LandingPage.css -o CSS/tailwind-output.css --watch",
         "dev": "concurrently --names \"SRV,CSS\" --prefix-colors \"cyan,yellow\" \"npm run start\" \"npm run watch:css\"",
         "build": "npm run build:css && npm run build:js",
