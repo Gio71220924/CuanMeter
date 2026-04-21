@@ -74,18 +74,32 @@ def get_prediction(ticker):
         atr_val = float(df['ATR'].iloc[-1])
         last_pred = int(history_predictions[-1])
         
-        # Risk:Reward 1:2
-        tp = last_price + (atr_val * 2) if last_pred == 1 else last_price - (atr_val * 2)
-        sl = last_price - (atr_val * 1.5) if last_pred == 1 else last_price + (atr_val * 1.5)
+        # Inisialisasi Plan
+        plan = {
+            "entry": round(last_price, 0),
+            "target_profit": 0,
+            "stop_loss": 0,
+            "note": "Tunggu sinyal konfirmasi"
+        }
 
-        chart_data = []
-        for index, row in history_df.iterrows():
-            chart_data.append({
-                "time": index.strftime('%Y-%m-%d'),
-                "open": float(row['Open']), "high": float(row['High']),
-                "low": float(row['Low']), "close": float(row['Close']),
-                "signal": int(row['pred'])
-            })
+        if last_pred == 1: # Sinyal NAIK
+            plan["target_profit"] = round(last_price + (atr_val * 2), 0)
+            plan["stop_loss"] = round(last_price - (atr_val * 1.5), 0)
+            plan["note"] = "Kondisi Bullish. Potensi kenaikan terdeteksi."
+        elif last_pred == -1: # Sinyal TURUN
+            plan["target_profit"] = round(last_price - (atr_val * 2), 0)
+            plan["stop_loss"] = round(last_price + (atr_val * 1.5), 0)
+            plan["note"] = "Kondisi Bearish. Hindari spekulasi beli."
+        else:
+            plan["note"] = "Sideways. Harga bergerak di rentang sempit."
+
+        # Hitung Persentase
+        if plan["target_profit"] > 0:
+            plan["tp_percent"] = round(((plan["target_profit"] - last_price) / last_price) * 100, 2)
+            plan["sl_percent"] = round(((plan["stop_loss"] - last_price) / last_price) * 100, 2)
+        else:
+            plan["tp_percent"] = 0
+            plan["sl_percent"] = 0
 
         return {
             "status": "success",
@@ -93,12 +107,7 @@ def get_prediction(ticker):
             "prediction": "UP" if last_pred == 1 else "DOWN" if last_pred == -1 else "NEUTRAL",
             "win_rate": round(win_rate, 1),
             "chart_history": chart_data,
-            "trading_plan": {
-                "entry": round(last_price, 0),
-                "target_profit": round(tp, 0),
-                "stop_loss": round(sl, 0),
-                "risk_reward": "1 : 2"
-            },
+            "trading_plan": plan,
             "details": {
                 "stoch": round(float(df['STOCH_%K'].iloc[-1]), 2),
                 "bb_pos": "Overbought" if last_price > df['BB_UPPER'].iloc[-1] else "Oversold" if last_price < df['BB_LOWER'].iloc[-1] else "Normal",

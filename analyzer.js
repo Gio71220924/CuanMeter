@@ -414,8 +414,20 @@
         // Data Insights Baru
         if (els.mlWinRate) els.mlWinRate.innerText = `${data.win_rate}%`;
         if (els.planEntry) els.planEntry.innerText = `Rp ${data.trading_plan.entry.toLocaleString()}`;
-        if (els.planTP) els.planTP.innerText = `Rp ${data.trading_plan.target_profit.toLocaleString()}`;
-        if (els.planSL) els.planSL.innerText = `Rp ${data.trading_plan.stop_loss.toLocaleString()}`;
+        if (els.planTP) els.planTP.innerText = data.trading_plan.target_profit > 0 ? `Rp ${data.trading_plan.target_profit.toLocaleString()}` : "-";
+        if (els.planSL) els.planSL.innerText = data.trading_plan.stop_loss > 0 ? `Rp ${data.trading_plan.stop_loss.toLocaleString()}` : "-";
+
+        // Tambahkan Note di Trading Plan
+        const planCard = document.querySelector('#plan-entry').closest('.glass-card');
+        if (planCard) {
+          let noteEl = planCard.querySelector('.plan-note');
+          if (!noteEl) {
+            noteEl = document.createElement('p');
+            noteEl.className = 'plan-note text-[10px] mt-2 text-indigo-100 italic';
+            planCard.appendChild(noteEl);
+          }
+          noteEl.innerText = `* ${data.trading_plan.note}`;
+        }
 
         // Beri warna sesuai sinyal
         if (data.prediction === "UP") {
