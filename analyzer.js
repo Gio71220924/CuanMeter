@@ -28,7 +28,11 @@
     mlLoading: document.getElementById("ml-loading"),
     mlContainer: document.getElementById("ml-container"),
     mlSignal: document.getElementById("ml-signal"),
-    mlPrice: document.getElementById("ml-price"),
+    mlStrength: document.getElementById("ml-strength"),
+    mlStoch: document.getElementById("ml-stoch"),
+    mlBB: document.getElementById("ml-bb"),
+    mlAdx: document.getElementById("ml-adx"),
+    mlObv: document.getElementById("ml-obv"),
   };
 
   if (!els.analyzeBtn) return;
@@ -396,16 +400,26 @@
       if (data.status === "success") {
         els.mlContainer.classList.remove('hidden');
         els.mlSignal.innerText = data.prediction;
-        els.mlPrice.innerText = `Rp ${data.last_price.toLocaleString()}`;
+        els.mlStrength.innerText = data.strength;
+        els.mlStoch.innerText = data.details.stoch;
+        els.mlBB.innerText = data.details.bb_pos;
+        els.mlAdx.innerText = data.details.adx;
+        els.mlObv.innerText = data.details.obv.toLocaleString();
 
         // Beri warna sesuai sinyal
         if (data.prediction === "UP") {
-          els.mlSignal.className = "text-2xl font-black text-emerald-500";
+          els.mlSignal.className = "text-xl font-black text-emerald-500";
         } else if (data.prediction === "DOWN") {
-          els.mlSignal.className = "text-2xl font-black text-rose-500";
+          els.mlSignal.className = "text-xl font-black text-rose-500";
         } else {
-          els.mlSignal.className = "text-2xl font-black text-slate-500";
+          els.mlSignal.className = "text-xl font-black text-slate-500 text-slate-400";
         }
+
+        // Warna untuk kekuatan
+        if (data.strength > 1.5) els.mlStrength.className = "text-xl font-black text-indigo-500";
+        else if (data.strength > 0.8) els.mlStrength.className = "text-xl font-black text-amber-500";
+        else els.mlStrength.className = "text-xl font-black text-slate-400";
+
       } else {
         if (window.CuanMeterToast) window.CuanMeterToast.error(data.message || "Gagal analisa ML");
       }
