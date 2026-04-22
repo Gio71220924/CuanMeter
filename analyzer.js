@@ -42,6 +42,7 @@
     planSLPct: document.getElementById("plan-sl-pct"),
     planBadge: document.getElementById("plan-badge"),
     planNote: document.getElementById("plan-note-text"),
+    recentTradesList: document.getElementById("recent-trades-list"),
   };
 
   if (!els.analyzeBtn) return;
@@ -440,6 +441,27 @@
         }
 
         if (els.mlWinRate) els.mlWinRate.innerText = `${data.win_rate}%`;
+
+        // Render History Trade Detail
+        if (els.recentTradesList && data.recent_trades) {
+          els.recentTradesList.innerHTML = data.recent_trades.map(t => {
+            const isWin = t.result === "WIN";
+            const colorClass = isWin ? "text-emerald-400" : "text-rose-400";
+            const bgColor = isWin ? "bg-emerald-500/10" : "bg-rose-500/10";
+            return `
+              <div class="flex items-center justify-between p-2 rounded-lg ${bgColor} border border-white/5">
+                <div class="flex items-center gap-2">
+                  <span class="text-[9px] font-bold text-slate-400 w-8">${t.date}</span>
+                  <span class="text-[10px] font-black ${t.signal === 'BUY' ? 'text-indigo-400' : 'text-amber-400'}">${t.signal}</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="text-[9px] font-bold ${colorClass}">${t.profit_pct > 0 ? '+' : ''}${t.profit_pct}%</span>
+                  <span class="px-1.5 py-0.5 rounded text-[8px] font-black ${isWin ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}">${t.result}</span>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
 
         // Beri warna sesuai sinyal utama
         if (data.prediction === "UP") {

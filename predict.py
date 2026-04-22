@@ -55,19 +55,36 @@ def get_prediction(ticker):
         history_predictions = model.predict(X_history)
         history_df['pred'] = history_predictions
         
-        # Hitung Win Rate: Jika Prediksi == Arah Harga 3 hari kemudian
+        # Hitung Win Rate & Catat Detail Trade
         wins = 0
         total_signals = 0
+        trade_details = []
+        
+        # Kita scan dari belakang untuk ambil history terbaru
         for i in range(len(history_df) - 5):
-            sig = history_df['pred'].iloc[i]
-            if sig != 0: # Hanya hitung jika ada sinyal BUY/SELL
+            sig = int(history_df['pred'].iloc[i])
+            if sig != 0:
                 total_signals += 1
-                future_price = history_df['Close'].iloc[i+3]
-                current_price = history_df['Close'].iloc[i]
-                if (sig == 1 and future_price > current_price) or (sig == -1 and future_price < current_price):
-                    wins += 1
+                current_price = float(history_df['Close'].iloc[i])
+                future_price = float(history_df['Close'].iloc[i+3])
+                date_str = history_df.index[i].strftime('%d %b')
+                
+                is_win = (sig == 1 and future_price > current_price) or (sig == -1 and future_price < current_price)
+                if is_win: wins += 1
+                
+                # Simpan 5 sinyal terakhir saja untuk detail
+                trade_details.append({
+                    "date": date_str,
+                    "signal": "BUY" if sig == 1 else "SELL",
+                    "price": current_price,
+                    "result": "WIN" if is_win else "LOSS",
+                    "profit_pct": round(((future_price - current_price) / current_price * 100) if sig == 1 else ((current_price - future_price) / current_price * 100), 2)
+                })
         
         win_rate = (wins / total_signals * 100) if total_signals > 0 else 0
+        # Ambil 5 sinyal paling baru dari daftar
+        recent_trades = trade_details[-5:] if len(trade_details) > 5 else trade_details
+        recent_trades.reverse() # Terbaru di atas
 
         # 5. Trading Plan (Berdasarkan baris terakhir)
         last_price = float(close_data.iloc[-1])
@@ -124,6 +141,7 @@ def get_prediction(ticker):
             "prediction": "UP" if last_pred == 1 else "DOWN" if last_pred == -1 else "NEUTRAL",
             "strength": round(strength, 2),
             "win_rate": round(win_rate, 1),
+            "recent_trades": recent_trades,
             "chart_history": chart_data,
             "trading_plan": plan,
             "details": {
