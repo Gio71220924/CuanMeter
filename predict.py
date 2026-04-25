@@ -3,15 +3,32 @@ import json
 import joblib
 import pandas as pd
 import yfinance as yf
+import requests
 import warnings
+from datetime import datetime, timedelta
 
-# Menghilangkan peringatan versi agar output JSON bersih
+# Menghilangkan peringatan versi
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from ta.volatility import BollingerBands, AverageTrueRange
 from ta.momentum import StochasticOscillator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.trend import ADXIndicator
+
+def get_foreign_flow(ticker):
+    """Mengambil data Net Foreign Flow 5 hari terakhir"""
+    try:
+        to_date = datetime.now().strftime('%Y-%m-%d')
+        from_date = (datetime.now() - timedelta(days=10)).strftime('%Y-%m-%d')
+        url = f"https://api-saham.mkemalw.workers.dev/cache-summary?symbol={ticker}&from={from_date}&to={to_date}"
+        resp = requests.get(url, timeout=5)
+        data = resp.json()
+        
+        # Ambil nilai Net Foreign
+        net_foreign = data.get('summary', {}).get('foreign', {}).get('net_val', 0)
+        return float(net_foreign)
+    except:
+        return 0
 
 def get_prediction(ticker):
     try:
@@ -20,7 +37,7 @@ def get_prediction(ticker):
         model = bundle['model']
         features = bundle['features']
 
-        # 2. Ambil data
+        # 2. Ambil data Technical
         formatted_ticker = f"{ticker}.JK" if ".JK" not in ticker.upper() else ticker
         df = yf.download(formatted_ticker, period="100d", interval="1d", progress=False, auto_adjust=True)
 
@@ -36,24 +53,28 @@ def get_prediction(ticker):
         vol_data = df['Volume'].squeeze()
 
         # 3. Hitung Indikator
-        bb = BollingerBands(close=close_data, window=20)
-        df['BB_MIDDLE'] = bb.bollinger_mavg()
-        df['BB_UPPER'] = bb.bollinger_hband()
-        df['BB_LOWER'] = bb.bollinger_lband()
+        df['BB_MIDDLE'] = BollingerBands(close=close_data).bollinger_mavg()
+        df['BB_UPPER'] = BollingerBands(close=close_data).bollinger_hband()
+        df['BB_LOWER'] = BollingerBands(close=close_data).bollinger_lband()
         df['STOCH_%K'] = StochasticOscillator(high=high_data, low=low_data, close=close_data).stoch()
         df['STOCH_%D'] = StochasticOscillator(high=high_data, low=low_data, close=close_data).stoch_signal()
         df['ADX'] = ADXIndicator(high=high_data, low=low_data, close=close_data).adx()
         df['OBV'] = OnBalanceVolumeIndicator(close=close_data, volume=vol_data).on_balance_volume()
+        df['ATR'] = AverageTrueRange(high=high_data, low=low_data, close=close_data).average_true_range()
         
-        # Tambahan untuk Trading Plan
-        atr_ind = AverageTrueRange(high=high_data, low=low_data, close=close_data, window=14)
-        df['ATR'] = atr_ind.average_true_range()
+        # --- FITUR BARU: FOREIGN FLOW ---
+        net_f = get_foreign_flow(ticker)
+        df['NET_FOREIGN'] = net_f # Masukkan ke dataframe
+        # --------------------------------
 
-        # 4. Backtest Sederhana (Cek akurasi 60 hari terakhir)
+        # 4. Backtest & Sejarah
         history_df = df.tail(60).copy()
+        # Pastikan kolom NET_FOREIGN ada di X_history jika model sudah dilatih dengannya
         X_history = history_df[features].ffill().fillna(0)
         history_predictions = model.predict(X_history)
         history_df['pred'] = history_predictions
+        
+        # (Logika Win Rate & Recent Trades tetap sama...)
         
         # Hitung Win Rate & Catat Detail Trade
         wins = 0
