@@ -34,6 +34,55 @@
   </script>
 
   <link rel="stylesheet" href="CSS/Analyzer.css" />
+  <style>
+    :root {
+      --apple-blur: blur(25px);
+      --glass-bg: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --web3-glow: 0 8px 32px 0 rgba(99, 102, 241, 0.15);
+    }
+
+    .dark {
+      --glass-bg: rgba(15, 23, 42, 0.6);
+      --glass-border: rgba(255, 255, 255, 0.05);
+    }
+
+    body {
+      background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.05), transparent 40%),
+                  radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.05), transparent 40%),
+                  #0f172a; /* Warna dasar tetap gelap sesuai permintaan */
+      background-attachment: fixed;
+    }
+
+    .liquid-glass {
+      background: var(--glass-bg);
+      backdrop-filter: var(--apple-blur);
+      -webkit-backdrop-filter: var(--apple-blur);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--web3-glow);
+    }
+
+    .apple-card {
+      border-radius: 28px;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .apple-card:hover {
+      transform: translateY(-4px) scale(1.01);
+      border-color: rgba(99, 102, 241, 0.3);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+
+    /* Web3 Glowing Text */
+    .glow-text {
+      text-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+    }
+
+    /* Smooth Chart Container */
+    #chart-container {
+      filter: drop-shadow(0 0 20px rgba(0,0,0,0.2));
+    }
+  </style>
   <script src="toast.js" defer></script>
   <script src="mobileMenu.js" defer></script>
   <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
