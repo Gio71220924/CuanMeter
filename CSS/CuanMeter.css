@@ -1,0 +1,541 @@
+/* ============================================================
+   CuanMeter — Design System
+   5 themes via CSS variables on <body data-theme="...">
+   Themes: fintech (default) | dark | glass | aurora | brutal
+   ============================================================ */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  font-family: 'Satoshi', 'General Sans', -apple-system, system-ui, sans-serif;
+  font-feature-settings: 'ss01', 'ss02', 'cv01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--fg);
+  background: var(--bg);
+  background-attachment: fixed;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+  font-feature-settings: 'tnum';
+}
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* ============================================================
+   THEME: Fintech Modern (default)
+   ============================================================ */
+body[data-theme="fintech"] {
+  --bg: #f4f7f5;
+  --bg-soft: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f7f9f8;
+  --surface-hover: #f0f4f2;
+  --fg: #0a1f1a;
+  --fg-muted: #5d6c66;
+  --fg-faint: #8a9994;
+  --border: #e1e7e4;
+  --border-strong: #cfd6d2;
+  --primary: #00a86b;
+  --primary-hover: #008f5a;
+  --primary-soft: #e6f6ef;
+  --primary-fg: #ffffff;
+  --success: #00a86b;
+  --danger: #e23e57;
+  --warning: #f59e0b;
+  --info: #2563eb;
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 32px;
+  --shadow-sm: 0 1px 2px rgba(10, 31, 26, 0.04);
+  --shadow: 0 2px 8px rgba(10, 31, 26, 0.04), 0 1px 2px rgba(10, 31, 26, 0.06);
+  --shadow-lg: 0 12px 40px -12px rgba(10, 31, 26, 0.12), 0 4px 12px rgba(10, 31, 26, 0.04);
+  --card-bg: var(--surface);
+  --card-border: 1px solid var(--border);
+  --card-shadow: var(--shadow);
+  --grid-color: rgba(0, 168, 107, 0.04);
+}
+
+/* ============================================================
+   THEME: Dark Dashboard
+   ============================================================ */
+body[data-theme="dark"] {
+  --bg: #07090d;
+  --bg-soft: #0c1015;
+  --surface: #0f141b;
+  --surface-2: #131923;
+  --surface-hover: #182030;
+  --fg: #e8efe9;
+  --fg-muted: #8a9590;
+  --fg-faint: #5b6661;
+  --border: #1c2430;
+  --border-strong: #2a3543;
+  --primary: #00e08c;
+  --primary-hover: #00c97c;
+  --primary-soft: rgba(0, 224, 140, 0.12);
+  --primary-fg: #02110a;
+  --success: #00e08c;
+  --danger: #ff5470;
+  --warning: #ffb547;
+  --info: #4d8fff;
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.02);
+  --shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --card-bg: var(--surface);
+  --card-border: 1px solid var(--border);
+  --card-shadow: none;
+  --grid-color: rgba(0, 224, 140, 0.03);
+  background-image:
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+/* ============================================================
+   THEME: Glassmorphism
+   ============================================================ */
+body[data-theme="glass"] {
+  --bg: #d8efe2;
+  --bg-soft: rgba(255, 255, 255, 0.6);
+  --surface: rgba(255, 255, 255, 0.55);
+  --surface-2: rgba(255, 255, 255, 0.35);
+  --surface-hover: rgba(255, 255, 255, 0.7);
+  --fg: #0d2a20;
+  --fg-muted: #4a5d56;
+  --fg-faint: #7a8a83;
+  --border: rgba(255, 255, 255, 0.6);
+  --border-strong: rgba(255, 255, 255, 0.85);
+  --primary: #00a86b;
+  --primary-hover: #008c58;
+  --primary-soft: rgba(0, 168, 107, 0.18);
+  --primary-fg: #ffffff;
+  --success: #00a86b;
+  --danger: #e23e57;
+  --warning: #f59e0b;
+  --info: #2563eb;
+  --radius-sm: 12px;
+  --radius: 20px;
+  --radius-lg: 28px;
+  --radius-xl: 36px;
+  --shadow: 0 8px 32px rgba(0, 80, 50, 0.08);
+  --shadow-lg: 0 24px 60px rgba(0, 80, 50, 0.16);
+  --card-bg: var(--surface);
+  --card-border: 1px solid var(--border);
+  --card-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --grid-color: transparent;
+  background:
+    radial-gradient(circle at 15% 20%, #a4e8c8 0%, transparent 45%),
+    radial-gradient(circle at 85% 70%, #8bdcf0 0%, transparent 45%),
+    radial-gradient(circle at 50% 90%, #f0e8a4 0%, transparent 40%),
+    linear-gradient(135deg, #d8efe2 0%, #c8e8d8 100%);
+}
+
+/* ============================================================
+   THEME: Aurora / Gradient
+   ============================================================ */
+body[data-theme="aurora"] {
+  --bg: #050a18;
+  --bg-soft: #0a1024;
+  --surface: rgba(255, 255, 255, 0.04);
+  --surface-2: rgba(255, 255, 255, 0.06);
+  --surface-hover: rgba(255, 255, 255, 0.08);
+  --fg: #f0f5ff;
+  --fg-muted: #a4afca;
+  --fg-faint: #6b7895;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --primary: #00ff9f;
+  --primary-hover: #00e08c;
+  --primary-soft: rgba(0, 255, 159, 0.14);
+  --primary-fg: #02110a;
+  --success: #00ff9f;
+  --danger: #ff4d8d;
+  --warning: #ffb547;
+  --info: #6f8aff;
+  --radius-sm: 10px;
+  --radius: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --shadow: 0 0 40px rgba(0, 255, 159, 0.05);
+  --shadow-lg: 0 24px 80px rgba(0, 80, 200, 0.2), 0 0 60px rgba(0, 255, 159, 0.08);
+  --card-bg: var(--surface);
+  --card-border: 1px solid var(--border);
+  --card-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --grid-color: transparent;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(0, 255, 159, 0.18) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 0%, rgba(140, 80, 255, 0.18) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(0, 200, 255, 0.12) 0%, transparent 60%),
+    linear-gradient(180deg, #050a18 0%, #0a0f24 100%);
+}
+
+/* ============================================================
+   THEME: Neo Brutalism
+   ============================================================ */
+body[data-theme="brutal"] {
+  --bg: #f4ecd8;
+  --bg-soft: #fff8e6;
+  --surface: #ffffff;
+  --surface-2: #fff8e6;
+  --surface-hover: #fef3b8;
+  --fg: #0a0a0a;
+  --fg-muted: #2a2a2a;
+  --fg-faint: #5a5a5a;
+  --border: #0a0a0a;
+  --border-strong: #0a0a0a;
+  --primary: #00d971;
+  --primary-hover: #00b85f;
+  --primary-soft: #d8ffe8;
+  --primary-fg: #0a0a0a;
+  --success: #00d971;
+  --danger: #ff5470;
+  --warning: #ffd23f;
+  --info: #4d8fff;
+  --radius-sm: 0px;
+  --radius: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --shadow-sm: 2px 2px 0 #0a0a0a;
+  --shadow: 4px 4px 0 #0a0a0a;
+  --shadow-lg: 8px 8px 0 #0a0a0a;
+  --card-bg: var(--surface);
+  --card-border: 3px solid #0a0a0a;
+  --card-shadow: var(--shadow);
+  --grid-color: transparent;
+  background-image:
+    linear-gradient(rgba(10, 10, 10, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(10, 10, 10, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ============================================================
+   Universal element styling
+   ============================================================ */
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, select, textarea { font-family: inherit; color: inherit; }
+::selection { background: var(--primary); color: var(--primary-fg); }
+
+h1, h2, h3, h4, h5 {
+  font-family: 'Satoshi', 'General Sans', system-ui, sans-serif;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--fg);
+  margin: 0;
+}
+
+body[data-theme="brutal"] h1,
+body[data-theme="brutal"] h2,
+body[data-theme="brutal"] h3 {
+  letter-spacing: -0.04em;
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 1.05 !important;
+}
+
+/* ============================================================
+   Layout primitives
+   ============================================================ */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+@media (max-width: 640px) {
+  .container { padding: 0 16px; }
+}
+
+/* ============================================================
+   Card primitive
+   ============================================================ */
+.card {
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-shadow);
+  transition:
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s,
+    background 0.2s;
+}
+
+body[data-theme="glass"] .card,
+body[data-theme="aurora"] .card {
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+}
+
+.card.interactive:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+body[data-theme="brutal"] .card.interactive:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #0a0a0a;
+}
+body[data-theme="dark"] .card.interactive:hover {
+  border-color: var(--primary);
+  background: var(--surface-2);
+  transform: translateY(-2px);
+}
+
+/* ============================================================
+   Button primitive
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 22px;
+  height: 48px;
+  font-weight: 700;
+  font-size: 15px;
+  border-radius: 999px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  position: relative;
+}
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-fg);
+  box-shadow: 0 4px 14px -2px color-mix(in oklab, var(--primary) 40%, transparent);
+}
+.btn-primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -4px color-mix(in oklab, var(--primary) 50%, transparent);
+}
+.btn-secondary {
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+body[data-theme="brutal"] .btn {
+  border-radius: 0;
+  border: 3px solid #0a0a0a;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  height: 52px;
+}
+body[data-theme="brutal"] .btn-primary { box-shadow: 4px 4px 0 #0a0a0a; }
+body[data-theme="brutal"] .btn-primary:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #0a0a0a;
+}
+body[data-theme="brutal"] .btn-secondary {
+  background: #fff;
+  box-shadow: 4px 4px 0 #0a0a0a;
+}
+body[data-theme="brutal"] .btn-secondary:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #0a0a0a;
+}
+
+body[data-theme="dark"] .btn {
+  border-radius: var(--radius);
+  height: 44px;
+}
+body[data-theme="dark"] .btn-primary {
+  box-shadow: 0 0 0 1px var(--primary), 0 0 30px -8px var(--primary);
+}
+
+body[data-theme="aurora"] .btn-primary {
+  box-shadow: 0 0 30px -4px var(--primary), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+body[data-theme="aurora"] .btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+}
+
+body[data-theme="glass"] .btn-secondary {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(20px);
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+/* ============================================================
+   Inputs
+   ============================================================ */
+.input, .select {
+  width: 100%;
+  height: 52px;
+  padding: 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  outline: none;
+  font-variant-numeric: tabular-nums;
+}
+.input:focus, .select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 18%, transparent);
+}
+
+body[data-theme="brutal"] .input,
+body[data-theme="brutal"] .select {
+  border-width: 3px;
+  border-color: #0a0a0a;
+  font-weight: 700;
+}
+body[data-theme="brutal"] .input:focus,
+body[data-theme="brutal"] .select:focus {
+  box-shadow: 4px 4px 0 #0a0a0a;
+  transform: translate(-2px, -2px);
+}
+
+body[data-theme="dark"] .input,
+body[data-theme="dark"] .select {
+  background: var(--surface-2);
+  border-radius: var(--radius);
+}
+
+body[data-theme="aurora"] .input,
+body[data-theme="aurora"] .select {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+}
+
+body[data-theme="glass"] .input,
+body[data-theme="glass"] .select {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px);
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-muted);
+  letter-spacing: -0.005em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+body[data-theme="brutal"] .label {
+  text-transform: uppercase;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--fg);
+}
+
+.input-prefix { position: relative; }
+.input-prefix > span {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--fg-faint);
+  font-weight: 700;
+  font-size: 14px;
+  pointer-events: none;
+}
+.input-prefix .input { padding-left: 44px; }
+
+/* ============================================================
+   Badge / pill
+   ============================================================ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  width: fit-content;
+}
+body[data-theme="brutal"] .badge {
+  border-radius: 0;
+  border: 2px solid #0a0a0a;
+  background: var(--primary);
+  color: #0a0a0a;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   Marquee
+   ============================================================ */
+.marquee-track {
+  display: flex;
+  animation: marquee 60s linear infinite;
+  width: max-content;
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-pause:hover .marquee-track { animation-play-state: paused; }
+
+/* ============================================================
+   Utilities
+   ============================================================ */
+.up    { color: var(--success); }
+.down  { color: var(--danger); }
+.muted { color: var(--fg-muted); }
+.faint { color: var(--fg-faint); }
+
+.divider { height: 1px; background: var(--border); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up   { animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.fade-up-1 { animation-delay: 0.05s; }
+.fade-up-2 { animation-delay: 0.10s; }
+.fade-up-3 { animation-delay: 0.15s; }
+.fade-up-4 { animation-delay: 0.20s; }
+
+.spark {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.tweaks-frame {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--fg) !important;
+}
