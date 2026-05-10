@@ -20,7 +20,7 @@ const { exec, spawn } = require('child_process');
 
 const PORT = 3000;
 const ROOT = __dirname;           // folder server.js berada
-const DEFAULT = '/CuanMeter.html';   // halaman yang dibuka otomatis
+const DEFAULT = '/index.html';   // halaman yang dibuka otomatis
 
 // ─── MIME types ──────────────────────────────────────────────────────────────
 const MIME = {
