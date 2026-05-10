@@ -1,0 +1,1224 @@
+/* ============================================================
+   calculators.jsx — 5 calculator screens.
+   1. AveragePrice  — multi-row average down calculator
+   2. ARAARB        — IDX 2026 auto-rejection bands (tier-aware)
+   3. ProfitCalc    — net P/L + breakeven price
+   4. Amunisi       — position sizing (2% rule, modal komposisi)
+   5. Dividen       — net dividend yield (PPh Final 10%)
+   Exposes globals: AveragePrice, ARAARB, ProfitCalc, Amunisi, Dividen.
+   ============================================================ */
+
+const { useState: useStateC, useMemo: useMemoC } = React;
+
+/* ---------- shared input ---------- */
+function NumberInput({ label, value, onChange, prefix, suffix, hint, placeholder }) {
+  return (
+    <div className="input-group">
+      {label && <label className="label">{label}</label>}
+      <div style={{ position: 'relative' }}>
+        {prefix && (
+          <span
+            style={{
+              position: 'absolute',
+              left: 16,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--fg-faint)',
+              fontWeight: 700,
+              fontSize: 14,
+              pointerEvents: 'none',
+            }}
+          >
+            {prefix}
+          </span>
+        )}
+        <input
+          className="input"
+          type="text"
+          inputMode="decimal"
+          value={value === '' || value == null ? '' : value.toLocaleString('id-ID')}
+          placeholder={placeholder}
+          onChange={(e) => {
+            const raw = e.target.value
+              .replace(/[^\d.,]/g, '')
+              .replace(/\./g, '')
+              .replace(',', '.');
+            const n = parseFloat(raw);
+            onChange(isNaN(n) ? '' : n);
+          }}
+          style={{ paddingLeft: prefix ? 44 : 16, paddingRight: suffix ? 60 : 16 }}
+        />
+        {suffix && (
+          <span
+            style={{
+              position: 'absolute',
+              right: 16,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--fg-muted)',
+              fontWeight: 600,
+              fontSize: 13,
+              pointerEvents: 'none',
+            }}
+          >
+            {suffix}
+          </span>
+        )}
+      </div>
+      {hint && <span style={{ fontSize: 12, color: 'var(--fg-faint)' }}>{hint}</span>}
+    </div>
+  );
+}
+
+/* ---------- screen wrapper ---------- */
+function CalcScreen({ icon, tag, title, subtitle, children }) {
+  return (
+    <main style={{ padding: '48px 0 80px' }}>
+      <div className="container">
+        <div className="fade-up" style={{ marginBottom: 40, maxWidth: 720 }}>
+          <div className="badge" style={{ marginBottom: 16 }}>
+            <Icon name={icon} size={12} />
+            <span>{tag}</span>
+          </div>
+          <h1
+            style={{
+              fontSize: 'clamp(36px, 5vw, 56px)',
+              marginBottom: 12,
+              letterSpacing: '-0.03em',
+              lineHeight: 1.05,
+            }}
+          >
+            {title}
+          </h1>
+          <p style={{ fontSize: 17, color: 'var(--fg-muted)', lineHeight: 1.5, margin: 0 }}>
+            {subtitle}
+          </p>
+        </div>
+        {children}
+      </div>
+    </main>
+  );
+}
+
+/* ---------- result card ---------- */
+function ResultStat({ label, value, accent, big, mono = true, hint }) {
+  return (
+    <div
+      style={{
+        padding: 18,
+        background: accent ? 'var(--primary-soft)' : 'var(--surface-2)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius)',
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          color: 'var(--fg-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          fontWeight: 700,
+          marginBottom: 6,
+        }}
+      >
+        {label}
+      </div>
+      <div
+        className={mono ? 'mono tnum' : ''}
+        style={{
+          fontSize: big ? 28 : 20,
+          fontWeight: 800,
+          color: accent ? 'var(--primary)' : 'var(--fg)',
+          letterSpacing: '-0.02em',
+          lineHeight: 1.1,
+        }}
+      >
+        {value}
+      </div>
+      {hint && <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 4 }}>{hint}</div>}
+    </div>
+  );
+}
+
+/* ============================================================
+   1. AveragePrice
+   ============================================================ */
+function AveragePrice() {
+  const [rows, setRows] = useStateC([
+    { lot: 5, price: 11500 },
+    { lot: 3, price: 11200 },
+    { lot: 4, price: 11000 },
+  ]);
+
+  const result = useMemoC(() => {
+    let totalLot = 0;
+    let totalCost = 0;
+    rows.forEach((r) => {
+      const lot = Number(r.lot) || 0;
+      const price = Number(r.price) || 0;
+      totalLot += lot;
+      totalCost += lot * 100 * price;
+    });
+    const avg = totalLot > 0 ? totalCost / (totalLot * 100) : 0;
+    return { totalLot, totalCost, avg, totalShares: totalLot * 100 };
+  }, [rows]);
+
+  const update = (i, key, val) =>
+    setRows(rows.map((r, idx) => (idx === i ? { ...r, [key]: val } : r)));
+  const remove = (i) => setRows(rows.filter((_, idx) => idx !== i));
+  const add = () => setRows([...rows, { lot: '', price: '' }]);
+
+  return (
+    <CalcScreen
+      icon="calc"
+      tag="AVERAGE PRICE · KALKULATOR"
+      title={
+        <>
+          Hitung <span style={{ color: 'var(--primary)' }}>average price</span>
+          <br />
+          portfolio-mu.
+        </>
+      }
+      subtitle="Tambahin semua transaksi beli-mu, kita kasih harga rata-rata break-even buat tau kapan harus average down atau cabut."
+    >
+      <div className="calc-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 24 }}>
+        {/* Inputs */}
+        <div className="card" style={{ padding: 24 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 20,
+            }}
+          >
+            <h3 style={{ fontSize: 16, color: 'var(--fg)' }}>Daftar Transaksi Beli</h3>
+            <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
+              {rows.length} transaksi · 1 lot = 100 lembar
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {rows.map((r, i) => (
+              <div
+                key={i}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1.4fr auto',
+                  gap: 10,
+                  alignItems: 'flex-end',
+                }}
+              >
+                <NumberInput
+                  label={i === 0 ? 'Lot' : ''}
+                  value={r.lot}
+                  onChange={(v) => update(i, 'lot', v)}
+                  suffix="lot"
+                  placeholder="0"
+                />
+                <NumberInput
+                  label={i === 0 ? 'Harga / lembar' : ''}
+                  value={r.price}
+                  onChange={(v) => update(i, 'price', v)}
+                  prefix="Rp"
+                  placeholder="0"
+                />
+                <button
+                  onClick={() => remove(i)}
+                  disabled={rows.length === 1}
+                  style={{
+                    width: 52,
+                    height: 52,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'var(--surface-2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius)',
+                    color: rows.length === 1 ? 'var(--fg-faint)' : 'var(--danger)',
+                    cursor: rows.length === 1 ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  <Icon name="trash" size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={add}
+            style={{
+              marginTop: 16,
+              padding: '12px 16px',
+              border: '1px dashed var(--border-strong)',
+              background: 'transparent',
+              color: 'var(--fg-muted)',
+              borderRadius: 'var(--radius)',
+              fontWeight: 700,
+              fontSize: 14,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              width: '100%',
+            }}
+          >
+            <Icon name="plus" size={16} />
+            Tambah Transaksi
+          </button>
+        </div>
+
+        {/* Output */}
+        <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <h3 style={{ fontSize: 16, color: 'var(--fg)' }}>Hasil Kalkulasi</h3>
+
+          <div
+            style={{
+              padding: 24,
+              background:
+                'linear-gradient(135deg, var(--primary) 0%, color-mix(in oklab, var(--primary) 70%, #003a26) 100%)',
+              borderRadius: 'var(--radius-lg)',
+              color: '#fff',
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                opacity: 0.85,
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                marginBottom: 8,
+              }}
+            >
+              HARGA AVERAGE
+            </div>
+            <div
+              className="mono tnum"
+              style={{ fontSize: 44, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}
+            >
+              <AnimatedNumber
+                value={result.avg}
+                format={(n) => 'Rp ' + n.toLocaleString('id-ID', { maximumFractionDigits: 2 })}
+              />
+            </div>
+            <div style={{ fontSize: 13, opacity: 0.85, marginTop: 8 }}>
+              Break-even price per lembar
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <ResultStat
+              label="Total Lot"
+              value={
+                <>
+                  <AnimatedNumber value={result.totalLot} />{' '}
+                  <span style={{ fontSize: 14, color: 'var(--fg-muted)' }}>lot</span>
+                </>
+              }
+              hint={fmt.num(result.totalShares) + ' lembar'}
+            />
+            <ResultStat
+              label="Total Modal"
+              value={<AnimatedNumber value={result.totalCost} format={(n) => fmt.rp(n)} />}
+              hint="Sebelum fee broker"
+            />
+          </div>
+
+          <div
+            style={{
+              background: 'var(--surface-2)',
+              padding: 16,
+              borderRadius: 'var(--radius)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <span style={{ color: 'var(--info)', flexShrink: 0, marginTop: 2 }}>
+                <Icon name="info" size={16} />
+              </span>
+              <div style={{ fontSize: 13, color: 'var(--fg-muted)', lineHeight: 1.55 }}>
+                <strong style={{ color: 'var(--fg)' }}>Tips:</strong> Average down hanya bekerja
+                kalau fundamental sahamnya kuat dan kamu masih punya amunisi. Kalau down-nya karena
+                bisnis bermasalah, cut-loss lebih baik.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @media (max-width: 900px) {
+          .calc-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+    </CalcScreen>
+  );
+}
+
+/* ============================================================
+   2. ARAARB — IDX 2024+ tier-based ARA, symmetric 7% ARB
+   ============================================================ */
+const ARA_TIERS = [
+  { tier: 'Tier 1', range: 'Rp 50 – Rp 200',    ara: 35, arb: 7, color: 'var(--info)' },
+  { tier: 'Tier 2', range: 'Rp 201 – Rp 5.000', ara: 25, arb: 7, color: 'var(--warning)' },
+  { tier: 'Tier 3', range: '> Rp 5.000',         ara: 20, arb: 7, color: 'var(--primary)' },
+];
+
+function ARAARB() {
+  const [price, setPrice] = useStateC(11525);
+
+  const result = useMemoC(() => {
+    const p = Number(price) || 0;
+    if (p <= 0) return null;
+    let araPct;
+    let tier;
+    if (p < 200) {
+      araPct = 35;
+      tier = 'Tier 1 (Rp 50–200)';
+    } else if (p < 5000) {
+      araPct = 25;
+      tier = 'Tier 2 (Rp 200–5.000)';
+    } else {
+      araPct = 20;
+      tier = 'Tier 3 (>Rp 5.000)';
+    }
+    const arbPct = 7;
+    // Round to nearest tick (5 IDR for simplicity — true tick varies by tier)
+    const ara = Math.round((p * (1 + araPct / 100)) / 5) * 5;
+    const arb = Math.round((p * (1 - arbPct / 100)) / 5) * 5;
+    return { p, araPct, arbPct, ara, arb, tier };
+  }, [price]);
+
+  return (
+    <CalcScreen
+      icon="arrows"
+      tag="AUTO REJECTION · IDX 2026"
+      title={
+        <>
+          Cek <span style={{ color: 'var(--success)' }}>ARA</span> &{' '}
+          <span style={{ color: 'var(--danger)' }}>ARB</span>
+          <br />
+          real-time.
+        </>
+      }
+      subtitle="Batas atas dan bawah harga harian saham IDX. Pakai aturan asimetris ARA terbaru — ARB simetris 7%."
+    >
+      <div className="calc-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 24 }}>
+        <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <h3 style={{ fontSize: 16 }}>Input Harga Acuan</h3>
+          <NumberInput
+            label="Harga saham saat ini"
+            value={price}
+            onChange={setPrice}
+            prefix="Rp"
+            hint="Harga penutupan / referensi hari sebelumnya"
+          />
+
+          <div>
+            <div className="label" style={{ marginBottom: 8 }}>Quick Test</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {[80, 250, 1500, 4500, 8000, 25000].map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPrice(p)}
+                  style={{
+                    padding: '8px 14px',
+                    background: price === p ? 'var(--primary)' : 'var(--surface-2)',
+                    color: price === p ? 'var(--primary-fg)' : 'var(--fg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius)',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    fontFamily: 'JetBrains Mono, monospace',
+                  }}
+                >
+                  {p.toLocaleString('id-ID')}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: 'var(--surface-2)',
+              padding: 16,
+              borderRadius: 'var(--radius)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                color: 'var(--fg-muted)',
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                marginBottom: 8,
+              }}
+            >
+              Tier
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg)' }}>
+              {result?.tier || '—'}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 4 }}>
+              ARA {result?.araPct}% · ARB {result?.arbPct}%
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* ARA */}
+          <div className="card" style={{ padding: 28, position: 'relative', overflow: 'hidden' }}>
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                bottom: 0,
+                width: 4,
+                background: 'var(--success)',
+              }}
+            />
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                marginBottom: 16,
+                flexWrap: 'wrap',
+                gap: 12,
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <Icon name="rocket" size={18} />
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: 'var(--success)',
+                      letterSpacing: '0.08em',
+                    }}
+                  >
+                    AUTO REJECT ATAS · MOON
+                  </span>
+                </div>
+                <div style={{ fontSize: 14, color: 'var(--fg-muted)' }}>
+                  Batas tertinggi harga hari ini
+                </div>
+              </div>
+              <div className="badge" style={{ background: 'var(--success)', color: '#fff' }}>
+                +{result?.araPct}%
+              </div>
+            </div>
+            <div
+              className="mono tnum"
+              style={{
+                fontSize: 56,
+                fontWeight: 800,
+                color: 'var(--success)',
+                letterSpacing: '-0.03em',
+                lineHeight: 1,
+              }}
+            >
+              {result ? (
+                <AnimatedNumber
+                  value={result.ara}
+                  format={(n) => 'Rp ' + Math.round(n).toLocaleString('id-ID')}
+                />
+              ) : (
+                'Rp —'
+              )}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginTop: 12 }}>
+              Selisih dari harga acuan:{' '}
+              <strong className="mono" style={{ color: 'var(--fg)' }}>
+                +{result ? fmt.rp(result.ara - result.p) : 'Rp 0'}
+              </strong>
+            </div>
+          </div>
+
+          {/* ARB */}
+          <div className="card" style={{ padding: 28, position: 'relative', overflow: 'hidden' }}>
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                bottom: 0,
+                width: 4,
+                background: 'var(--danger)',
+              }}
+            />
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                marginBottom: 16,
+                flexWrap: 'wrap',
+                gap: 12,
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <Icon name="diamond" size={18} />
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: 'var(--danger)',
+                      letterSpacing: '0.08em',
+                    }}
+                  >
+                    AUTO REJECT BAWAH · BOTTOM
+                  </span>
+                </div>
+                <div style={{ fontSize: 14, color: 'var(--fg-muted)' }}>
+                  Batas terendah harga hari ini
+                </div>
+              </div>
+              <div className="badge" style={{ background: 'var(--danger)', color: '#fff' }}>
+                −{result?.arbPct}%
+              </div>
+            </div>
+            <div
+              className="mono tnum"
+              style={{
+                fontSize: 56,
+                fontWeight: 800,
+                color: 'var(--danger)',
+                letterSpacing: '-0.03em',
+                lineHeight: 1,
+              }}
+            >
+              {result ? (
+                <AnimatedNumber
+                  value={result.arb}
+                  format={(n) => 'Rp ' + Math.round(n).toLocaleString('id-ID')}
+                />
+              ) : (
+                'Rp —'
+              )}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginTop: 12 }}>
+              Selisih dari harga acuan:{' '}
+              <strong className="mono" style={{ color: 'var(--fg)' }}>
+                {result ? fmt.rp(result.arb - result.p) : 'Rp 0'}
+              </strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* tier table */}
+      <div className="card" style={{ padding: 24, marginTop: 24 }}>
+        <h3 style={{ fontSize: 16, marginBottom: 16 }}>Tabel Aturan IDX</h3>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: 12,
+          }}
+        >
+          {ARA_TIERS.map((t, i) => (
+            <div
+              key={i}
+              style={{
+                padding: 16,
+                background: 'var(--surface-2)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 999,
+                    background: t.color,
+                  }}
+                />
+                <span style={{ fontSize: 13, fontWeight: 800 }}>{t.tier}</span>
+              </div>
+              <div className="mono" style={{ fontSize: 14, color: 'var(--fg-muted)', marginBottom: 8 }}>
+                {t.range}
+              </div>
+              <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
+                <span><strong className="up">+{t.ara}%</strong> ARA</span>
+                <span><strong className="down">−{t.arb}%</strong> ARB</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </CalcScreen>
+  );
+}
+
+/* ============================================================
+   3. ProfitCalc — net P/L after broker fees + breakeven price
+   ============================================================ */
+function ProfitCalc() {
+  const [buyPrice, setBuyPrice] = useStateC(2500);
+  const [sellPrice, setSellPrice] = useStateC(2800);
+  const [lot, setLot] = useStateC(10);
+  const [feeBuy, setFeeBuy] = useStateC(0.15);
+  const [feeSell, setFeeSell] = useStateC(0.25);
+
+  const result = useMemoC(() => {
+    const shares = (Number(lot) || 0) * 100;
+    const bp = Number(buyPrice) || 0;
+    const sp = Number(sellPrice) || 0;
+    const fb = (Number(feeBuy) || 0) / 100;
+    const fs = (Number(feeSell) || 0) / 100;
+
+    const buyValue = shares * bp;
+    const sellValue = shares * sp;
+    const buyFee = buyValue * fb;
+    const sellFee = sellValue * fs;
+    const totalFee = buyFee + sellFee;
+    const grossPL = sellValue - buyValue;
+    const netPL = grossPL - totalFee;
+    const roi = buyValue > 0 ? (netPL / buyValue) * 100 : 0;
+    const breakEven = bp * (1 + fb) / (1 - fs);
+
+    return { shares, buyValue, sellValue, buyFee, sellFee, totalFee, grossPL, netPL, roi, breakEven };
+  }, [buyPrice, sellPrice, lot, feeBuy, feeSell]);
+
+  const isProfit = result.netPL >= 0;
+
+  return (
+    <CalcScreen
+      icon="wallet"
+      tag="PROFIT / LOSS · CALCULATOR"
+      title={
+        <>
+          Hitung <span style={{ color: 'var(--primary)' }}>profit bersih</span>
+          <br />
+          bukan profit imajinasi.
+        </>
+      }
+      subtitle="Setelah dipotong fee broker (beli & jual), kamu cuan berapa? Plus break-even price biar tau kapan boleh jual."
+    >
+      <div className="calc-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 24 }}>
+        <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <h3 style={{ fontSize: 16 }}>Detail Transaksi</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <NumberInput label="Harga Beli" value={buyPrice} onChange={setBuyPrice} prefix="Rp" />
+            <NumberInput label="Harga Jual" value={sellPrice} onChange={setSellPrice} prefix="Rp" />
+          </div>
+          <NumberInput
+            label="Jumlah Lot"
+            value={lot}
+            onChange={setLot}
+            suffix="lot"
+            hint={fmt.num(result.shares) + ' lembar'}
+          />
+
+          <div className="divider" />
+
+          <h4
+            style={{
+              fontSize: 14,
+              color: 'var(--fg-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              fontWeight: 700,
+              margin: 0,
+            }}
+          >
+            Fee Broker
+          </h4>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <NumberInput label="Fee Beli" value={feeBuy} onChange={setFeeBuy} suffix="%" />
+            <NumberInput
+              label="Fee Jual"
+              value={feeSell}
+              onChange={setFeeSell}
+              suffix="%"
+              hint="Termasuk PPh 0.1%"
+            />
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--fg-faint)' }}>
+            Default: 0.15% (beli) & 0.25% (jual) — sesuai standar broker Indonesia.
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* main P/L */}
+          <div
+            className="card"
+            style={{
+              padding: 32,
+              background: isProfit
+                ? 'linear-gradient(135deg, var(--success) 0%, color-mix(in oklab, var(--success) 70%, #003020) 100%)'
+                : 'linear-gradient(135deg, var(--danger) 0%, color-mix(in oklab, var(--danger) 70%, #401015) 100%)',
+              color: '#fff',
+              border: 'none',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: -20,
+                right: -20,
+                fontSize: 200,
+                opacity: 0.08,
+                fontWeight: 800,
+              }}
+            >
+              {isProfit ? '✓' : '↓'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Icon name={isProfit ? 'rocket' : 'arrow_left'} size={16} />
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: '0.1em',
+                  opacity: 0.9,
+                }}
+              >
+                {isProfit ? 'CUAN BERSIH' : 'NYANGKUT (LOSS)'}
+              </span>
+            </div>
+            <div
+              className="mono tnum"
+              style={{ fontSize: 52, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}
+            >
+              <AnimatedNumber value={result.netPL} format={(n) => fmt.rp(n)} />
+            </div>
+            <div style={{ fontSize: 16, opacity: 0.9, marginTop: 12 }}>
+              ROI: <strong className="mono">{fmt.pct(result.roi, 2)}</strong> · Setelah fee Rp{' '}
+              {fmt.compact(result.totalFee)}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <ResultStat
+              label="Modal Beli"
+              value={fmt.rp(result.buyValue)}
+              hint={'+ fee Rp ' + fmt.compact(result.buyFee)}
+            />
+            <ResultStat
+              label="Hasil Jual"
+              value={fmt.rp(result.sellValue)}
+              hint={'− fee Rp ' + fmt.compact(result.sellFee)}
+            />
+            <ResultStat label="Profit Kotor" value={fmt.rp(result.grossPL)} />
+            <ResultStat label="Total Fee" value={fmt.rp(result.totalFee)} />
+          </div>
+
+          <div
+            style={{
+              background: 'var(--primary-soft)',
+              padding: 18,
+              borderRadius: 'var(--radius)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--primary)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    fontWeight: 800,
+                    marginBottom: 4,
+                  }}
+                >
+                  BREAK-EVEN PRICE
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
+                  Harga jual minimum biar gak rugi
+                </div>
+              </div>
+              <div
+                className="mono tnum"
+                style={{ fontSize: 24, fontWeight: 800, color: 'var(--primary)' }}
+              >
+                {fmt.rp(result.breakEven, { dec: 2 })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </CalcScreen>
+  );
+}
+
+/* ============================================================
+   4. Amunisi — position sizing (2% rule + modal komposisi bar)
+   ============================================================ */
+function Amunisi() {
+  const [modal, setModal] = useStateC(50000000);
+  const [riskPct, setRiskPct] = useStateC(2);
+  const [entry, setEntry] = useStateC(2500);
+  const [stop, setStop] = useStateC(2350);
+
+  const result = useMemoC(() => {
+    const m = Number(modal) || 0;
+    const r = (Number(riskPct) || 0) / 100;
+    const e = Number(entry) || 0;
+    const s = Number(stop) || 0;
+    const maxRiskIDR = m * r;
+    const riskPerShare = e - s;
+
+    if (riskPerShare <= 0 || e <= 0) {
+      return {
+        maxRiskIDR,
+        riskPerShare,
+        maxShares: 0,
+        maxLot: 0,
+        modalUsed: 0,
+        pctOfModal: 0,
+        riskPctEntry: 0,
+      };
+    }
+
+    const maxShares = Math.floor(maxRiskIDR / riskPerShare);
+    const maxLot = Math.floor(maxShares / 100);
+    const actualShares = maxLot * 100;
+    const modalUsed = actualShares * e;
+    const pctOfModal = m > 0 ? (modalUsed / m) * 100 : 0;
+    const riskPctEntry = e > 0 ? (riskPerShare / e) * 100 : 0;
+    return { maxRiskIDR, riskPerShare, maxShares, maxLot, modalUsed, pctOfModal, riskPctEntry };
+  }, [modal, riskPct, entry, stop]);
+
+  return (
+    <CalcScreen
+      icon="shield"
+      tag="POSITION SIZING · MANAJEMEN RISIKO"
+      title={
+        <>
+          Berapa <span style={{ color: 'var(--primary)' }}>amunisi</span> aman
+          <br />
+          buat di-snipe?
+        </>
+      }
+      subtitle="Dengan risk per trade 1–2% modal, kamu boleh salah berkali-kali tanpa rekening sekarat. Hitung lot maksimal sebelum entry."
+    >
+      <div className="calc-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 24 }}>
+        <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <h3 style={{ fontSize: 16 }}>Setup Trade</h3>
+          <NumberInput
+            label="Total Modal"
+            value={modal}
+            onChange={setModal}
+            prefix="Rp"
+            hint={fmt.compact(modal) + ' rupiah'}
+          />
+
+          <div className="input-group">
+            <label className="label">
+              Risk per Trade <span className="muted">· max loss yg lo terima</span>
+            </label>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+              {[0.5, 1, 2, 3, 5].map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setRiskPct(p)}
+                  style={{
+                    flex: 1,
+                    padding: '10px 0',
+                    background: riskPct === p ? 'var(--primary)' : 'var(--surface-2)',
+                    color: riskPct === p ? 'var(--primary-fg)' : 'var(--fg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius)',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    fontFamily: 'JetBrains Mono, monospace',
+                  }}
+                >
+                  {p}%
+                </button>
+              ))}
+            </div>
+            <NumberInput value={riskPct} onChange={setRiskPct} suffix="%" />
+          </div>
+
+          <div className="divider" />
+          <h4
+            style={{
+              fontSize: 14,
+              color: 'var(--fg-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              fontWeight: 700,
+              margin: 0,
+            }}
+          >
+            Trade Plan
+          </h4>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <NumberInput label="Entry Price" value={entry} onChange={setEntry} prefix="Rp" />
+            <NumberInput label="Stop Loss" value={stop} onChange={setStop} prefix="Rp" />
+          </div>
+          {result.riskPerShare > 0 && (
+            <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
+              Risk per lembar:{' '}
+              <strong className="mono" style={{ color: 'var(--danger)' }}>
+                −Rp {result.riskPerShare.toLocaleString('id-ID')}
+              </strong>{' '}
+              ({result.riskPctEntry.toFixed(2)}% dari entry)
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div
+            className="card"
+            style={{
+              padding: 32,
+              background:
+                'linear-gradient(135deg, var(--primary) 0%, color-mix(in oklab, var(--primary) 60%, #002518) 100%)',
+              color: '#fff',
+              border: 'none',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <Icon name="shield" size={16} />
+              <span
+                style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', opacity: 0.9 }}
+              >
+                AMUNISI MAKSIMAL
+              </span>
+            </div>
+            <div
+              className="mono tnum"
+              style={{ fontSize: 60, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}
+            >
+              <AnimatedNumber value={result.maxLot} />{' '}
+              <span style={{ fontSize: 24, opacity: 0.7 }}>lot</span>
+            </div>
+            <div style={{ fontSize: 14, opacity: 0.9, marginTop: 12 }}>
+              {fmt.num(result.maxLot * 100)} lembar · Modal terpakai {fmt.rp(result.modalUsed)}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <ResultStat
+              label="Max Risk"
+              value={fmt.rp(result.maxRiskIDR)}
+              hint={`${riskPct}% dari modal`}
+            />
+            <ResultStat
+              label="% Modal Terpakai"
+              value={result.pctOfModal.toFixed(1) + '%'}
+              hint="Sisanya simpan"
+            />
+          </div>
+
+          <div className="card" style={{ padding: 20 }}>
+            <div
+              style={{
+                fontSize: 12,
+                color: 'var(--fg-muted)',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                marginBottom: 12,
+              }}
+            >
+              Komposisi Modal
+            </div>
+            <div
+              style={{
+                height: 32,
+                background: 'var(--surface-2)',
+                borderRadius: 999,
+                overflow: 'hidden',
+                display: 'flex',
+              }}
+            >
+              <div
+                style={{
+                  width: Math.min(100, result.pctOfModal) + '%',
+                  background: 'linear-gradient(90deg, var(--primary), var(--success))',
+                  transition: 'width 0.4s cubic-bezier(.16,1,.3,1)',
+                }}
+              />
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginTop: 8,
+                fontSize: 12,
+              }}
+            >
+              <span style={{ color: 'var(--primary)', fontWeight: 700 }}>
+                ● Trade aktif {result.pctOfModal.toFixed(1)}%
+              </span>
+              <span style={{ color: 'var(--fg-muted)', fontWeight: 700 }}>
+                ○ Cash {(100 - result.pctOfModal).toFixed(1)}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </CalcScreen>
+  );
+}
+
+/* ============================================================
+   5. Dividen — net dividend yield (PPh Final 10%)
+   ============================================================ */
+function Dividen() {
+  const [price, setPrice] = useStateC(11525);
+  const [dps, setDps] = useStateC(220);
+  const [lot, setLot] = useStateC(20);
+
+  const result = useMemoC(() => {
+    const p = Number(price) || 0;
+    const d = Number(dps) || 0;
+    const l = Number(lot) || 0;
+    const shares = l * 100;
+    const grossYieldPct = p > 0 ? (d / p) * 100 : 0;
+    const grossDividend = d * shares;
+    const tax = grossDividend * 0.10; // PPh Final 10%
+    const netDividend = grossDividend - tax;
+    const netYieldPct = p > 0 ? grossYieldPct * 0.9 : 0;
+    const monthly = netDividend / 12;
+    return { shares, grossYieldPct, grossDividend, tax, netDividend, netYieldPct, monthly };
+  }, [price, dps, lot]);
+
+  return (
+    <CalcScreen
+      icon="coin"
+      tag="DIVIDEN YIELD · PASSIVE INCOME"
+      title={
+        <>
+          Pasif income dari <span style={{ color: 'var(--primary)' }}>dividen</span>
+          <br />
+          tiap tahun masuk rekening.
+        </>
+      }
+      subtitle="Hitung yield bersih setelah PPh Final 10%, plus simulasi dividen bulanan kalau dibagi rata. Buat sultan-in-the-making."
+    >
+      <div className="calc-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 24 }}>
+        <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <h3 style={{ fontSize: 16 }}>Detail Saham</h3>
+          <NumberInput
+            label="Harga Saham"
+            value={price}
+            onChange={setPrice}
+            prefix="Rp"
+            hint="Harga saat ini per lembar"
+          />
+          <NumberInput
+            label="Dividen per Lembar (DPS)"
+            value={dps}
+            onChange={setDps}
+            prefix="Rp"
+            hint="Dividend Per Share tahunan"
+          />
+          <NumberInput
+            label="Jumlah Lot Dimiliki"
+            value={lot}
+            onChange={setLot}
+            suffix="lot"
+            hint={fmt.num(result.shares) + ' lembar'}
+          />
+
+          <div
+            style={{
+              background: 'var(--surface-2)',
+              padding: 16,
+              borderRadius: 'var(--radius)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, color: 'var(--fg-muted)', fontWeight: 700 }}>
+                Modal Awal
+              </span>
+              <span className="mono" style={{ fontSize: 13, fontWeight: 700 }}>
+                {fmt.rp(price * result.shares)}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 12, color: 'var(--fg-muted)', fontWeight: 700 }}>
+                Pajak Dividen (Final)
+              </span>
+              <span
+                className="mono"
+                style={{ fontSize: 13, fontWeight: 700, color: 'var(--danger)' }}
+              >
+                10%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div
+            className="card"
+            style={{
+              padding: 32,
+              background:
+                'linear-gradient(135deg, var(--primary) 0%, color-mix(in oklab, var(--primary) 60%, #002518) 100%)',
+              color: '#fff',
+              border: 'none',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <Icon name="coin" size={16} />
+              <span
+                style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', opacity: 0.9 }}
+              >
+                NET YIELD · TAHUNAN
+              </span>
+            </div>
+            <div
+              className="mono tnum"
+              style={{ fontSize: 60, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}
+            >
+              <AnimatedNumber value={result.netYieldPct} format={(n) => n.toFixed(2) + '%'} />
+            </div>
+            <div style={{ fontSize: 14, opacity: 0.9, marginTop: 12 }}>
+              Gross yield {result.grossYieldPct.toFixed(2)}% · setelah PPh 10%
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <ResultStat label="Dividen Kotor /tahun" value={fmt.rp(result.grossDividend)} accent={false} />
+            <ResultStat label="Pajak (10%)" value={fmt.rp(result.tax)} />
+            <ResultStat label="Dividen Bersih /tahun" value={fmt.rp(result.netDividend)} accent />
+            <ResultStat label="Estimasi /bulan" value={fmt.rp(result.monthly)} hint="Kalau dibagi rata" />
+          </div>
+
+          <div
+            style={{
+              background: 'var(--primary-soft)',
+              padding: 18,
+              borderRadius: 'var(--radius)',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+            }}
+          >
+            <span style={{ color: 'var(--primary)', flexShrink: 0, marginTop: 2 }}>
+              <Icon name="info" size={16} />
+            </span>
+            <div style={{ fontSize: 13, color: 'var(--fg-muted)', lineHeight: 1.55 }}>
+              <strong style={{ color: 'var(--fg)' }}>Catatan:</strong> Tarif PPh Final dividen orang
+              pribadi dalam negeri = 10% (UU HPP). Jika diinvestasikan kembali sesuai PMK 18/2021,
+              bisa 0% — konsultasikan ke broker / pajak ya.
+            </div>
+          </div>
+        </div>
+      </div>
+    </CalcScreen>
+  );
+}
+
+Object.assign(window, { AveragePrice, ARAARB, ProfitCalc, Amunisi, Dividen });
