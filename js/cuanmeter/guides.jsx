@@ -4,7 +4,7 @@
    Exposes globals: GuidesPage, GUIDES.
    ============================================================ */
 
-const { useState: useStateG, useMemo: useMemoG } = React;
+const { useState: useStateG, useMemo: useMemoG, useEffect: useEffectG } = React;
 
 const GUIDE_CATEGORIES = [
   { id: 'all',      label: 'Semua',    icon: 'book' },
@@ -327,20 +327,30 @@ function GuideCard({ guide, onOpen }) {
 
 /* ---------- Reader modal ---------- */
 function GuideReader({ guide, onClose }) {
-  return (
+  useEffectG(() => {
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevHtml;
+    };
+  }, []);
+
+  return ReactDOM.createPortal(
     <div
       onClick={onClose}
       style={{
         position: 'fixed',
         inset: 0,
         zIndex: 1000,
-        background: 'rgba(0,0,0,0.5)',
+        background: 'rgba(0,0,0,0.75)',
         display: 'flex',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         justifyContent: 'center',
-        padding: '40px 16px',
-        overflow: 'auto',
-        backdropFilter: 'blur(8px)',
+        padding: '24px 16px',
+        backdropFilter: 'blur(4px)',
       }}
     >
       <div
@@ -349,6 +359,8 @@ function GuideReader({ guide, onClose }) {
         style={{
           maxWidth: 760,
           width: '100%',
+          maxHeight: 'calc(100vh - 48px)',
+          overflowY: 'auto',
           padding: 'clamp(28px, 5vw, 48px)',
           background: 'var(--surface)',
           boxShadow: 'var(--shadow-lg)',
@@ -578,7 +590,8 @@ function GuideReader({ guide, onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
