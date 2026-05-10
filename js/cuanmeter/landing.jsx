@@ -152,66 +152,6 @@ function HeroMockup() {
         />
       </div>
 
-      <div
-        className="card fade-up fade-up-3"
-        style={{
-          position: 'absolute',
-          top: 0,
-          right: -14,
-          padding: '12px 16px',
-          zIndex: 3,
-          transform: 'rotate(2deg)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-        }}
-      >
-        <Icon name="rocket" size={18} />
-        <div>
-          <div style={{ fontSize: 11, color: 'var(--fg-muted)', fontWeight: 600 }}>P/L kamu</div>
-          <div
-            className="mono tnum"
-            style={{ fontWeight: 800, fontSize: 16, color: 'var(--success)' }}
-          >
-            + Rp 2.4 jt
-          </div>
-        </div>
-      </div>
-
-      <div
-        className="card fade-up fade-up-4"
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: -10,
-          padding: '14px 18px',
-          zIndex: 3,
-          transform: 'rotate(-2deg)',
-          maxWidth: 260,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 11,
-            color: 'var(--fg-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            fontWeight: 700,
-            marginBottom: 4,
-          }}
-        >
-          AVERAGE DOWN
-        </div>
-        <div
-          className="mono tnum"
-          style={{ fontWeight: 800, fontSize: 20, color: 'var(--fg)', marginBottom: 4 }}
-        >
-          Rp 11.380
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
-          dari 3 transaksi · 12 lot
-        </div>
-      </div>
     </div>
   );
 }
