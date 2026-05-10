@@ -2,28 +2,12 @@
    landing.jsx — CuanMeter landing page.
    Sections: Hero · StockMarquee · IHSGChart · ToolsGrid ·
              GuidesSection · FinalCTA.
-   Exposes globals: LandingPage, IDX_STOCKS.
+   StockMarquee, IHSGChart, and HeroMockup use TradingView
+   widgets for live data — see tradingview.jsx for the wrapper.
+   Exposes globals: LandingPage.
    ============================================================ */
 
-const { useState: useStateL, useEffect: useEffectL, useMemo: useMemoL } = React;
-
-const IDX_STOCKS = [
-  { code: 'BBCA', price: 11525, change:  0.65, name: 'Bank Central Asia' },
-  { code: 'BBRI', price:  4280, change: -0.93, name: 'Bank Rakyat Indonesia' },
-  { code: 'TLKM', price:  2710, change:  1.50, name: 'Telkom Indonesia' },
-  { code: 'BMRI', price:  6325, change:  0.40, name: 'Bank Mandiri' },
-  { code: 'ASII', price:  4980, change: -0.30, name: 'Astra Internasional' },
-  { code: 'GOTO', price:    88, change:  3.53, name: 'GoTo Gojek Tokopedia' },
-  { code: 'UNVR', price:  2240, change: -1.32, name: 'Unilever Indonesia' },
-  { code: 'ICBP', price: 11800, change:  0.85, name: 'Indofood CBP' },
-  { code: 'INDF', price:  7625, change:  0.66, name: 'Indofood Sukses' },
-  { code: 'BBNI', price:  5475, change: -0.45, name: 'Bank Negara Indonesia' },
-  { code: 'ADRO', price:  2680, change:  2.29, name: 'Adaro Energy' },
-  { code: 'KLBF', price:  1620, change:  0.62, name: 'Kalbe Farma' },
-  { code: 'AMRT', price:  3050, change:  1.66, name: 'Sumber Alfaria' },
-  { code: 'ANTM', price:  2120, change: -0.94, name: 'Aneka Tambang' },
-  { code: 'PGAS', price:  1845, change:  1.10, name: 'Perusahaan Gas Negara' },
-];
+const { useState: useStateL, useEffect: useEffectL } = React;
 
 /* ---------- Hero ---------- */
 function Hero({ onNavigate }) {
@@ -131,136 +115,41 @@ function Hero({ onNavigate }) {
   );
 }
 
-/* Live-feel dashboard mockup floating to the right of hero */
+/* ---------- HeroMockup — live BBCA chart from TradingView ---------- */
 function HeroMockup() {
-  const [tick, setTick] = useStateL(0);
-  useEffectL(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 1800);
-    return () => clearInterval(id);
-  }, []);
-
-  const stock = useMemoL(() => {
-    const base = { code: 'BBCA', price: 11525 };
-    const w = Math.sin(tick * 0.7) * 25 + Math.random() * 8;
-    return { ...base, price: Math.round(base.price + w) };
-  }, [tick]);
-
-  const sparkData = useMemoL(
-    () =>
-      Array.from(
-        { length: 30 },
-        (_, i) =>
-          Math.sin(i * 0.4 + tick * 0.2) * 18 + Math.cos(i * 0.7) * 10 + i * 0.3 + 100,
-      ),
-    [tick],
-  );
+  const tvTheme = useTVTheme();
 
   return (
     <div className="fade-up fade-up-2" style={{ position: 'relative', height: 540 }}>
       <div
         className="card"
-        style={{ position: 'absolute', top: 30, left: 0, right: 0, padding: 24, zIndex: 2 }}
+        style={{
+          position: 'absolute',
+          top: 30,
+          left: 0,
+          right: 0,
+          padding: 0,
+          zIndex: 2,
+          height: 380,
+          overflow: 'hidden',
+        }}
       >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 20,
+        <TVWidget
+          widget="mini-symbol-overview"
+          height="100%"
+          config={{
+            symbol: 'IDX:BBCA',
+            width: '100%',
+            height: '100%',
+            locale: 'id',
+            dateRange: '12M',
+            colorTheme: tvTheme,
+            isTransparent: true,
+            autosize: true,
+            chartOnly: false,
+            noTimeScale: false,
           }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: 12,
-                background: 'var(--primary-soft)',
-                color: 'var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 14,
-                fontWeight: 800,
-                letterSpacing: '-0.02em',
-              }}
-            >
-              BCA
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--fg)' }}>BBCA</div>
-              <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>Bank Central Asia</div>
-            </div>
-          </div>
-          <div className="badge" style={{ background: 'var(--success)', color: '#fff' }}>
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                background: '#fff',
-                display: 'inline-block',
-              }}
-            />
-            LIVE
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
-          <span
-            className="mono tnum"
-            style={{
-              fontSize: 38,
-              fontWeight: 800,
-              color: 'var(--fg)',
-              letterSpacing: '-0.03em',
-            }}
-          >
-            <AnimatedNumber value={stock.price} />
-          </span>
-          <span className="mono" style={{ color: 'var(--success)', fontSize: 15, fontWeight: 700 }}>
-            +0.65%
-          </span>
-        </div>
-        <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 18 }}>
-          Volume: 142.5 jt · Vol Rp 1.65 T
-        </div>
-
-        <div style={{ height: 100, marginBottom: 16 }}>
-          <Sparkline data={sparkData} height={100} />
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          {[
-            { label: 'ARA', value: '14.075' },
-            { label: 'ARB', value: '9.225' },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              style={{
-                padding: '12px 14px',
-                background: 'var(--surface-2)',
-                borderRadius: 'var(--radius)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  color: 'var(--fg-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  fontWeight: 700,
-                }}
-              >
-                {stat.label}
-              </div>
-              <div className="mono tnum" style={{ fontWeight: 700, color: 'var(--fg)' }}>
-                {stat.value}
-              </div>
-            </div>
-          ))}
-        </div>
+        />
       </div>
 
       <div
@@ -327,230 +216,105 @@ function HeroMockup() {
   );
 }
 
-/* ---------- Stock ticker marquee ---------- */
+/* ---------- Stock ticker — TradingView Ticker Tape widget ---------- */
+const TICKER_SYMBOLS = [
+  { description: 'IHSG', proName: 'IDX:COMPOSITE' },
+  { description: 'BBCA', proName: 'IDX:BBCA' },
+  { description: 'BBRI', proName: 'IDX:BBRI' },
+  { description: 'BMRI', proName: 'IDX:BMRI' },
+  { description: 'BBNI', proName: 'IDX:BBNI' },
+  { description: 'TLKM', proName: 'IDX:TLKM' },
+  { description: 'ASII', proName: 'IDX:ASII' },
+  { description: 'GOTO', proName: 'IDX:GOTO' },
+  { description: 'ANTM', proName: 'IDX:ANTM' },
+  { description: 'ADRO', proName: 'IDX:ADRO' },
+  { description: 'KLBF', proName: 'IDX:KLBF' },
+  { description: 'PGAS', proName: 'IDX:PGAS' },
+  { description: 'BTC',  proName: 'BINANCE:BTCUSDT' },
+  { description: 'GOLD', proName: 'OANDA:XAUUSD' },
+];
+
 function StockMarquee() {
-  const items = [...IDX_STOCKS, ...IDX_STOCKS]; // duplicated for seamless loop
+  const tvTheme = useTVTheme();
+
   return (
     <div
-      className="marquee-pause"
       style={{
         borderTop: '1px solid var(--border)',
         borderBottom: '1px solid var(--border)',
         background: 'var(--bg-soft)',
-        padding: '14px 0',
         overflow: 'hidden',
-        position: 'relative',
       }}
     >
-      <div className="marquee-track" style={{ gap: 40 }}>
-        {items.map((s, i) => (
-          <div
-            key={i}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, paddingRight: 32 }}
-          >
-            <span
-              style={{
-                fontWeight: 800,
-                fontSize: 13,
-                color: 'var(--fg)',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              {s.code}
-            </span>
-            <span
-              className="mono tnum"
-              style={{ fontSize: 13, color: 'var(--fg-muted)', fontWeight: 600 }}
-            >
-              {s.price.toLocaleString('id-ID')}
-            </span>
-            <span
-              className="mono"
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: s.change >= 0 ? 'var(--success)' : 'var(--danger)',
-              }}
-            >
-              {s.change >= 0 ? '▲' : '▼'} {Math.abs(s.change).toFixed(2)}%
-            </span>
-          </div>
-        ))}
-      </div>
+      <TVWidget
+        widget="ticker-tape"
+        height={50}
+        config={{
+          symbols: TICKER_SYMBOLS,
+          showSymbolLogo: true,
+          isTransparent: true,
+          displayMode: 'regular',
+          colorTheme: tvTheme,
+          locale: 'id',
+        }}
+      />
     </div>
   );
 }
 
-/* ---------- IHSG mini chart with period selector ---------- */
-const IHSG_PERIOD_LENGTHS = { '1D': 24, '1W': 30, '1M': 60, '3M': 80, '1Y': 90 };
-const IHSG_PERIODS = Object.keys(IHSG_PERIOD_LENGTHS);
-
+/* ---------- IHSG live chart — TradingView Advanced Chart widget ---------- */
 function IHSGChart() {
-  const [period, setPeriod] = useStateL('1M');
-
-  const data = useMemoL(() => {
-    const len = IHSG_PERIOD_LENGTHS[period];
-    const arr = [];
-    let v = 7280;
-    const vol = period === '1D' ? 0.4 : period === '1W' ? 0.6 : 1.2;
-    for (let i = 0; i < len; i++) {
-      v +=
-        (Math.sin(i * 0.4) * 12 +
-          Math.cos(i * 0.7) * 8 +
-          (Math.random() - 0.45) * 16) *
-        vol;
-      arr.push(v);
-    }
-    return arr;
-  }, [period]);
-
-  const last = data[data.length - 1];
-  const first = data[0];
-  const chg = last - first;
-  const chgPct = (chg / first) * 100;
-  const isUp = chg >= 0;
-
-  const w = 1200;
-  const h = 360;
-  const pad = 40;
-  const min = Math.min(...data) - 30;
-  const max = Math.max(...data) + 30;
-  const range = max - min;
-  const pts = data.map((v, i) => {
-    const x = pad + (i / (data.length - 1)) * (w - pad * 2);
-    const y = pad + (1 - (v - min) / range) * (h - pad * 2);
-    return [x, y];
-  });
-  const dPath = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0] + ',' + p[1]).join(' ');
-  const dFill = `${dPath} L ${pts[pts.length - 1][0]},${h - pad} L ${pts[0][0]},${h - pad} Z`;
+  const tvTheme = useTVTheme();
 
   return (
     <section style={{ padding: '80px 0' }}>
       <div className="container">
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-end',
-            marginBottom: 24,
-            flexWrap: 'wrap',
-            gap: 16,
-          }}
-        >
-          <div>
-            <div className="badge" style={{ marginBottom: 12 }}>
-              <Icon name="chart" size={12} />
-              <span>IHSG · INDEKS HARGA SAHAM GABUNGAN</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16 }}>
-              <span
-                className="mono tnum"
-                style={{
-                  fontSize: 44,
-                  fontWeight: 800,
-                  color: 'var(--fg)',
-                  letterSpacing: '-0.03em',
-                }}
-              >
-                {last.toFixed(2)}
-              </span>
-              <span
-                className="mono"
-                style={{
-                  fontSize: 18,
-                  fontWeight: 700,
-                  color: isUp ? 'var(--success)' : 'var(--danger)',
-                }}
-              >
-                {isUp ? '+' : ''}
-                {chg.toFixed(2)} ({fmt.pct(chgPct, 2)})
-              </span>
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginTop: 6 }}>
-              Update terakhir:{' '}
-              {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
-            </div>
+        <div style={{ marginBottom: 24 }}>
+          <div className="badge" style={{ marginBottom: 12 }}>
+            <Icon name="chart" size={12} />
+            <span>IHSG · INDEKS HARGA SAHAM GABUNGAN</span>
           </div>
-
-          <div
+          <h2
             style={{
-              display: 'flex',
-              gap: 4,
-              padding: 4,
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius)',
+              fontSize: 'clamp(28px, 4vw, 40px)',
+              letterSpacing: '-0.025em',
+              marginBottom: 8,
             }}
           >
-            {IHSG_PERIODS.map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                style={{
-                  padding: '8px 16px',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  borderRadius: 'calc(var(--radius) - 4px)',
-                  background: period === p ? 'var(--primary)' : 'transparent',
-                  color: period === p ? 'var(--primary-fg)' : 'var(--fg-muted)',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
+            Pergerakan IHSG <span style={{ color: 'var(--primary)' }}>real-time</span>.
+          </h2>
+          <p style={{ fontSize: 15, color: 'var(--fg-muted)', margin: 0 }}>
+            Data live dari TradingView · interactive — drag, zoom, ganti timeframe.
+          </p>
         </div>
 
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <svg
-            viewBox={`0 0 ${w} ${h}`}
-            preserveAspectRatio="none"
-            style={{ width: '100%', height: 360, display: 'block' }}
-          >
-            <defs>
-              <linearGradient id="ihsg-fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor={isUp ? 'var(--success)' : 'var(--danger)'} stopOpacity="0.25" />
-                <stop offset="1" stopColor={isUp ? 'var(--success)' : 'var(--danger)'} stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
-              <line
-                key={i}
-                x1={pad}
-                y1={pad + p * (h - pad * 2)}
-                x2={w - pad}
-                y2={pad + p * (h - pad * 2)}
-                stroke="var(--border)"
-                strokeWidth="1"
-                strokeDasharray="2 4"
-                opacity="0.6"
-              />
-            ))}
-            <path d={dFill} fill="url(#ihsg-fill)" />
-            <path
-              d={dPath}
-              fill="none"
-              stroke={isUp ? 'var(--success)' : 'var(--danger)'}
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
-            <circle
-              cx={pts[pts.length - 1][0]}
-              cy={pts[pts.length - 1][1]}
-              r="5"
-              fill={isUp ? 'var(--success)' : 'var(--danger)'}
-            />
-            <circle
-              cx={pts[pts.length - 1][0]}
-              cy={pts[pts.length - 1][1]}
-              r="10"
-              fill={isUp ? 'var(--success)' : 'var(--danger)'}
-              opacity="0.2"
-            />
-          </svg>
+        <div
+          className="card"
+          style={{
+            padding: 0,
+            overflow: 'hidden',
+            height: 520,
+          }}
+        >
+          <TVWidget
+            widget="advanced-chart"
+            height="100%"
+            config={{
+              autosize: true,
+              symbol: 'IDX:COMPOSITE',
+              interval: 'D',
+              timezone: 'Asia/Jakarta',
+              theme: tvTheme,
+              style: '3',
+              locale: 'id',
+              hide_side_toolbar: true,
+              allow_symbol_change: false,
+              save_image: false,
+              details: false,
+              withdateranges: true,
+              hide_legend: false,
+            }}
+          />
         </div>
       </div>
     </section>
@@ -923,4 +687,4 @@ function LandingPage({ onNavigate }) {
   );
 }
 
-Object.assign(window, { LandingPage, IDX_STOCKS });
+Object.assign(window, { LandingPage });
