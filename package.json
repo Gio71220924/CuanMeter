@@ -1,14 +1,9 @@
 {
-    "name": "stockcalcid",
-    "version": "1.0.0",
-    "description": "Kalkulator saham gratis untuk trader Indonesia - StockCalcID",
+    "name": "cuanmeter",
+    "version": "2.0.0",
+    "description": "CuanMeter — Kalkulator saham IDX buat trader Gen Z (SPA)",
     "scripts": {
-        "start": "nodemon server.js",
-        "watch:css": "npx tailwindcss -i CSS/LandingPage.css -o CSS/tailwind-output.css --watch",
-        "dev": "concurrently --names \"SRV,CSS\" --prefix-colors \"cyan,yellow\" \"npm run start\" \"npm run watch:css\"",
-        "build": "npm run build:css && npm run build:js",
-        "build:css": "npx tailwindcss -i CSS/LandingPage.css -o CSS/tailwind-output.css --minify",
-        "build:js": "node build.js"
+        "start": "node server.js"
     },
     "keywords": [
         "stock calculator",
@@ -16,23 +11,8 @@
         "indonesia",
         "idx",
         "saham",
-        "bursa efek",
-        "pwa"
+        "bursa efek"
     ],
-    "author": "StockCalcID",
-    "license": "MIT",
-    "dependencies": {
-        "@mathieuc/tradingview": "github:Mathieu2301/TradingView-API",
-        "cors": "^2.8.6",
-        "dotenv": "^17.3.1",
-        "express": "^5.2.1"
-    },
-    "devDependencies": {
-        "autoprefixer": "^10.4.16",
-        "concurrently": "^9.2.1",
-        "cssnano": "^6.0.2",
-        "postcss": "^8.4.32",
-        "tailwindcss": "^3.4.0",
-        "terser": "^5.46.0"
-    }
+    "author": "CuanMeter",
+    "license": "MIT"
 }
