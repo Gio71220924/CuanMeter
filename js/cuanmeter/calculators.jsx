@@ -356,13 +356,23 @@ function AveragePrice() {
 }
 
 /* ============================================================
-   2. ARAARB — IDX 2024+ tier-based ARA, symmetric 7% ARB
+   2. ARAARB — IDX berlaku 8 Apr 2025:
+      ARA berjenjang per tier, ARB flat 15% semua tier
    ============================================================ */
 const ARA_TIERS = [
-  { tier: 'Tier 1', range: 'Rp 50 – Rp 200',    ara: 35, arb: 7, color: 'var(--info)' },
-  { tier: 'Tier 2', range: 'Rp 201 – Rp 5.000', ara: 25, arb: 7, color: 'var(--warning)' },
-  { tier: 'Tier 3', range: '> Rp 5.000',         ara: 20, arb: 7, color: 'var(--primary)' },
+  { tier: 'Tier 1', range: 'Rp 50 – Rp 200',    ara: 35, arb: 15, color: 'var(--info)' },
+  { tier: 'Tier 2', range: 'Rp 201 – Rp 5.000', ara: 25, arb: 15, color: 'var(--warning)' },
+  { tier: 'Tier 3', range: '> Rp 5.000',         ara: 20, arb: 15, color: 'var(--primary)' },
 ];
+
+// Fraksi harga resmi IDX (Peraturan II-A)
+function tickSize(p) {
+  if (p < 200)  return 1;
+  if (p < 500)  return 2;
+  if (p < 2000) return 5;
+  if (p < 5000) return 10;
+  return 25;
+}
 
 function ARAARB() {
   const [price, setPrice] = useStateC(11525);
@@ -372,20 +382,24 @@ function ARAARB() {
     if (p <= 0) return null;
     let araPct;
     let tier;
-    if (p < 200) {
+    if (p <= 200) {
       araPct = 35;
       tier = 'Tier 1 (Rp 50–200)';
-    } else if (p < 5000) {
+    } else if (p <= 5000) {
       araPct = 25;
-      tier = 'Tier 2 (Rp 200–5.000)';
+      tier = 'Tier 2 (Rp 201–5.000)';
     } else {
       araPct = 20;
       tier = 'Tier 3 (>Rp 5.000)';
     }
-    const arbPct = 7;
-    // Round to nearest tick (5 IDR for simplicity — true tick varies by tier)
-    const ara = Math.round((p * (1 + araPct / 100)) / 5) * 5;
-    const arb = Math.round((p * (1 - arbPct / 100)) / 5) * 5;
+    const arbPct = 15;
+    const rawAra = p * (1 + araPct / 100);
+    const rawArb = p * (1 - arbPct / 100);
+    // Tick size dihitung dari harga hasil, bukan harga asal
+    // ARA: floor (tidak boleh melebihi batas atas)
+    // ARB: ceil  (tidak boleh menembus batas bawah)
+    const ara = Math.floor(rawAra / tickSize(rawAra)) * tickSize(rawAra);
+    const arb = Math.max(50, Math.ceil(rawArb / tickSize(rawArb)) * tickSize(rawArb));
     return { p, araPct, arbPct, ara, arb, tier };
   }, [price]);
 
@@ -401,7 +415,7 @@ function ARAARB() {
           real-time.
         </>
       }
-      subtitle="Batas atas dan bawah harga harian saham IDX. Pakai aturan asimetris ARA terbaru — ARB simetris 7%."
+      subtitle="Batas atas dan bawah harga harian saham IDX. ARA berjenjang per tier, ARB flat 15% semua tier (berlaku 8 Apr 2025)."
     >
       <div className="calc-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 24 }}>
         <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
