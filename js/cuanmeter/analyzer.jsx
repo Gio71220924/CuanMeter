@@ -310,16 +310,190 @@ function BrokerTable({ title, subtitle, list, color, icon }) {
   );
 }
 
+/* ---------- ML Plan Chart — real candles + entry/TP/SL lines ---------- */
+function MLPlanChart({ candles, plan }) {
+  const W = 1000, H = 360, PAD = { t: 16, r: 72, b: 32, l: 12 };
+  const n = candles.length;
+  if (!n) return null;
+
+  const prices = candles.flatMap((c) => [c.high, c.low]);
+  const rawMin = Math.min(...prices, plan.stop_loss);
+  const rawMax = Math.max(...prices, plan.target_profit);
+  const pad    = (rawMax - rawMin) * 0.06;
+  const lo = rawMin - pad, hi = rawMax + pad;
+  const range = hi - lo || 1;
+
+  const cw     = (W - PAD.l - PAD.r) / n;
+  const chartH = H - PAD.t - PAD.b;
+  const fy     = (v) => PAD.t + (1 - (v - lo) / range) * chartH;
+  const fx     = (i) => PAD.l + i * cw + cw / 2;
+
+  const hline = (price, color, dash, label) => (
+    <g key={label}>
+      <line x1={PAD.l} y1={fy(price)} x2={W - PAD.r} y2={fy(price)}
+        stroke={color} strokeWidth={1.5} strokeDasharray={dash} opacity={0.9} />
+      <rect x={W - PAD.r + 2} y={fy(price) - 14} width={PAD.r - 4} height={28}
+        fill={color} rx={4} opacity={0.15} />
+      <text x={W - PAD.r + 6} y={fy(price) - 4} fill={color}
+        fontSize={8} fontWeight={900} fontFamily="sans-serif" opacity={0.85}>
+        {label}
+      </text>
+      <text x={W - PAD.r + 6} y={fy(price) + 8} fill={color}
+        fontSize={9} fontWeight={700} fontFamily="JetBrains Mono,monospace">
+        {Math.round(price).toLocaleString('id-ID')}
+      </text>
+    </g>
+  );
+
+  // sample ~6 date labels
+  const dateIdxs = [0, Math.floor(n*0.2), Math.floor(n*0.4), Math.floor(n*0.6), Math.floor(n*0.8), n-1]
+    .filter((v, i, a) => a.indexOf(v) === i);
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: '100%', display: 'block' }}>
+      {/* grid */}
+      {[0,0.25,0.5,0.75,1].map((p, i) => (
+        <line key={i} x1={PAD.l} x2={W-PAD.r}
+          y1={PAD.t + p*chartH} y2={PAD.t + p*chartH}
+          stroke="var(--border)" strokeDasharray="2 4" opacity={0.5} />
+      ))}
+
+      {/* candles */}
+      {candles.map((c, i) => {
+        const up    = c.close >= c.open;
+        const col   = up ? 'var(--success)' : 'var(--danger)';
+        const bodyT = fy(Math.max(c.open, c.close));
+        const bodyB = fy(Math.min(c.open, c.close));
+        const bodyH = Math.max(1.5, bodyB - bodyT);
+        const cx    = fx(i);
+        const hw    = Math.max(1, cw * 0.35);
+        return (
+          <g key={i}>
+            <line x1={cx} x2={cx} y1={fy(c.high)} y2={fy(c.low)} stroke={col} strokeWidth={1.2} />
+            <rect x={cx - hw} y={bodyT} width={hw*2} height={bodyH} fill={col} />
+          </g>
+        );
+      })}
+
+      {/* signal markers */}
+      {candles.map((c, i) => {
+        if (c.signal === 0) return null;
+        const cx  = fx(i);
+        const buy = c.signal === 1;
+        const y   = buy ? fy(c.low) + 8 : fy(c.high) - 8;
+        return (
+          <text key={'sig'+i} x={cx} y={y} textAnchor="middle"
+            fontSize={10} fill={buy ? 'var(--success)' : 'var(--danger)'}
+            fontWeight={900} opacity={0.85}>
+            {buy ? '▲' : '▼'}
+          </text>
+        );
+      })}
+
+      {/* TP / Entry / SL lines */}
+      {hline(plan.target_profit, 'var(--success)', '6 3', 'TP')}
+      {hline(plan.entry,         '#4d8fff',        '0',   'ENTRY')}
+      {hline(plan.stop_loss,     'var(--danger)',   '6 3', 'SL')}
+
+      {/* date labels */}
+      {dateIdxs.map((i) => (
+        <text key={'d'+i} x={fx(i)} y={H - 4} textAnchor="middle"
+          fontSize={9} fill="var(--fg-muted)" fontFamily="sans-serif">
+          {candles[i].time.slice(5)}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
+/* ---------- Analyzer chart — ML plan when ready, else TradingView ---------- */
+function AnalyzerChart({ ticker, mlData, mlLoading }) {
+  const tvTheme = useTVTheme();
+
+  if (mlLoading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12, color: 'var(--fg-muted)' }}>
+        <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <span style={{ fontSize: 13, fontWeight: 600 }}>Memuat chart dari yfinance...</span>
+      </div>
+    );
+  }
+
+  if (mlData?.status === 'success' && mlData.chart_history?.length) {
+    const plan = mlData.trading_plan;
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* legend */}
+        <div style={{ display: 'flex', gap: 16, padding: '8px 16px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--fg)' }}>{ticker} · 60 Hari</span>
+          {[
+            { label: 'ENTRY',  val: plan.entry,         color: '#4d8fff', pct: null },
+            { label: 'TP',     val: plan.target_profit, color: 'var(--success)', pct: '+' + plan.tp_percent + '%' },
+            { label: 'SL',     val: plan.stop_loss,     color: 'var(--danger)',  pct: plan.sl_percent + '%' },
+          ].map(({ label, val, color, pct }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 20, height: 2, background: color, display: 'inline-block', borderRadius: 1 }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color }}>{label}</span>
+              <span className="mono" style={{ fontSize: 11, color: 'var(--fg)', fontWeight: 700 }}>
+                Rp {Math.round(val).toLocaleString('id-ID')}
+              </span>
+              {pct && <span style={{ fontSize: 10, color, fontWeight: 800 }}>{pct}</span>}
+            </div>
+          ))}
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, fontSize: 10, color: 'var(--fg-muted)', fontWeight: 700 }}>
+            <span style={{ color: 'var(--success)' }}>▲ BUY</span>
+            <span style={{ color: 'var(--danger)' }}>▼ SELL</span>
+          </div>
+        </div>
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <MLPlanChart candles={mlData.chart_history} plan={plan} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <TVWidget
+      widget="advanced-chart"
+      height="100%"
+      config={{
+        autosize: true, symbol: 'IDX:' + ticker, interval: 'D',
+        timezone: 'Asia/Jakarta', theme: tvTheme, style: '1',
+        locale: 'id', hide_side_toolbar: true,
+        allow_symbol_change: false, save_image: false,
+        withdateranges: true,
+      }}
+    />
+  );
+}
+
 /* ---------- Analyzer screen ---------- */
 function Analyzer() {
   const [ticker, setTicker] = useStateZ('BBRI');
   const [active, setActive] = useStateZ('BBRI');
   const [loading, setLoading] = useStateZ(false);
   const [mlData, setMlData] = useStateZ(null);
+  const [mlLoading, setMlLoading] = useStateZ(false);
   const [bandData, setBandData] = useStateZ(null);
   const [suggestions, setSuggestions] = useStateZ([]);
   const [showSugg, setShowSugg] = useStateZ(false);
   const debounceRef = useRefZ(null);
+
+  const todayStr = () => new Date().toISOString().slice(0, 10);
+  const daysAgoStr = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+  const [bandFrom, setBandFrom] = useStateZ(() => daysAgoStr(7));
+  const [bandTo,   setBandTo]   = useStateZ(() => todayStr());
+  const activeBand = useRefZ('');
+
+  const fetchBandarmology = (code, from, to) => {
+    activeBand.current = code;
+    setBandData(null);
+    const url = `/bandarmology?ticker=${code}&from=${from}&to=${to}`;
+    fetch(url)
+      .then((r) => r.json())
+      .then((d) => { if (activeBand.current === code) setBandData(d.buyers ? d : null); })
+      .catch(() => { if (activeBand.current === code) setBandData(null); });
+  };
 
   const data = useMemoZ(() => generateAnalysis(active), [active]);
 
@@ -340,6 +514,7 @@ function Analyzer() {
     if (!code) return;
     setLoading(true);
     setMlData(null);
+    setMlLoading(true);
     setBandData(null);
     setSuggestions([]);
     setShowSugg(false);
@@ -347,12 +522,9 @@ function Analyzer() {
     setTimeout(() => { setActive(code); setLoading(false); }, 500);
     fetch('/ml-predict?ticker=' + code)
       .then((r) => r.json())
-      .then((d) => setMlData(d))
-      .catch(() => setMlData({ status: 'offline' }));
-    fetch('/bandarmology?ticker=' + code)
-      .then((r) => r.json())
-      .then((d) => setBandData(d.buyers ? d : null))
-      .catch(() => setBandData(null));
+      .then((d) => { setMlData(d); setMlLoading(false); })
+      .catch(() => { setMlData({ status: 'offline' }); setMlLoading(false); });
+    fetchBandarmology(code, bandFrom, bandTo);
   };
 
   return (
@@ -488,42 +660,29 @@ function Analyzer() {
       >
         <div>
           <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>
-            {data.ticker}
+            {active}
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-            <span
-              className="mono tnum"
-              style={{ fontSize: 28, fontWeight: 800, color: 'var(--fg)' }}
-            >
-              Rp {data.lastPrice.toLocaleString('id-ID')}
+            <span className="mono tnum" style={{ fontSize: 28, fontWeight: 800, color: 'var(--fg)' }}>
+              {mlData?.status === 'success'
+                ? 'Rp ' + mlData.trading_plan.entry.toLocaleString('id-ID')
+                : bandData?.lastPrice
+                  ? 'Rp ' + bandData.lastPrice.toLocaleString('id-ID')
+                  : mlLoading ? '—' : 'Rp ' + data.lastPrice.toLocaleString('id-ID')}
             </span>
-            <span
-              className="mono"
-              style={{
-                fontSize: 14,
-                fontWeight: 700,
-                color: data.chgPct >= 0 ? 'var(--success)' : 'var(--danger)',
-              }}
-            >
-              {fmt.pct(data.chgPct, 2)}
+            <span style={{ fontSize: 11, color: 'var(--fg-faint)', fontWeight: 600 }}>
+              {mlData?.status === 'success' ? 'via yfinance' : bandData ? 'via sssaham' : 'simulasi'}
             </span>
           </div>
         </div>
         <div className="badge">
-          <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: 'var(--success)',
-            }}
-          />{' '}
-          EOD · 7 hari terakhir
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }} />{' '}
+          {mlData?.status === 'success' ? 'Real · EOD yfinance' : 'EOD · 7 hari terakhir'}
         </div>
       </div>
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16 }}>
-        <CandleChart data={data.candles} />
+      <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16, height: 420 }}>
+        <AnalyzerChart ticker={active} mlData={mlData} mlLoading={mlLoading} />
       </div>
 
       <div
@@ -565,7 +724,14 @@ function Analyzer() {
             )}
           </div>
 
-          {mlData?.status === 'success' ? (
+          {mlLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '24px 0', color: 'var(--fg-muted)' }}>
+              <div style={{ width: 32, height: 32, border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <div style={{ fontSize: 13, fontWeight: 600 }}>Menghitung prediksi ML...</div>
+              <div style={{ fontSize: 11, color: 'var(--fg-faint)' }}>Download data + hitung indikator (~5–10 detik)</div>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          ) : mlData?.status === 'success' ? (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 12, marginBottom: 10 }}>
                 <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--fg-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Entry</span>
@@ -626,17 +792,17 @@ function Analyzer() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {mlData?.status === 'success' ? [
-              { label: 'Stoch %K',   value: mlData.details.stoch },
+            {(mlData?.status === 'success' ? [
+              { label: 'Stoch %K',    value: mlData.details.stoch },
               { label: 'BB Position', value: mlData.details.bb_pos },
               { label: 'ADX',         value: mlData.details.adx },
               { label: 'Sinyal Kuat', value: mlData.details.adx > 25 ? 'Ya (Trending)' : 'Lemah (Sideways)' },
             ] : [
-              { label: 'Stoch %K',   value: (40 + (data.plan.strength % 50)).toFixed(1) },
+              { label: 'Stoch %K',    value: (40 + (data.plan.strength % 50)).toFixed(1) },
               { label: 'BB Position', value: data.plan.isBullish ? 'Upper' : 'Mid' },
               { label: 'ADX',         value: (20 + (data.plan.strength % 30)).toFixed(1) },
               { label: 'OBV Trend',   value: data.netForeign >= 0 ? 'Rising' : 'Falling' },
-            ].map((m, i) => (
+            ]).map((m, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)' }}>
                 <span style={{ fontSize: 12, color: 'var(--fg-muted)', fontWeight: 700 }}>{m.label}</span>
                 <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg)' }}>{m.value}</span>
@@ -646,7 +812,52 @@ function Analyzer() {
         </div>
       </div>
 
-      {/* broker tables */}
+      {/* broker tables — date range picker */}
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10,
+          marginBottom: 12, padding: '10px 16px',
+          background: 'var(--surface-2)', border: '1px solid var(--border)',
+          borderRadius: 'var(--radius)',
+        }}
+      >
+        <Icon name="chart" size={16} />
+        <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          Rentang Data
+        </span>
+        <input
+          type="date"
+          value={bandFrom}
+          max={bandTo}
+          onChange={(e) => setBandFrom(e.target.value)}
+          className="input"
+          style={{ padding: '6px 10px', fontSize: 13, width: 'auto' }}
+        />
+        <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>s/d</span>
+        <input
+          type="date"
+          value={bandTo}
+          min={bandFrom}
+          max={todayStr()}
+          onChange={(e) => setBandTo(e.target.value)}
+          className="input"
+          style={{ padding: '6px 10px', fontSize: 13, width: 'auto' }}
+        />
+        <button
+          className="btn btn-secondary"
+          style={{ padding: '6px 14px', fontSize: 13 }}
+          onClick={() => active && fetchBandarmology(active, bandFrom, bandTo)}
+        >
+          Perbarui
+        </button>
+        {bandData && (
+          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--success)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', display: 'inline-block' }} />
+            Data live · {bandFrom} s/d {bandTo}
+          </span>
+        )}
+      </div>
+
       <div className="calc-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <BrokerTable
           title="Top Buyer"

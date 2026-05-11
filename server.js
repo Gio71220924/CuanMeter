@@ -379,8 +379,10 @@ const server = http.createServer((req, res) => {
         if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
         const ticker = validateTicker(parsed.query.ticker);
         if (!ticker) { sendJSON(res, 400, { error: 'Missing ?ticker=' }); return; }
-        console.log(`[Band]   ${ticker}`);
-        return handleBandarmology(ticker, res);
+        const fromP = parsed.query.from || null;
+        const toP   = parsed.query.to   || null;
+        console.log(`[Band]   ${ticker} ${fromP || 'default'} → ${toP || 'today'}`);
+        return handleBandarmology(ticker, fromP, toP, res);
     }
 
     // API: /ml-predict
