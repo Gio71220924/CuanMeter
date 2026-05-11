@@ -124,7 +124,7 @@ function App() {
       <div key={route} className="fade-up" style={{ flex: 1 }}>
         {screen}
       </div>
-      <Footer />
+      <Footer onNavigate={navigate} />
       <IHSGFloater />
     </div>
   );

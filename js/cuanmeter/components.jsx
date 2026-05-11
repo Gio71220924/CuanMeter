@@ -83,35 +83,20 @@ function Icon({ name, size = 20, stroke = 2 }) {
   );
 }
 
-/* ---------- CoinLogo (uang vibes) ---------- */
+/* ---------- CoinLogo — candlestick chart ---------- */
 function CoinLogo({ size = 36 }) {
+  const r = Math.round(size * 0.22);
   return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        background: 'linear-gradient(135deg, #00d971 0%, #00a86b 100%)',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        boxShadow:
-          '0 4px 12px -2px rgba(0, 168, 107, 0.4), inset 0 -2px 4px rgba(0,0,0,0.15), inset 0 2px 4px rgba(255,255,255,0.4)',
-        position: 'relative',
-        flexShrink: 0,
-      }}
-    >
-      <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 24 24" fill="none">
-        <path
-          d="M8 14c0 2 1.5 3 4 3s4-1 4-3-1.5-2.5-4-3-4-1-4-3 1.5-3 4-3 4 1 4 3"
-          stroke="white"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path d="M12 4.5v2M12 17.5v2" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
-      </svg>
-    </div>
+    <svg width={size} height={size} viewBox="0 0 64 64" style={{ flexShrink: 0 }}>
+      <rect width="64" height="64" rx={r} fill="#00a86b"/>
+      <line x1="13" y1="40" x2="13" y2="60" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity=".7"/>
+      <rect x="8" y="46" width="10" height="10" rx="2" fill="white"/>
+      <line x1="32" y1="25" x2="32" y2="58" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity=".7"/>
+      <rect x="27" y="31" width="10" height="22" rx="2" fill="white"/>
+      <line x1="51" y1="12" x2="51" y2="52" stroke="white" strokeWidth="2.2" strokeLinecap="round" opacity=".7"/>
+      <rect x="46" y="18" width="10" height="28" rx="2" fill="white"/>
+      <polyline points="47,12 51,7 55,12" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
   );
 }
 
@@ -288,7 +273,8 @@ function Header({ route, onNavigate, theme, onThemeChange }) {
 }
 
 /* ---------- Footer ---------- */
-function Footer() {
+function Footer({ onNavigate }) {
+  const go = (id) => onNavigate && onNavigate(id);
   return (
     <footer
       style={{
@@ -342,10 +328,18 @@ function Footer() {
             Tools
           </h4>
           <ul style={footerListStyle}>
-            <li><a style={footerLinkStyle}>Average Price</a></li>
-            <li><a style={footerLinkStyle}>ARA/ARB</a></li>
-            <li><a style={footerLinkStyle}>Profit Calc</a></li>
-            <li><a style={footerLinkStyle}>Position Size</a></li>
+            {[
+              { label: 'Average Price', id: 'average' },
+              { label: 'ARA / ARB',     id: 'araarb' },
+              { label: 'Profit Calc',   id: 'profit' },
+              { label: 'Position Size', id: 'amunisi' },
+              { label: 'Dividen',       id: 'dividen' },
+              { label: 'Analyzer',      id: 'analyzer' },
+            ].map(({ label, id }) => (
+              <li key={id}>
+                <button onClick={() => go(id)} className="footer-link">{label}</button>
+              </li>
+            ))}
           </ul>
         </div>
         <div>
@@ -361,9 +355,15 @@ function Footer() {
             Tentang
           </h4>
           <ul style={footerListStyle}>
-            <li><a style={footerLinkStyle}>Cara Pakai</a></li>
-            <li><a style={footerLinkStyle}>Disclaimer</a></li>
-            <li><a style={footerLinkStyle}>Privasi</a></li>
+            {[
+              { label: 'Cara Pakai',  id: 'guides' },
+              { label: 'Panduan',     id: 'guides' },
+              { label: 'Analyzer AI', id: 'analyzer' },
+            ].map(({ label, id }) => (
+              <li key={label}>
+                <button onClick={() => go(id)} className="footer-link">{label}</button>
+              </li>
+            ))}
           </ul>
         </div>
       </div>
@@ -391,6 +391,12 @@ function Footer() {
         @media (max-width: 760px) {
           footer .footer-grid { grid-template-columns: 1fr !important; gap: 28px !important; }
         }
+        .footer-link {
+          font-size: 14px; color: var(--fg); background: none; border: none;
+          padding: 0; cursor: pointer; text-align: left;
+          transition: color 0.15s;
+        }
+        .footer-link:hover { color: var(--primary); }
       `}</style>
     </footer>
   );
