@@ -484,6 +484,17 @@ function Analyzer() {
   const [bandFrom, setBandFrom] = useStateZ(() => daysAgoStr(7));
   const [bandTo,   setBandTo]   = useStateZ(() => todayStr());
   const activeBand = useRefZ('');
+  const [tvPrice, setTvPrice] = useStateZ(null);
+  const activePrice = useRefZ('');
+
+  const fetchTVPrice = (code) => {
+    activePrice.current = code;
+    setTvPrice(null);
+    fetch('/price?ticker=' + code)
+      .then((r) => r.json())
+      .then((d) => { if (activePrice.current === code && d.price) setTvPrice(d); })
+      .catch(() => {});
+  };
 
   const fetchBandarmology = (code, from, to) => {
     activeBand.current = code;
@@ -496,6 +507,8 @@ function Analyzer() {
   };
 
   const data = useMemoZ(() => generateAnalysis(active), [active]);
+
+  useEffectZ(() => { fetchTVPrice('BBRI'); fetchBandarmology('BBRI', bandFrom, bandTo); }, []);
 
   const onSearchInput = (val) => {
     setTicker(val);
@@ -520,6 +533,7 @@ function Analyzer() {
     setShowSugg(false);
     setTicker(code);
     setTimeout(() => { setActive(code); setLoading(false); }, 500);
+    fetchTVPrice(code);
     fetch('/ml-predict?ticker=' + code)
       .then((r) => r.json())
       .then((d) => { setMlData(d); setMlLoading(false); })
@@ -664,20 +678,21 @@ function Analyzer() {
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
             <span className="mono tnum" style={{ fontSize: 28, fontWeight: 800, color: 'var(--fg)' }}>
-              {mlData?.status === 'success'
-                ? 'Rp ' + mlData.trading_plan.entry.toLocaleString('id-ID')
-                : bandData?.lastPrice
-                  ? 'Rp ' + bandData.lastPrice.toLocaleString('id-ID')
-                  : mlLoading ? '—' : 'Rp ' + data.lastPrice.toLocaleString('id-ID')}
+              {tvPrice ? 'Rp ' + tvPrice.price.toLocaleString('id-ID') : '—'}
             </span>
+            {tvPrice && (
+              <span style={{ fontSize: 13, fontWeight: 700, color: tvPrice.change_pct >= 0 ? 'var(--success)' : 'var(--danger)' }}>
+                {tvPrice.change_pct >= 0 ? '+' : ''}{tvPrice.change_pct?.toFixed(2)}%
+              </span>
+            )}
             <span style={{ fontSize: 11, color: 'var(--fg-faint)', fontWeight: 600 }}>
-              {mlData?.status === 'success' ? 'via yfinance' : bandData ? 'via sssaham' : 'simulasi'}
+              {tvPrice ? 'TradingView' : 'memuat...'}
             </span>
           </div>
         </div>
         <div className="badge">
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }} />{' '}
-          {mlData?.status === 'success' ? 'Real · EOD yfinance' : 'EOD · 7 hari terakhir'}
+          {tvPrice ? 'Real · TradingView' : 'EOD · 7 hari terakhir'}
         </div>
       </div>
 
