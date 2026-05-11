@@ -213,6 +213,55 @@ function fetchMarketData() {
 fetchMarketData();
 setInterval(fetchMarketData, 15000);
 
+// ─── /bandarmology  →  Real broker flow from api-saham ───────────────────────
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function handleBandarmology(ticker, fromParam, toParam, res) {
+    const today = new Date();
+    const defaultFrom = new Date(today);
+    defaultFrom.setDate(defaultFrom.getDate() - 7);
+
+    const fromStr = (fromParam && DATE_RE.test(fromParam)) ? fromParam : defaultFrom.toISOString().slice(0, 10);
+    const toStr   = (toParam   && DATE_RE.test(toParam))   ? toParam   : today.toISOString().slice(0, 10);
+
+    const params = new URLSearchParams({
+        symbol: ticker, from: fromStr, to: toStr,
+        include_orderflow: 'false', cache: 'off',
+    });
+
+    tvRequest({
+        hostname: 'api-saham.mkemalw.workers.dev',
+        path: `/cache-summary?${params}`,
+        method: 'GET',
+        headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
+    }, null, (err, data) => {
+        if (err) { return sendJSON(res, 502, { error: err.message }); }
+
+        let netForeign = 0, netLocal = 0, netRetail = 0, lastPrice = null;
+        for (const entry of (data.history || [])) {
+            const d = entry.data || {};
+            netForeign += (d.foreign?.net_val || 0);
+            netLocal   += (d.local?.net_val   || 0);
+            netRetail  += (d.retail?.net_val   || 0);
+            if (d.price) lastPrice = d.price;
+        }
+
+        const mapBroker = (b) => ({
+            code:     b.code,
+            type:     b.type || '',
+            netVal:   (b.bval || 0) - (b.sval || 0),
+            avgPrice: b.bvol > 0 ? Math.round((b.bval || 0) / b.bvol) : 0,
+        });
+
+        const buyers  = (data.summary?.top_buyers  || []).slice(0, 5).map(mapBroker)
+                            .sort((a, b) => b.netVal - a.netVal);
+        const sellers = (data.summary?.top_sellers || []).slice(0, 5).map(mapBroker)
+                            .sort((a, b) => a.netVal - b.netVal);
+
+        sendJSON(res, 200, { ticker, netForeign, netLocal, netRetail, lastPrice, buyers, sellers });
+    });
+}
+
 // ─── /ml-predict  →  Run ML prediction script ────────────────────────────────
 function handleMLPredict(ticker, res) {
     console.log(`[ML Request] Menghitung prediksi untuk: ${ticker}`);
@@ -322,6 +371,16 @@ const server = http.createServer((req, res) => {
         if (!ticker) { sendJSON(res, 400, { error: 'Invalid or missing ?ticker= (alphanumeric, max 20 chars)' }); return; }
         console.log(`[Price]  ${ticker}`);
         return handlePrice(ticker, res);
+    }
+
+    // API: /bandarmology
+    if (req.method === 'GET' && pathname === '/bandarmology') {
+        const ip = req.socket.remoteAddress;
+        if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
+        const ticker = validateTicker(parsed.query.ticker);
+        if (!ticker) { sendJSON(res, 400, { error: 'Missing ?ticker=' }); return; }
+        console.log(`[Band]   ${ticker}`);
+        return handleBandarmology(ticker, res);
     }
 
     // API: /ml-predict

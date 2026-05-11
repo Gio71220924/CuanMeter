@@ -5,7 +5,10 @@
    Exposes globals: Analyzer.
    ============================================================ */
 
-const { useState: useStateZ, useMemo: useMemoZ } = React;
+const { useState: useStateZ, useMemo: useMemoZ, useRef: useRefZ, useEffect: useEffectZ } = React;
+
+const PRED_LABEL = { UP: 'BUY', DOWN: 'SELL', NEUTRAL: 'HOLD' };
+const PRED_COLOR = { UP: 'var(--primary)', DOWN: 'var(--danger)', NEUTRAL: 'var(--warning)' };
 
 const POPULAR_TICKERS = ['BBRI', 'BBCA', 'TLKM', 'ASII', 'ANTM', 'BUMI', 'BMRI', 'GOTO', 'ADRO'];
 const BROKER_CODES = ['MG', 'CC', 'YP', 'RG', 'BR', 'AT', 'GR', 'CS', 'KZ', 'NI', 'DH', 'YU'];
@@ -157,7 +160,7 @@ function CandleChart({ data, height = 360 }) {
 }
 
 /* ---------- Net flow card ---------- */
-function FlowCard({ icon, label, value, color }) {
+function FlowCard({ icon, label, value, color, live }) {
   const positive = value >= 0;
   return (
     <div className="card" style={{ padding: 22, position: 'relative', overflow: 'hidden' }}>
@@ -188,6 +191,12 @@ function FlowCard({ icon, label, value, color }) {
         >
           {label}
         </span>
+        {live && (
+          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--success)', fontWeight: 700 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', display: 'inline-block' }} />
+            LIVE
+          </span>
+        )}
       </div>
       <div
         className="mono tnum"
@@ -306,18 +315,44 @@ function Analyzer() {
   const [ticker, setTicker] = useStateZ('BBRI');
   const [active, setActive] = useStateZ('BBRI');
   const [loading, setLoading] = useStateZ(false);
+  const [mlData, setMlData] = useStateZ(null);
+  const [bandData, setBandData] = useStateZ(null);
+  const [suggestions, setSuggestions] = useStateZ([]);
+  const [showSugg, setShowSugg] = useStateZ(false);
+  const debounceRef = useRefZ(null);
 
   const data = useMemoZ(() => generateAnalysis(active), [active]);
+
+  const onSearchInput = (val) => {
+    setTicker(val);
+    clearTimeout(debounceRef.current);
+    if (val.length < 2) { setSuggestions([]); return; }
+    debounceRef.current = setTimeout(() => {
+      fetch('/search?q=' + encodeURIComponent(val))
+        .then((r) => r.json())
+        .then((d) => setSuggestions(d.results || []))
+        .catch(() => setSuggestions([]));
+    }, 280);
+  };
 
   const run = (t) => {
     const code = (t || ticker).toUpperCase().trim();
     if (!code) return;
     setLoading(true);
+    setMlData(null);
+    setBandData(null);
+    setSuggestions([]);
+    setShowSugg(false);
     setTicker(code);
-    setTimeout(() => {
-      setActive(code);
-      setLoading(false);
-    }, 500);
+    setTimeout(() => { setActive(code); setLoading(false); }, 500);
+    fetch('/ml-predict?ticker=' + code)
+      .then((r) => r.json())
+      .then((d) => setMlData(d))
+      .catch(() => setMlData({ status: 'offline' }));
+    fetch('/bandarmology?ticker=' + code)
+      .then((r) => r.json())
+      .then((d) => setBandData(d.buyers ? d : null))
+      .catch(() => setBandData(null));
   };
 
   return (
@@ -334,54 +369,76 @@ function Analyzer() {
       subtitle="Net flow asing/lokal/retail, top broker buyer/seller, plus AI trading plan (entry/TP/SL). Cek siapa yang akumulasi sebelum lo masuk."
     >
       {/* search bar */}
-      <div
-        className="card"
-        style={{
-          padding: 16,
-          marginBottom: 24,
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 12,
-          alignItems: 'center',
-        }}
-      >
+      <div style={{ marginBottom: 24, position: 'relative' }}>
         <div
-          style={{
-            display: 'flex',
-            flex: 1,
-            minWidth: 240,
-            gap: 10,
-            alignItems: 'center',
-            padding: '8px 16px',
-            background: 'var(--surface-2)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
-          }}
+          className="card"
+          style={{ padding: 16, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}
         >
-          <Icon name="target" size={20} />
-          <input
-            value={ticker}
-            onChange={(e) => setTicker(e.target.value.toUpperCase())}
-            onKeyDown={(e) => e.key === 'Enter' && run()}
-            placeholder="Masukkan kode saham..."
-            maxLength={6}
+          <div
             style={{
-              flex: 1,
-              border: 'none',
-              outline: 'none',
-              background: 'transparent',
-              fontSize: 22,
-              fontWeight: 800,
-              color: 'var(--fg)',
-              letterSpacing: '-0.01em',
-              textTransform: 'uppercase',
-              fontFamily: 'JetBrains Mono, monospace',
+              display: 'flex', flex: 1, minWidth: 240, gap: 10, alignItems: 'center',
+              padding: '8px 16px', background: 'var(--surface-2)',
+              border: '1px solid var(--border)', borderRadius: 'var(--radius)',
             }}
-          />
+          >
+            <Icon name="target" size={20} />
+            <input
+              value={ticker}
+              onChange={(e) => onSearchInput(e.target.value.toUpperCase())}
+              onFocus={() => setShowSugg(true)}
+              onBlur={() => setTimeout(() => setShowSugg(false), 150)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') run();
+                if (e.key === 'Escape') { setSuggestions([]); setShowSugg(false); }
+              }}
+              placeholder="Masukkan kode saham..."
+              maxLength={10}
+              style={{
+                flex: 1, border: 'none', outline: 'none', background: 'transparent',
+                fontSize: 22, fontWeight: 800, color: 'var(--fg)',
+                letterSpacing: '-0.01em', textTransform: 'uppercase',
+                fontFamily: 'JetBrains Mono, monospace',
+              }}
+            />
+          </div>
+          <button onClick={() => run()} className="btn btn-primary" disabled={loading}>
+            {loading ? 'Loading...' : <>Analisa <Icon name="arrow_right" size={14} /></>}
+          </button>
         </div>
-        <button onClick={() => run()} className="btn btn-primary" disabled={loading}>
-          {loading ? 'Loading...' : <>Analisa <Icon name="arrow_right" size={14} /></>}
-        </button>
+
+        {/* Suggestions dropdown */}
+        {showSugg && suggestions.length > 0 && (
+          <div
+            className="card"
+            style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+              padding: 6, marginTop: 4, boxShadow: 'var(--shadow-lg)',
+            }}
+          >
+            {suggestions.map((s) => (
+              <button
+                key={s.symbol}
+                onMouseDown={() => { setTicker(s.symbol); run(s.symbol); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                  padding: '10px 14px', background: 'transparent', border: 'none',
+                  borderRadius: 'var(--radius-sm)', cursor: 'pointer', textAlign: 'left',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-2)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <span
+                  className="mono"
+                  style={{ fontWeight: 800, fontSize: 14, color: 'var(--fg)', minWidth: 60 }}
+                >
+                  {s.symbol}
+                </span>
+                <span style={{ fontSize: 13, color: 'var(--fg-muted)', flex: 1 }}>{s.name}</span>
+                <span style={{ fontSize: 11, color: 'var(--fg-faint)', fontWeight: 600 }}>{s.exchange}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* quick tickers */}
@@ -477,245 +534,112 @@ function Analyzer() {
           marginBottom: 16,
         }}
       >
-        <FlowCard icon="rocket"  label="Net Foreign" value={data.netForeign} color="#4d8fff" />
-        <FlowCard icon="diamond" label="Net Local"   value={data.netLocal}   color="#a855f7" />
-        <FlowCard icon="star"    label="Net Retail"  value={data.netRetail}  color="#f59e0b" />
+        <FlowCard icon="rocket"  label="Net Foreign" value={bandData ? bandData.netForeign : data.netForeign} color="#4d8fff" live={!!bandData} />
+        <FlowCard icon="diamond" label="Net Local"   value={bandData ? bandData.netLocal   : data.netLocal}   color="#a855f7" live={!!bandData} />
+        <FlowCard icon="star"    label="Net Retail"  value={bandData ? bandData.netRetail  : data.netRetail}  color="#f59e0b" live={!!bandData} />
       </div>
 
-      {/* AI plan + win rate */}
+      {/* ML Trading Plan + Performance */}
       <div
         className="calc-grid"
         style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}
       >
+        {/* Card 1: Trading Plan */}
         <div className="card" style={{ padding: 24 }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              marginBottom: 16,
-            }}
-          >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: 'var(--primary-soft)',
-                  color: 'var(--primary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--primary-soft)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="rocket" size={18} />
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--fg)' }}>
-                  AI Trading Plan
-                </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: 'var(--fg-muted)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    fontWeight: 700,
-                  }}
-                >
-                  Setup buat 3–7 hari ke depan
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--fg)' }}>ML Trading Plan</div>
+                <div style={{ fontSize: 11, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
+                  {mlData?.status === 'success' ? 'SVM · Live Data' : 'Jalankan npm start'}
                 </div>
               </div>
             </div>
-            <div
-              style={{
-                padding: '6px 12px',
-                borderRadius: 999,
-                background: data.plan.isBullish
-                  ? 'var(--primary-soft)'
-                  : 'color-mix(in oklab, var(--danger) 14%, transparent)',
-                color: data.plan.isBullish ? 'var(--primary)' : 'var(--danger)',
-                fontSize: 11,
-                fontWeight: 900,
-                letterSpacing: '0.06em',
-              }}
-            >
-              {data.plan.signal}
-            </div>
+            {mlData?.status === 'success' && (
+              <div style={{ padding: '6px 12px', borderRadius: 999, background: 'color-mix(in oklab, ' + PRED_COLOR[mlData.prediction] + ' 14%, transparent)', color: PRED_COLOR[mlData.prediction], fontSize: 11, fontWeight: 900, letterSpacing: '0.06em' }}>
+                {PRED_LABEL[mlData.prediction] || mlData.prediction}
+              </div>
+            )}
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '12px 14px',
-              background: 'var(--surface-2)',
-              border: '1px solid var(--border)',
-              borderRadius: 12,
-              marginBottom: 10,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: 'var(--fg-muted)',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-              }}
-            >
-              Entry
-            </span>
-            <span
-              className="mono tnum"
-              style={{ fontSize: 18, fontWeight: 800, color: 'var(--fg)' }}
-            >
-              Rp {data.plan.entry.toLocaleString('id-ID')}
-            </span>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div
-              style={{
-                padding: 14,
-                background: 'var(--primary-soft)',
-                borderRadius: 12,
-                border: '1px solid color-mix(in oklab, var(--primary) 25%, transparent)',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 900,
-                  letterSpacing: '0.08em',
-                  color: 'var(--primary)',
-                  marginBottom: 4,
-                }}
-              >
-                TARGET PROFIT
+          {mlData?.status === 'success' ? (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 12, marginBottom: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--fg-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Entry</span>
+                <span className="mono tnum" style={{ fontSize: 18, fontWeight: 800, color: 'var(--fg)' }}>
+                  Rp {mlData.trading_plan.entry.toLocaleString('id-ID')}
+                </span>
               </div>
-              <div
-                className="mono tnum"
-                style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary)' }}
-              >
-                Rp {data.plan.tp.toLocaleString('id-ID')}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                <div style={{ padding: 14, background: 'var(--primary-soft)', borderRadius: 12, border: '1px solid color-mix(in oklab, var(--primary) 25%, transparent)' }}>
+                  <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', color: 'var(--primary)', marginBottom: 4 }}>TARGET PROFIT</div>
+                  <div className="mono tnum" style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary)' }}>Rp {mlData.trading_plan.target_profit.toLocaleString('id-ID')}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, marginTop: 2, color: 'var(--primary)' }}>+{mlData.trading_plan.tp_percent}%</div>
+                </div>
+                <div style={{ padding: 14, background: 'color-mix(in oklab, var(--danger) 10%, transparent)', borderRadius: 12, border: '1px solid color-mix(in oklab, var(--danger) 25%, transparent)' }}>
+                  <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', color: 'var(--danger)', marginBottom: 4 }}>STOP LOSS</div>
+                  <div className="mono tnum" style={{ fontSize: 18, fontWeight: 800, color: 'var(--danger)' }}>Rp {mlData.trading_plan.stop_loss.toLocaleString('id-ID')}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, marginTop: 2, color: 'var(--danger)' }}>{mlData.trading_plan.sl_percent}%</div>
+                </div>
               </div>
-              <div
-                style={{ fontSize: 11, fontWeight: 700, marginTop: 2, color: 'var(--primary)' }}
-              >
-                +{(((data.plan.tp - data.plan.entry) / data.plan.entry) * 100).toFixed(2)}%
+              <div style={{ fontSize: 12, color: 'var(--fg-muted)', padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)', lineHeight: 1.5 }}>
+                {mlData.trading_plan.note}
               </div>
+            </>
+          ) : mlData?.status === 'error' ? (
+            <div style={{ fontSize: 13, color: 'var(--danger)', padding: 16, background: 'color-mix(in oklab, var(--danger) 8%, transparent)', borderRadius: 'var(--radius-sm)' }}>
+              {mlData.message}
             </div>
-            <div
-              style={{
-                padding: 14,
-                background: 'color-mix(in oklab, var(--danger) 10%, transparent)',
-                borderRadius: 12,
-                border: '1px solid color-mix(in oklab, var(--danger) 25%, transparent)',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 900,
-                  letterSpacing: '0.08em',
-                  color: 'var(--danger)',
-                  marginBottom: 4,
-                }}
-              >
-                STOP LOSS
-              </div>
-              <div
-                className="mono tnum"
-                style={{ fontSize: 18, fontWeight: 800, color: 'var(--danger)' }}
-              >
-                Rp {data.plan.sl.toLocaleString('id-ID')}
-              </div>
-              <div
-                style={{ fontSize: 11, fontWeight: 700, marginTop: 2, color: 'var(--danger)' }}
-              >
-                −{(((data.plan.entry - data.plan.sl) / data.plan.entry) * 100).toFixed(2)}%
-              </div>
+          ) : (
+            <div style={{ fontSize: 13, color: 'var(--fg-muted)', padding: 16, background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)', lineHeight: 1.6 }}>
+              {mlData === null ? (
+                loading ? 'Memuat prediksi ML...' : 'Klik Analisa untuk memuat prediksi real dari model SVM.'
+              ) : (
+                <>Fitur ML memerlukan server lokal.<br /><strong style={{ color: 'var(--fg)' }}>npm start</strong> untuk mengaktifkan.</>
+              )}
             </div>
-          </div>
+          )}
         </div>
 
+        {/* Card 2: Win Rate + Indicators */}
         <div className="card" style={{ padding: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: 'var(--primary-soft)',
-                color: 'var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--primary-soft)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="check" size={18} />
             </div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 800 }}>Model Performance</div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: 'var(--fg-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  fontWeight: 700,
-                }}
-              >
-                Akurasi 60 hari terakhir
+              <div style={{ fontSize: 11, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
+                {mlData?.status === 'success' ? '60 hari terakhir · Live' : 'Indikator teknikal'}
               </div>
             </div>
           </div>
+
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 16 }}>
-            <span
-              className="mono tnum"
-              style={{
-                fontSize: 48,
-                fontWeight: 900,
-                letterSpacing: '-0.03em',
-                color: 'var(--fg)',
-              }}
-            >
-              <AnimatedNumber value={data.plan.winRate} format={(n) => Math.round(n) + '%'} />
+            <span className="mono tnum" style={{ fontSize: 48, fontWeight: 900, letterSpacing: '-0.03em', color: mlData?.status === 'success' ? (mlData.win_rate >= 50 ? 'var(--success)' : 'var(--danger)') : 'var(--fg)' }}>
+              <AnimatedNumber value={mlData?.status === 'success' ? mlData.win_rate : data.plan.winRate} format={(n) => Math.round(n) + '%'} />
             </span>
-            <span style={{ fontSize: 13, color: 'var(--fg-muted)', fontWeight: 700 }}>
-              Win Rate
-            </span>
+            <span style={{ fontSize: 13, color: 'var(--fg-muted)', fontWeight: 700 }}>Win Rate</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {[
+            {mlData?.status === 'success' ? [
+              { label: 'Stoch %K',   value: mlData.details.stoch },
+              { label: 'BB Position', value: mlData.details.bb_pos },
+              { label: 'ADX',         value: mlData.details.adx },
+              { label: 'Sinyal Kuat', value: mlData.details.adx > 25 ? 'Ya (Trending)' : 'Lemah (Sideways)' },
+            ] : [
               { label: 'Stoch %K',   value: (40 + (data.plan.strength % 50)).toFixed(1) },
               { label: 'BB Position', value: data.plan.isBullish ? 'Upper' : 'Mid' },
               { label: 'ADX',         value: (20 + (data.plan.strength % 30)).toFixed(1) },
               { label: 'OBV Trend',   value: data.netForeign >= 0 ? 'Rising' : 'Falling' },
             ].map((m, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '8px 12px',
-                  background: 'var(--surface-2)',
-                  borderRadius: 'var(--radius-sm)',
-                }}
-              >
-                <span style={{ fontSize: 12, color: 'var(--fg-muted)', fontWeight: 700 }}>
-                  {m.label}
-                </span>
-                <span
-                  className="mono"
-                  style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg)' }}
-                >
-                  {m.value}
-                </span>
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)' }}>
+                <span style={{ fontSize: 12, color: 'var(--fg-muted)', fontWeight: 700 }}>{m.label}</span>
+                <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg)' }}>{m.value}</span>
               </div>
             ))}
           </div>
@@ -726,15 +650,15 @@ function Analyzer() {
       <div className="calc-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <BrokerTable
           title="Top Buyer"
-          subtitle="Akumulasi terbesar"
-          list={data.buyers}
+          subtitle={bandData ? 'Live · 7 hari terakhir' : 'Akumulasi terbesar'}
+          list={bandData ? bandData.buyers : data.buyers}
           color="var(--success)"
           icon="rocket"
         />
         <BrokerTable
           title="Top Seller"
-          subtitle="Distribusi terbesar"
-          list={data.sellers}
+          subtitle={bandData ? 'Live · 7 hari terakhir' : 'Distribusi terbesar'}
+          list={bandData ? bandData.sellers : data.sellers}
           color="var(--danger)"
           icon="arrow_left"
         />
@@ -756,9 +680,7 @@ function Analyzer() {
           <Icon name="info" size={18} />
         </span>
         <div style={{ fontSize: 13, color: 'var(--fg-muted)', lineHeight: 1.55 }}>
-          <strong style={{ color: 'var(--fg)' }}>Disclaimer:</strong> Data simulasi untuk demo.
-          Bandarmology bersifat historis dan <strong>bukan</strong> rekomendasi beli/jual. DYOR
-          — Do Your Own Research.
+          <strong style={{ color: 'var(--fg)' }}>Disclaimer:</strong> Data bandarmology adalah simulasi demo. ML Trading Plan menggunakan model SVM yang dilatih dari data historis IDX — bukan rekomendasi beli/jual. DYOR.
         </div>
       </div>
     </CalcScreen>
