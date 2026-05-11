@@ -213,6 +213,71 @@ function fetchMarketData() {
 fetchMarketData();
 setInterval(fetchMarketData, 15000);
 
+// ─── Board Cache (IDX Papan Pencatatan) ──────────────────────────────────────
+const boardCache = new Map(); // ticker → 'utama' | 'pengembangan' | 'akselerasi' | 'ekonomi_baru'
+
+function normalizeBoard(raw) {
+    if (!raw) return 'unknown';
+    const s = raw.toString().toLowerCase();
+    if (s.includes('akseler') || s.includes('acceler')) return 'akselerasi';
+    if (s.includes('ekonomi') || s.includes('economy') || s === 'ne') return 'ekonomi_baru';
+    if (s.includes('pengembangan') || s.includes('develop')) return 'pengembangan';
+    if (s.includes('utama') || s.includes('main')) return 'utama';
+    return 'unknown';
+}
+
+function fetchBoardList() {
+    const qs = 'start=0&length=9999&board=0&key=';
+    const req = https.request({
+        hostname: 'www.idx.co.id',
+        path: `/primary/StockData/GetStockList?${qs}`,
+        method: 'GET',
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Referer': 'https://www.idx.co.id/',
+            'Origin': 'https://www.idx.co.id',
+        },
+    }, (res) => {
+        let data = '';
+        res.on('data', c => data += c);
+        res.on('end', () => {
+            try {
+                const json = JSON.parse(data);
+                const list = json.data || json.Data || json.results || json.Results || [];
+                if (!Array.isArray(list) || list.length === 0) {
+                    console.warn('[Board] IDX returned empty list, status:', res.statusCode);
+                    return;
+                }
+                let count = 0;
+                list.forEach(item => {
+                    const code = (
+                        item.code || item.Code || item.symbol || item.Symbol ||
+                        item.KodeEmiten || item.Kode || ''
+                    ).toString().trim().toUpperCase();
+                    const boardRaw = (
+                        item.board || item.Board || item.listingBoard || item.ListingBoard ||
+                        item.papan || item.Papan || item.PapanPencatatan || item.market || ''
+                    ).toString().trim();
+                    if (code && boardRaw) {
+                        boardCache.set(code, normalizeBoard(boardRaw));
+                        count++;
+                    }
+                });
+                console.log(`[Board] Loaded ${count} tickers from IDX (${boardCache.size} cached)`);
+            } catch (e) {
+                console.error('[Board] Parse error:', e.message);
+            }
+        });
+    });
+    req.on('error', (e) => console.error('[Board] Fetch error:', e.message));
+    req.setTimeout(15000, () => { req.destroy(); console.error('[Board] Timeout'); });
+    req.end();
+}
+
+fetchBoardList();
+setInterval(fetchBoardList, 24 * 60 * 60 * 1000); // refresh tiap 24 jam
+
 // ─── /bandarmology  →  Real broker flow from api-saham ───────────────────────
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -260,6 +325,12 @@ function handleBandarmology(ticker, fromParam, toParam, res) {
 
         sendJSON(res, 200, { ticker, netForeign, netLocal, netRetail, lastPrice, buyers, sellers });
     });
+}
+
+// ─── /board  →  IDX papan pencatatan lookup ──────────────────────────────────
+function handleBoard(ticker, res) {
+    const board = boardCache.get(ticker.toUpperCase()) || 'unknown';
+    sendJSON(res, 200, { ticker: ticker.toUpperCase(), board, cached: boardCache.size });
 }
 
 // ─── /ml-predict  →  Run ML prediction script ────────────────────────────────
@@ -371,6 +442,13 @@ const server = http.createServer((req, res) => {
         if (!ticker) { sendJSON(res, 400, { error: 'Invalid or missing ?ticker= (alphanumeric, max 20 chars)' }); return; }
         console.log(`[Price]  ${ticker}`);
         return handlePrice(ticker, res);
+    }
+
+    // API: /board
+    if (req.method === 'GET' && pathname === '/board') {
+        const ticker = validateTicker(parsed.query.ticker);
+        if (!ticker) { sendJSON(res, 400, { error: 'Missing ?ticker=' }); return; }
+        return handleBoard(ticker, res);
     }
 
     // API: /bandarmology

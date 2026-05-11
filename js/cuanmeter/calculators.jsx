@@ -8,7 +8,7 @@
    Exposes globals: AveragePrice, ARAARB, ProfitCalc, Amunisi, Dividen.
    ============================================================ */
 
-const { useState: useStateC, useMemo: useMemoC } = React;
+const { useState: useStateC, useMemo: useMemoC, useEffect: useEffectC, useRef: useRefC } = React;
 
 /* ---------- shared input ---------- */
 function NumberInput({ label, value, onChange, prefix, suffix, hint, placeholder }) {
@@ -357,13 +357,15 @@ function AveragePrice() {
 
 /* ============================================================
    2. ARAARB — IDX berlaku 8 Apr 2025:
-      ARA berjenjang per tier, ARB flat 15% semua tier
+      ARA berjenjang per tier (kecuali Akselerasi: flat 35%)
+      ARB: 15% (Utama/Pengembangan/Ekonomi Baru), 10% (Akselerasi)
    ============================================================ */
-const ARA_TIERS = [
-  { tier: 'Tier 1', range: 'Rp 50 – Rp 200',    ara: 35, arb: 15, color: 'var(--info)' },
-  { tier: 'Tier 2', range: 'Rp 201 – Rp 5.000', ara: 25, arb: 15, color: 'var(--warning)' },
-  { tier: 'Tier 3', range: '> Rp 5.000',         ara: 20, arb: 15, color: 'var(--primary)' },
-];
+const BOARD_CONFIG = {
+  utama:        { label: 'Papan Utama',        araTiers: true,  arbPct: 15 },
+  pengembangan: { label: 'Papan Pengembangan', araTiers: true,  arbPct: 15 },
+  ekonomi_baru: { label: 'Papan Ekonomi Baru', araTiers: true,  arbPct: 15 },
+  akselerasi:   { label: 'Papan Akselerasi',   araTiers: false, araFlat: 35, arbPct: 10 },
+};
 
 // Fraksi harga resmi IDX (Peraturan II-A)
 function tickSize(p) {
@@ -376,32 +378,88 @@ function tickSize(p) {
 
 function ARAARB() {
   const [price, setPrice] = useStateC(11525);
+  const [papan, setPapan] = useStateC('utama');
+  const [boardSource, setBoardSource] = useStateC('manual'); // 'auto' | 'manual'
+  const [query, setQuery] = useStateC('');
+  const [searchResults, setSearchResults] = useStateC([]);
+  const [searching, setSearching] = useStateC(false);
+  const [selectedStock, setSelectedStock] = useStateC(null);
+  const [showDropdown, setShowDropdown] = useStateC(false);
+  const debounceRef = useRefC(null);
+  const wrapRef = useRefC(null);
+
+  // Debounced search
+  useEffectC(() => {
+    const q = query.trim();
+    if (!q || q.length < 1 || selectedStock) { setSearchResults([]); setShowDropdown(false); return; }
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearching(true);
+      fetch('/search?q=' + encodeURIComponent(q))
+        .then((r) => r.json())
+        .then((d) => { setSearchResults(d.results || []); setShowDropdown(true); setSearching(false); })
+        .catch(() => setSearching(false));
+    }, 300);
+  }, [query, selectedStock]);
+
+  // Click-outside close dropdown
+  useEffectC(() => {
+    const handler = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setShowDropdown(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const selectStock = (stock) => {
+    setSelectedStock(stock);
+    setQuery('');
+    setShowDropdown(false);
+    setSearchResults([]);
+    // Auto-fill harga dari TradingView
+    fetch('/price?ticker=' + stock.symbol)
+      .then((r) => r.json())
+      .then((d) => { if (d.price) setPrice(d.price); })
+      .catch(() => {});
+    // Auto-detect papan dari IDX cache
+    setBoardSource('manual');
+    fetch('/board?ticker=' + stock.symbol)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.board && d.board !== 'unknown' && BOARD_CONFIG[d.board]) {
+          setPapan(d.board);
+          setBoardSource('auto');
+        }
+      })
+      .catch(() => {});
+  };
+
+  const clearStock = () => {
+    setSelectedStock(null);
+    setQuery('');
+    setBoardSource('manual');
+  };
 
   const result = useMemoC(() => {
     const p = Number(price) || 0;
     if (p <= 0) return null;
-    let araPct;
-    let tier;
-    if (p <= 200) {
-      araPct = 35;
-      tier = 'Tier 1 (Rp 50–200)';
-    } else if (p <= 5000) {
-      araPct = 25;
-      tier = 'Tier 2 (Rp 201–5.000)';
+    const cfg = BOARD_CONFIG[papan];
+    let araPct, tier;
+    if (cfg.araTiers) {
+      if (p <= 200)      { araPct = 35; tier = 'Tier 1 (Rp 50–200)'; }
+      else if (p <= 5000){ araPct = 25; tier = 'Tier 2 (Rp 201–5.000)'; }
+      else               { araPct = 20; tier = 'Tier 3 (>Rp 5.000)'; }
     } else {
-      araPct = 20;
-      tier = 'Tier 3 (>Rp 5.000)';
+      araPct = cfg.araFlat;
+      tier = 'Flat — semua harga';
     }
-    const arbPct = 15;
+    const arbPct = cfg.arbPct;
     const rawAra = p * (1 + araPct / 100);
     const rawArb = p * (1 - arbPct / 100);
-    // Tick size dihitung dari harga hasil, bukan harga asal
-    // ARA: floor (tidak boleh melebihi batas atas)
-    // ARB: ceil  (tidak boleh menembus batas bawah)
     const ara = Math.floor(rawAra / tickSize(rawAra)) * tickSize(rawAra);
     const arb = Math.max(50, Math.ceil(rawArb / tickSize(rawArb)) * tickSize(rawArb));
-    return { p, araPct, arbPct, ara, arb, tier };
-  }, [price]);
+    return { p, araPct, arbPct, ara, arb, tier, cfg };
+  }, [price, papan]);
 
   return (
     <CalcScreen
@@ -415,68 +473,122 @@ function ARAARB() {
           real-time.
         </>
       }
-      subtitle="Batas atas dan bawah harga harian saham IDX. ARA berjenjang per tier, ARB flat 15% semua tier (berlaku 8 Apr 2025)."
+      subtitle="Cari kode saham untuk auto-detect harga & papan, atau input manual. ARA berjenjang per tier, ARB flat 15% (Akselerasi: ARB 10%)."
     >
       <div className="calc-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 24 }}>
         <div className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <h3 style={{ fontSize: 16 }}>Input Harga Acuan</h3>
+          <h3 style={{ fontSize: 16 }}>Input Harga & Papan</h3>
+
+          {/* Stock search */}
+          <div ref={wrapRef} style={{ position: 'relative' }}>
+            <div className="label" style={{ marginBottom: 6 }}>Cari Kode Saham</div>
+            {selectedStock ? (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '12px 14px',
+                background: 'var(--primary-soft)', border: '1px solid var(--primary)',
+                borderRadius: 'var(--radius)',
+              }}>
+                <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: 15 }}>{selectedStock.symbol}</span>
+                <span style={{ fontSize: 12, color: 'var(--fg-muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedStock.name}</span>
+                <button onClick={clearStock} style={{ background: 'none', border: 'none', color: 'var(--fg-muted)', cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: 0, flexShrink: 0 }}>✕</button>
+              </div>
+            ) : (
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--fg-faint)', pointerEvents: 'none' }}>
+                  <Icon name="target" size={16} />
+                </span>
+                <input
+                  className="input"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value.toUpperCase())}
+                  placeholder="BUMI, BBRI, TLKM..."
+                  style={{ paddingLeft: 44, paddingRight: searching ? 40 : 16 }}
+                />
+                {searching && (
+                  <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--fg-faint)', fontSize: 11, fontWeight: 700 }}>...</span>
+                )}
+              </div>
+            )}
+            {showDropdown && searchResults.length > 0 && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 200,
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-lg)', overflow: 'hidden',
+              }}>
+                {searchResults.map((s, i) => (
+                  <button
+                    key={i}
+                    onMouseDown={() => selectStock(s)}
+                    style={{
+                      width: '100%', padding: '10px 14px', display: 'flex', gap: 10, alignItems: 'center',
+                      background: 'transparent', border: 'none', borderBottom: i < searchResults.length - 1 ? '1px solid var(--border)' : 'none',
+                      cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--primary)', minWidth: 56 }}>{s.symbol}</span>
+                    <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{s.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <NumberInput
-            label="Harga saham saat ini"
+            label="Harga Saham (Rp)"
             value={price}
             onChange={setPrice}
             prefix="Rp"
             hint="Harga penutupan / referensi hari sebelumnya"
           />
 
+          {/* Papan selector */}
           <div>
-            <div className="label" style={{ marginBottom: 8 }}>Quick Test</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {[80, 250, 1500, 4500, 8000, 25000].map((p) => (
+            <div className="label" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+              Papan Pencatatan
+              {boardSource === 'auto' && (
+                <span style={{
+                  fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
+                  background: 'var(--primary-soft)', color: 'var(--primary)',
+                  padding: '2px 8px', borderRadius: 999,
+                }}>AUTO-DETECT</span>
+              )}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              {Object.entries(BOARD_CONFIG).map(([id, cfg]) => (
                 <button
-                  key={p}
-                  onClick={() => setPrice(p)}
+                  key={id}
+                  onClick={() => { setPapan(id); setBoardSource('manual'); }}
                   style={{
-                    padding: '8px 14px',
-                    background: price === p ? 'var(--primary)' : 'var(--surface-2)',
-                    color: price === p ? 'var(--primary-fg)' : 'var(--fg)',
-                    border: '1px solid var(--border)',
+                    padding: '10px 12px', textAlign: 'left',
+                    background: papan === id ? 'var(--primary)' : 'var(--surface-2)',
+                    color: papan === id ? 'var(--primary-fg)' : 'var(--fg)',
+                    border: '1px solid ' + (papan === id ? 'var(--primary)' : 'var(--border)'),
                     borderRadius: 'var(--radius)',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    fontFamily: 'JetBrains Mono, monospace',
+                    cursor: 'pointer',
                   }}
                 >
-                  {p.toLocaleString('id-ID')}
+                  <div style={{ fontSize: 12, fontWeight: 800 }}>{cfg.label}</div>
+                  <div style={{ fontSize: 10, opacity: 0.7, fontWeight: 600, marginTop: 2 }}>
+                    ARA {cfg.araTiers ? '35/25/20%' : cfg.araFlat + '%'} · ARB {cfg.arbPct}%
+                  </div>
                 </button>
               ))}
             </div>
           </div>
 
-          <div
-            style={{
-              background: 'var(--surface-2)',
-              padding: 16,
-              borderRadius: 'var(--radius)',
-              border: '1px solid var(--border)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                color: 'var(--fg-muted)',
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                marginBottom: 8,
-              }}
-            >
-              Tier
+          {/* Info tier */}
+          <div style={{ background: 'var(--surface-2)', padding: 14, borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 11, color: 'var(--fg-muted)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
+              {BOARD_CONFIG[papan].label}
             </div>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--fg)' }}>
               {result?.tier || '—'}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 4 }}>
-              ARA {result?.araPct}% · ARB {result?.arbPct}%
+            <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 3 }}>
+              ARA <strong style={{ color: 'var(--success)' }}>+{result?.araPct}%</strong>
+              {' · '}
+              ARB <strong style={{ color: 'var(--danger)' }}>−{result?.arbPct}%</strong>
             </div>
           </div>
         </div>
@@ -484,66 +596,25 @@ function ARAARB() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* ARA */}
           <div className="card" style={{ padding: 28, position: 'relative', overflow: 'hidden' }}>
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                bottom: 0,
-                width: 4,
-                background: 'var(--success)',
-              }}
-            />
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginBottom: 16,
-                flexWrap: 'wrap',
-                gap: 12,
-              }}
-            >
+            <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 4, background: 'var(--success)' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <Icon name="rocket" size={18} />
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: 'var(--success)',
-                      letterSpacing: '0.08em',
-                    }}
-                  >
+                  <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--success)', letterSpacing: '0.08em' }}>
                     AUTO REJECT ATAS · MOON
                   </span>
                 </div>
-                <div style={{ fontSize: 14, color: 'var(--fg-muted)' }}>
-                  Batas tertinggi harga hari ini
-                </div>
+                <div style={{ fontSize: 14, color: 'var(--fg-muted)' }}>Batas tertinggi harga hari ini</div>
               </div>
               <div className="badge" style={{ background: 'var(--success)', color: '#fff' }}>
                 +{result?.araPct}%
               </div>
             </div>
-            <div
-              className="mono tnum"
-              style={{
-                fontSize: 56,
-                fontWeight: 800,
-                color: 'var(--success)',
-                letterSpacing: '-0.03em',
-                lineHeight: 1,
-              }}
-            >
+            <div className="mono tnum" style={{ fontSize: 56, fontWeight: 800, color: 'var(--success)', letterSpacing: '-0.03em', lineHeight: 1 }}>
               {result ? (
-                <AnimatedNumber
-                  value={result.ara}
-                  format={(n) => 'Rp ' + Math.round(n).toLocaleString('id-ID')}
-                />
-              ) : (
-                'Rp —'
-              )}
+                <AnimatedNumber value={result.ara} format={(n) => 'Rp ' + Math.round(n).toLocaleString('id-ID')} />
+              ) : 'Rp —'}
             </div>
             <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginTop: 12 }}>
               Selisih dari harga acuan:{' '}
@@ -555,66 +626,25 @@ function ARAARB() {
 
           {/* ARB */}
           <div className="card" style={{ padding: 28, position: 'relative', overflow: 'hidden' }}>
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                bottom: 0,
-                width: 4,
-                background: 'var(--danger)',
-              }}
-            />
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginBottom: 16,
-                flexWrap: 'wrap',
-                gap: 12,
-              }}
-            >
+            <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 4, background: 'var(--danger)' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <Icon name="diamond" size={18} />
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: 'var(--danger)',
-                      letterSpacing: '0.08em',
-                    }}
-                  >
+                  <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--danger)', letterSpacing: '0.08em' }}>
                     AUTO REJECT BAWAH · BOTTOM
                   </span>
                 </div>
-                <div style={{ fontSize: 14, color: 'var(--fg-muted)' }}>
-                  Batas terendah harga hari ini
-                </div>
+                <div style={{ fontSize: 14, color: 'var(--fg-muted)' }}>Batas terendah harga hari ini</div>
               </div>
               <div className="badge" style={{ background: 'var(--danger)', color: '#fff' }}>
                 −{result?.arbPct}%
               </div>
             </div>
-            <div
-              className="mono tnum"
-              style={{
-                fontSize: 56,
-                fontWeight: 800,
-                color: 'var(--danger)',
-                letterSpacing: '-0.03em',
-                lineHeight: 1,
-              }}
-            >
+            <div className="mono tnum" style={{ fontSize: 56, fontWeight: 800, color: 'var(--danger)', letterSpacing: '-0.03em', lineHeight: 1 }}>
               {result ? (
-                <AnimatedNumber
-                  value={result.arb}
-                  format={(n) => 'Rp ' + Math.round(n).toLocaleString('id-ID')}
-                />
-              ) : (
-                'Rp —'
-              )}
+                <AnimatedNumber value={result.arb} format={(n) => 'Rp ' + Math.round(n).toLocaleString('id-ID')} />
+              ) : 'Rp —'}
             </div>
             <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginTop: 12 }}>
               Selisih dari harga acuan:{' '}
@@ -626,47 +656,40 @@ function ARAARB() {
         </div>
       </div>
 
-      {/* tier table */}
+      {/* Tier table — dinamis per papan */}
       <div className="card" style={{ padding: 24, marginTop: 24 }}>
-        <h3 style={{ fontSize: 16, marginBottom: 16 }}>Tabel Aturan IDX</h3>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: 12,
-          }}
-        >
-          {ARA_TIERS.map((t, i) => (
-            <div
-              key={i}
-              style={{
-                padding: 16,
-                background: 'var(--surface-2)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 999,
-                    background: t.color,
-                  }}
-                />
-                <span style={{ fontSize: 13, fontWeight: 800 }}>{t.tier}</span>
-              </div>
-              <div className="mono" style={{ fontSize: 14, color: 'var(--fg-muted)', marginBottom: 8 }}>
-                {t.range}
-              </div>
-              <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
-                <span><strong className="up">+{t.ara}%</strong> ARA</span>
-                <span><strong className="down">−{t.arb}%</strong> ARB</span>
-              </div>
-            </div>
-          ))}
+        <h3 style={{ fontSize: 16, marginBottom: 4 }}>Aturan {BOARD_CONFIG[papan].label}</h3>
+        <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 16 }}>
+          {papan === 'akselerasi'
+            ? 'ARA flat 35% untuk semua harga. ARB flat 10%.'
+            : 'ARA berjenjang per tier harga. ARB flat 15% semua tier (berlaku 8 Apr 2025).'}
         </div>
+        {papan === 'akselerasi' ? (
+          <div style={{ padding: 16, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', display: 'flex', gap: 24 }}>
+            <span style={{ fontSize: 13 }}><strong className="up">+35%</strong> ARA (flat semua harga)</span>
+            <span style={{ fontSize: 13 }}><strong className="down">−10%</strong> ARB (flat semua harga)</span>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+            {[
+              { tier: 'Tier 1', range: 'Rp 50 – Rp 200',    ara: 35, color: 'var(--info)' },
+              { tier: 'Tier 2', range: 'Rp 201 – Rp 5.000', ara: 25, color: 'var(--warning)' },
+              { tier: 'Tier 3', range: '> Rp 5.000',         ara: 20, color: 'var(--primary)' },
+            ].map((t, i) => (
+              <div key={i} style={{ padding: 16, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 999, background: t.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: 800 }}>{t.tier}</span>
+                </div>
+                <div className="mono" style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 8 }}>{t.range}</div>
+                <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
+                  <span><strong className="up">+{t.ara}%</strong> ARA</span>
+                  <span><strong className="down">−15%</strong> ARB</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </CalcScreen>
   );
