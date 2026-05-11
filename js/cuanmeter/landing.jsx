@@ -7,12 +7,12 @@
    Exposes globals: LandingPage.
    ============================================================ */
 
-const { useState: useStateL, useEffect: useEffectL } = React;
+const { useState: useStateL, useEffect: useEffectL, useMemo: useMemoL } = React;
 
 /* ---------- Hero ---------- */
 function Hero({ onNavigate }) {
   return (
-    <section style={{ padding: '64px 0 88px', position: 'relative', overflow: 'hidden' }}>
+    <section style={{ padding: '64px 0 88px', position: 'relative', overflow: 'visible' }}>
       <div
         id="hero-grid"
         className="container"
@@ -115,43 +115,194 @@ function Hero({ onNavigate }) {
   );
 }
 
-/* ---------- HeroMockup — live BBCA chart from TradingView ---------- */
+/* ---------- HeroMockup — 3D isometric finance illustration ---------- */
 function HeroMockup() {
-  const tvTheme = useTVTheme();
+  const [tick, setTick] = useStateL(0);
+
+  useEffectL(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1600);
+    return () => clearInterval(id);
+  }, []);
+
+  const bars = useMemoL(() =>
+    [0.55, 0.42, 0.78, 0.62, 0.95, 0.85].map((b, i) =>
+      Math.min(1, b + Math.sin((tick + i) * 0.8) * 0.06)
+    ), [tick]);
 
   return (
-    <div className="fade-up fade-up-2" style={{ position: 'relative', height: 540 }}>
-      <div
-        className="card"
-        style={{
-          position: 'absolute',
-          top: 30,
-          left: 0,
-          right: 0,
-          padding: 0,
-          zIndex: 2,
-          height: 380,
-          overflow: 'hidden',
-        }}
-      >
-        <TVWidget
-          widget="mini-symbol-overview"
-          height="100%"
-          config={{
-            symbol: 'IDX:BBCA',
-            width: '100%',
-            height: '100%',
-            locale: 'id',
-            dateRange: '12M',
-            colorTheme: tvTheme,
-            isTransparent: true,
-            autosize: true,
-            chartOnly: false,
-            noTimeScale: false,
-          }}
-        />
+    <div className="fade-up fade-up-2 hero-3d" style={{
+      position: 'relative', height: 560,
+      marginTop: 60,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      perspective: 1400,
+    }}>
+      {/* glow backdrop */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'radial-gradient(circle at 50% 55%, var(--primary-soft) 0%, transparent 65%)',
+        filter: 'blur(20px)',
+        opacity: 0.9,
+      }} />
+
+      {/* main isometric scene */}
+      <div style={{
+        position: 'relative', width: 480, height: 480,
+        transformStyle: 'preserve-3d',
+        transform: 'rotateX(55deg) rotateZ(-35deg)',
+        animation: 'hero3dFloat 6s ease-in-out infinite',
+      }}>
+
+        {/* base platform — shadow layer */}
+        <div style={{
+          position: 'absolute', left: 70, top: 70, width: 340, height: 340,
+          borderRadius: 28,
+          background: 'linear-gradient(135deg, color-mix(in oklab, var(--primary) 18%, var(--bg)) 0%, var(--bg-soft) 100%)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 30px 60px -20px color-mix(in oklab, var(--primary) 35%, transparent)',
+          transform: 'translateZ(-30px)',
+        }} />
+
+        {/* base platform — surface */}
+        <div style={{
+          position: 'absolute', left: 70, top: 70, width: 340, height: 340,
+          borderRadius: 28,
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          transform: 'translateZ(0px)',
+          boxShadow: 'inset 0 0 0 1px color-mix(in oklab, var(--primary) 12%, transparent)',
+        }} />
+
+        {/* grid lines */}
+        <svg viewBox="0 0 340 340" style={{
+          position: 'absolute', left: 70, top: 70, width: 340, height: 340,
+          transform: 'translateZ(1px)',
+        }}>
+          {[60, 120, 180, 240, 280].map((y, i) => (
+            <line key={i} x1="30" y1={y} x2="310" y2={y}
+              stroke="var(--border)" strokeWidth="1" strokeDasharray="3 6" opacity="0.7" />
+          ))}
+        </svg>
+
+        {/* rising bar chart */}
+        {bars.map((h, i) => {
+          const barH = 30 + h * 170;
+          return (
+            <div key={i} style={{
+              position: 'absolute',
+              left: 110 + i * 36, top: 220,
+              width: 28, height: 28,
+              transformStyle: 'preserve-3d',
+              transform: `translateZ(${barH}px)`,
+              transition: 'transform 0.8s ease-out',
+            }}>
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: `linear-gradient(135deg, color-mix(in oklab, var(--primary) ${50 + i * 8}%, white) 0%, var(--primary) 100%)`,
+                borderRadius: 4,
+                boxShadow: '0 0 0 1px color-mix(in oklab, var(--primary) 60%, black)',
+              }} />
+              <div style={{
+                position: 'absolute', left: 0, top: 28,
+                width: 28, height: barH,
+                background: 'linear-gradient(to bottom, color-mix(in oklab, var(--primary) 80%, black), color-mix(in oklab, var(--primary) 50%, black))',
+                transform: 'rotateX(-90deg)', transformOrigin: 'top',
+              }} />
+            </div>
+          );
+        })}
+
+        {/* rupiah coin stack */}
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} style={{
+            position: 'absolute', left: 110, top: 290,
+            width: 84, height: 84, borderRadius: '50%',
+            background: i === 4
+              ? 'radial-gradient(circle at 30% 30%, #fde68a 0%, #f59e0b 60%, #b45309 100%)'
+              : 'linear-gradient(135deg, #fcd34d 0%, #f59e0b 60%, #b45309 100%)',
+            border: '2px solid #92400e',
+            transform: `translateZ(${20 + i * 18}px)`,
+            boxShadow: '0 0 0 1px rgba(0,0,0,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'Satoshi, sans-serif', fontWeight: 900,
+            fontSize: i === 4 ? 30 : 0, color: '#92400e', letterSpacing: '-0.04em',
+          }}>{i === 4 && 'Rp'}</div>
+        ))}
+
+        {/* green upward arrow */}
+        <svg viewBox="0 0 120 200" style={{
+          position: 'absolute', left: 290, top: 110,
+          width: 120, height: 200,
+          transform: 'translateZ(180px) rotateZ(35deg) rotateX(-55deg)',
+        }}>
+          <defs>
+            <linearGradient id="arrowGrad" x1="0" y1="100%" x2="0" y2="0%">
+              <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="var(--primary)" />
+            </linearGradient>
+          </defs>
+          <path d="M 50 190 Q 50 100, 90 60 L 60 60 L 95 25 L 115 60 L 90 60"
+            fill="none" stroke="url(#arrowGrad)" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M 90 60 L 60 60 L 95 25 L 115 60 Z" fill="var(--primary)" />
+        </svg>
+
+        {/* floating coin — right back */}
+        <div style={{
+          position: 'absolute', left: 340, top: 110,
+          width: 56, height: 56, borderRadius: '50%',
+          background: 'radial-gradient(circle at 30% 30%, #fde68a 0%, #f59e0b 60%, #b45309 100%)',
+          border: '2px solid #92400e',
+          transform: 'translateZ(160px) rotateX(-55deg) rotateZ(35deg)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: 'Satoshi, sans-serif', fontWeight: 900, fontSize: 22, color: '#92400e',
+          animation: 'coinFloat 4s ease-in-out infinite',
+        }}>Rp</div>
+
+        {/* P/L floating card */}
+        <div style={{
+          position: 'absolute', left: 200, top: 90,
+          width: 180, height: 110,
+          transform: 'translateZ(260px) rotateX(-55deg) rotateZ(35deg)',
+          background: 'var(--surface)',
+          borderRadius: 14,
+          border: '1px solid var(--border)',
+          boxShadow: '0 20px 40px -10px rgba(0,0,0,0.18)',
+          padding: 12,
+          display: 'flex', flexDirection: 'column', gap: 6,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', color: 'var(--fg-muted)' }}>P/L HARI INI</span>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--success)' }} />
+          </div>
+          <div className="mono tnum" style={{ fontSize: 22, fontWeight: 900, color: 'var(--success)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+            +Rp 2.4 jt
+          </div>
+          <svg viewBox="0 0 160 30" style={{ width: '100%', height: 30 }} preserveAspectRatio="none">
+            <path d="M 0 22 L 20 18 L 40 20 L 60 14 L 80 16 L 100 10 L 120 12 L 140 6 L 160 4"
+              fill="none" stroke="var(--primary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
       </div>
 
+      <style>{`
+        @keyframes hero3dFloat {
+          0%, 100% { transform: rotateX(55deg) rotateZ(-35deg) translateY(0px); }
+          50%       { transform: rotateX(55deg) rotateZ(-35deg) translateY(-12px); }
+        }
+        @keyframes coinFloat {
+          0%, 100% { transform: translateZ(160px) rotateX(-55deg) rotateZ(35deg) translateY(0px); }
+          50%       { transform: translateZ(160px) rotateX(-55deg) rotateZ(35deg) translateY(-14px); }
+        }
+        .hero-3d::before {
+          content: '';
+          position: absolute;
+          left: 50%; top: 55%;
+          width: 360px; height: 60px;
+          background: radial-gradient(ellipse at center, rgba(0,0,0,0.18) 0%, transparent 70%);
+          transform: translate(-50%, 50%);
+          filter: blur(8px);
+          z-index: 0;
+        }
+      `}</style>
     </div>
   );
 }
