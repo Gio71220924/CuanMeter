@@ -25,20 +25,34 @@ const GUIDES = [
     read: '5 min',
     body: [
       { type: 'p', text: 'ARA (Auto Rejection Atas) dan ARB (Auto Rejection Bawah) adalah batas maksimal kenaikan/penurunan harga saham harian. Kalau harga nyentuh batas ini, transaksi otomatis ditolak Bursa.' },
-      { type: 'h', text: 'Aturan ARA Asimetris (sejak 4 Sep 2023)' },
-      { type: 'p', text: 'IDX menerapkan tarif ARA berbeda berdasarkan range harga (asimetris). Sementara ARB tetap simetris di 7%.' },
+      { type: 'h', text: 'Aturan ARA — Berjenjang per Tier Harga' },
+      { type: 'p', text: 'ARA dihitung berdasarkan range harga saham (asimetris), berlaku sejak September 2023:' },
       { type: 'list', items: [
-        'Tier 1 — harga Rp 50 sampai Rp 200: ARA = 35%, ARB = 7%',
-        'Tier 2 — harga Rp 201 sampai Rp 5.000: ARA = 25%, ARB = 7%',
-        'Tier 3 — harga di atas Rp 5.000: ARA = 20%, ARB = 7%',
+        'Tier 1 — harga Rp 50 s/d Rp 200: ARA = 35%',
+        'Tier 2 — harga Rp 201 s/d Rp 5.000: ARA = 25%',
+        'Tier 3 — harga di atas Rp 5.000: ARA = 20%',
       ]},
-      { type: 'h', text: 'Contoh praktis' },
-      { type: 'p', text: 'Saham X harga acuan Rp 1.000 (Tier 2). ARA = Rp 1.250, ARB = Rp 930. Kalau hari ini volume gede dan harga lompat ke Rp 1.250, semua order beli di atas itu auto-rejected sampai sesi berikutnya.' },
-      { type: 'tip', text: 'ARA berturut-turut bisa jadi sinyal saham digoreng atau ada sentimen kuat (corporate action, rights issue, dsb). Cek selalu fundamental dulu.' },
+      { type: 'h', text: 'Aturan ARB — Flat 15% Semua Tier (berlaku 8 April 2025)' },
+      { type: 'p', text: 'BEI merevisi batas ARB menjadi flat 15% untuk seluruh saham di semua papan (Utama, Pengembangan, Ekonomi Baru) termasuk ETF. Sebelumnya ARB sempat diturunkan ke 7% sejak pandemi. Harga minimum perdagangan IDX tetap Rp 50 — ARB tidak bisa menembus batas ini.' },
+      { type: 'h', text: 'Pembulatan Fraksi Harga (penting!)' },
+      { type: 'p', text: 'Hasil ARA/ARB dibulatkan ke fraksi harga resmi IDX berdasarkan zona harga hasilnya, bukan harga asal:' },
+      { type: 'list', items: [
+        'Harga < Rp 200 → fraksi Rp 1',
+        'Harga Rp 200 – < Rp 500 → fraksi Rp 2',
+        'Harga Rp 500 – < Rp 2.000 → fraksi Rp 5',
+        'Harga Rp 2.000 – < Rp 5.000 → fraksi Rp 10',
+        'Harga ≥ Rp 5.000 → fraksi Rp 25',
+      ]},
+      { type: 'p', text: 'ARA dibulatkan ke bawah (floor) agar tidak melebihi batas. ARB dibulatkan ke atas (ceil) agar tidak menembus floor perlindungan.' },
+      { type: 'h', text: 'Contoh Praktis' },
+      { type: 'p', text: 'Saham harga Rp 468 (Tier 2, ARA 25%, ARB 15%). Raw ARA = 585 → zona Rp 500–2.000, fraksi Rp 5 → ARA = 585. Raw ARB = 397,8 → fraksi Rp 2 → ARB = 398. Efektif: naik max 25%, turun max ~14,96%.' },
+      { type: 'tip', text: 'ARA berturut-turut bisa jadi sinyal saham digoreng atau ada sentimen kuat (corporate action, rights issue). Cek fundamental dulu sebelum ikut-ikutan.' },
     ],
     sources: [
-      { name: 'IDX — Pengumuman SE Bursa Auto Rejection', url: 'https://www.idx.co.id/id/berita/pengumuman-bursa' },
-      { name: 'IDX — Peraturan No. II-A tentang Perdagangan Efek', url: 'https://www.idx.co.id/id/peraturan/peraturan-bursa' },
+      { name: 'BNI Sekuritas (Bions) — Auto Reject ARA & ARB Saham', url: 'https://www.bions.id/edukasi/saham/auto-reject-ara-arb-saham' },
+      { name: 'Mirae Asset — ARA dan ARB Saham', url: 'https://mstock.miraeasset.co.id/blog/ara-dan-arb/' },
+      { name: 'OCBC Sekuritas — Fraksi Harga Saham', url: 'https://www.ocbc.id/id/article/2023/02/16/fraksi-harga-saham-adalah' },
+      { name: 'Stockbit Snips — Fraksi Harga Saham IDX', url: 'https://snips.stockbit.com/investasi/pengertian-fraksi-harga-saham' },
     ],
   },
   {
@@ -67,8 +81,9 @@ const GUIDES = [
       { type: 'tip', text: 'Aturan praktis: jangan average down lebih dari 2x. Kalau setelah 2x average masih turun >10%, ada masalah besar — cut loss > selamat.' },
     ],
     sources: [
+      { name: 'Stockbit Snips — Average Down Saham', url: 'https://snips.stockbit.com/investasi/avarage-down-saham' },
+      { name: 'Ajaib — Apa Itu Average Down?', url: 'https://ajaib.co.id/belajar/investasi/apa-itu-average-down/' },
       { name: 'Investopedia — Averaging Down', url: 'https://www.investopedia.com/terms/a/averagedown.asp' },
-      { name: 'Bareksa — Edukasi Saham', url: 'https://www.bareksa.com/' },
     ],
   },
   {
@@ -94,7 +109,8 @@ const GUIDES = [
       { type: 'tip', text: 'Trader pemula: pakai 1% rule. Boleh salah 50x sebelum modal habis — cukup buat belajar.' },
     ],
     sources: [
-      { name: 'Van Tharp — Trade Your Way to Financial Freedom', url: 'https://www.vantharp.com/' },
+      { name: 'Ajaib — Apa Itu Position Sizing?', url: 'https://ajaib.co.id/belajar/investasi/apa-itu-position-sizing' },
+      { name: 'Stockbit Snips — Manajemen Risiko Saham', url: 'https://snips.stockbit.com/investasi/manajemen-risiko' },
       { name: 'Investopedia — Position Sizing', url: 'https://www.investopedia.com/terms/p/positionsizing.asp' },
     ],
   },
@@ -122,8 +138,9 @@ const GUIDES = [
       { type: 'tip', text: 'Strategi favorit dividen-investor IDX: BBRI, TLKM, ITMG, UNVR, PTBA. Yield 4-9% net per tahun, lumayan buat ngalahin deposito.' },
     ],
     sources: [
+      { name: 'Mirae Asset — Cara Menghitung Dividen Saham', url: 'https://mstock.miraeasset.co.id/blog/cara-menghitung-dividen-saham/' },
+      { name: 'Ajaib — Dividen Saham: Pengertian dan Cara Hitungnya', url: 'https://ajaib.co.id/belajar/investasi/dividen-saham/' },
       { name: 'OJK — Edukasi Pasar Modal', url: 'https://sikapiuangmu.ojk.go.id/' },
-      { name: 'PMK 18/2021 — Pengecualian PPh Dividen', url: 'https://jdih.kemenkeu.go.id/' },
     ],
   },
   {
@@ -148,8 +165,9 @@ const GUIDES = [
       { type: 'tip', text: 'Bandarmology bukan kristal bola. Selalu kombinasikan dengan analisa teknikal dan fundamental. Top broker hari ini bisa beda sama besok.' },
     ],
     sources: [
+      { name: 'Stockbit Snips — Bandarmology', url: 'https://snips.stockbit.com/investasi/bandarmology' },
+      { name: 'Ajaib — Apa Itu Bandarmology?', url: 'https://ajaib.co.id/belajar/investasi/apa-itu-bandarmology/' },
       { name: 'KSEI — Statistik Pasar Modal', url: 'https://www.ksei.co.id/' },
-      { name: 'IDX — Broker Summary', url: 'https://www.idx.co.id/' },
     ],
   },
   {
@@ -178,9 +196,9 @@ const GUIDES = [
       { type: 'tip', text: 'Simpan eviden transaksi (buy/sell history) selama minimal 5 tahun. DJP bisa minta verifikasi sewaktu-waktu.' },
     ],
     sources: [
-      { name: 'PP No. 14/1997 — Pajak Penghasilan Transaksi Saham', url: 'https://jdih.kemenkeu.go.id/' },
-      { name: 'PMK 18/2021 — Pengecualian PPh Dividen', url: 'https://jdih.kemenkeu.go.id/' },
-      { name: 'UU No. 7/2021 (UU HPP)', url: 'https://jdih.kemenkeu.go.id/' },
+      { name: 'Stockbit Snips — Pajak Trading Saham di Indonesia', url: 'https://snips.stockbit.com/investasi/apakah-trading-saham-kena-pajak-berikut-ulasannya' },
+      { name: 'Ajaib — Panduan Lapor Pajak Saham & Reksa Dana', url: 'https://ajaib.co.id/panduan-lapor-pajak-saham-reksadana-obligasi-kripto-spt/' },
+      { name: 'OCBC Sekuritas — Cara Lapor Pajak Saham di SPT', url: 'https://www.ocbc.id/id/article/2022/03/09/cara-lapor-pajak-saham' },
     ],
   },
   {
@@ -203,9 +221,9 @@ const GUIDES = [
       { type: 'tip', text: 'Jangan pakai 1 ratio doang. Cek ke-4 ratio + tren-nya selama 3-5 tahun. Saham bagus = ROE tinggi konsisten + DER rendah + earnings growth positif.' },
     ],
     sources: [
-      { name: 'Investopedia — Fundamental Analysis', url: 'https://www.investopedia.com/terms/f/fundamentalanalysis.asp' },
-      { name: 'Bareksa — Edukasi Saham', url: 'https://www.bareksa.com/' },
-      { name: 'Stockbit — Belajar Saham', url: 'https://stockbit.com/' },
+      { name: 'Mirae Asset — Cara Menghitung Harga Wajar Saham', url: 'https://mstock.miraeasset.co.id/blog/cara-menghitung-harga-wajar-saham/' },
+      { name: 'Stockbit Snips — Analisa Fundamental Saham', url: 'https://snips.stockbit.com/investasi/analisa-fundamental' },
+      { name: 'Ajaib — Cara Analisa Fundamental Saham', url: 'https://ajaib.co.id/belajar/investasi/cara-analisa-fundamental-saham/' },
     ],
   },
   {
@@ -234,8 +252,9 @@ const GUIDES = [
       { type: 'tip', text: 'Set stop loss SEBELUM lo beli, bukan setelah lo nyangkut. Pakai limit/stop order biar gak goyang sama emosi.' },
     ],
     sources: [
-      { name: 'Investopedia — Stop Loss Order', url: 'https://www.investopedia.com/terms/s/stop-lossorder.asp' },
-      { name: 'Mark Minervini — Trade Like a Stock Market Wizard', url: 'https://www.minervini.com/' },
+      { name: 'Stockbit Snips — Apa Itu Cut Loss?', url: 'https://snips.stockbit.com/investasi/apa-itu-cut-loss' },
+      { name: 'Stockbit Snips — Stop Loss Saham', url: 'https://snips.stockbit.com/investasi/stop-loss-saham' },
+      { name: 'Ajaib — Cut Loss Saham: Kapan Waktu yang Tepat?', url: 'https://ajaib.co.id/belajar/investasi/cut-loss-saham/' },
     ],
   },
 ];
