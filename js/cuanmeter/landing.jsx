@@ -307,26 +307,103 @@ function HeroMockup() {
   );
 }
 
-/* ---------- Stock ticker — TradingView Ticker Tape widget ---------- */
-const TICKER_SYMBOLS = [
-  { description: 'IHSG', proName: 'IDX:COMPOSITE' },
-  { description: 'BBCA', proName: 'IDX:BBCA' },
-  { description: 'BBRI', proName: 'IDX:BBRI' },
-  { description: 'BMRI', proName: 'IDX:BMRI' },
-  { description: 'BBNI', proName: 'IDX:BBNI' },
-  { description: 'TLKM', proName: 'IDX:TLKM' },
-  { description: 'ASII', proName: 'IDX:ASII' },
-  { description: 'GOTO', proName: 'IDX:GOTO' },
-  { description: 'ANTM', proName: 'IDX:ANTM' },
-  { description: 'ADRO', proName: 'IDX:ADRO' },
-  { description: 'KLBF', proName: 'IDX:KLBF' },
-  { description: 'PGAS', proName: 'IDX:PGAS' },
-  { description: 'BTC',  proName: 'BINANCE:BTCUSDT' },
-  { description: 'GOLD', proName: 'OANDA:XAUUSD' },
+/* ---------- Stock ticker — custom real-time marquee via SSE ---------- */
+const MARQUEE_SYMBOLS = [
+  { key: 'IDX:COMPOSITE',   label: 'IHSG',    logo: 'indonesia'                   },
+  { key: 'IDX:LQ45',        label: 'LQ45',    logo: 'indonesia'                   },
+  { key: 'IDX:BBCA',        label: 'BBCA',    logo: 'bank-central-asia'           },
+  { key: 'IDX:BBRI',        label: 'BBRI',    logo: 'bank-rakyat-indonesia'       },
+  { key: 'IDX:BBNI',        label: 'BBNI',    logo: 'bank-negara-indonesia'       },
+  { key: 'IDX:BMRI',        label: 'BMRI',    logo: 'bank-mandiri'                },
+  { key: 'IDX:BUMI',        label: 'BUMI',    logo: 'bumi-resources'              },
+  { key: 'IDX:TLKM',        label: 'TLKM',    logo: 'telkom-indonesia'            },
+  { key: 'IDX:ASII',        label: 'ASII',    logo: 'astra-international'         },
+  { key: 'IDX:ANTM',        label: 'ANTM',    logo: 'aneka-tambang'               },
+  { key: 'IDX:ADMR',        label: 'ADMR',    logo: 'adaro-minerals-indonesia'    },
+  { key: 'IDX:PTBA',        label: 'PTBA',    logo: 'bukit-asam'                  },
+  { key: 'IDX:GOTO',        label: 'GOTO',    logo: 'goto-gojek-tokopedia'        },
+  { key: 'IDX:AADI',        label: 'AADI',    logo: 'adaro-andalan-indonesia'     },
+  { key: 'IDX:MBMA',        label: 'MBMA',    logo: 'merdeka-battery-materials'   },
+  { key: 'BINANCE:BTCUSDT', label: 'BTC/USD', logo: 'bitcoin'                     },
+  { key: 'OANDA:XAUUSD',    label: 'GOLD',    logo: 'gold'                        },
 ];
 
+function MarqueeLogo({ slug, label }) {
+  const [err, setErr] = useStateL(false);
+  const src = `https://s3-symbol-logo.tradingview.com/${slug}.svg`;
+
+  if (err) {
+    return (
+      <div style={{
+        width: 20, height: 20, borderRadius: '50%',
+        background: 'var(--primary-soft)', color: 'var(--primary)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 8, fontWeight: 800, flexShrink: 0,
+      }}>
+        {label.slice(0, 2)}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={label}
+      width={20} height={20}
+      style={{ borderRadius: '50%', flexShrink: 0, objectFit: 'contain' }}
+      onError={() => setErr(true)}
+    />
+  );
+}
+
 function StockMarquee() {
-  const tvTheme = useTVTheme();
+  const [prices, setPrices] = useStateL({});
+  const [paused, setPaused] = useStateL(false);
+
+  useEffectL(() => {
+    const es = new EventSource('/api/prices/stream');
+    es.onmessage = (e) => {
+      try { setPrices(JSON.parse(e.data)); } catch {}
+    };
+    es.onerror = () => es.close();
+    return () => es.close();
+  }, []);
+
+  const items = MARQUEE_SYMBOLS.map(({ key, label, logo }) => {
+    const d = prices[key] || {};
+    return { key, label, logo, price: d.price || 0, pct: d.pct || 0 };
+  });
+
+  const renderItem = (item, sfx) => {
+    const pos = item.pct >= 0;
+    return (
+      <div
+        key={item.key + sfx}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 7,
+          padding: '0 16px', flexShrink: 0,
+          borderRight: '1px solid var(--border)',
+          height: 50,
+        }}
+      >
+        <MarqueeLogo slug={item.logo} label={item.label} />
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--fg)', letterSpacing: '0.02em' }}>
+          {item.label}
+        </span>
+        <span className="mono tnum" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg)' }}>
+          {item.price > 0 ? item.price.toLocaleString('id-ID') : '—'}
+        </span>
+        {item.price > 0 && (
+          <span style={{
+            fontSize: 11, fontWeight: 700,
+            color: pos ? 'var(--success)' : 'var(--danger)',
+          }}>
+            {pos ? '+' : ''}{item.pct.toFixed(2)}%
+          </span>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div
@@ -335,20 +412,29 @@ function StockMarquee() {
         borderBottom: '1px solid var(--border)',
         background: 'var(--bg-soft)',
         overflow: 'hidden',
+        height: 50,
+        display: 'flex',
+        alignItems: 'center',
       }}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
     >
-      <TVWidget
-        widget="ticker-tape"
-        height={50}
-        config={{
-          symbols: TICKER_SYMBOLS,
-          showSymbolLogo: true,
-          isTransparent: true,
-          displayMode: 'regular',
-          colorTheme: tvTheme,
-          locale: 'id',
-        }}
-      />
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        width: 'max-content',
+        animation: 'marqueeScroll 55s linear infinite',
+        animationPlayState: paused ? 'paused' : 'running',
+      }}>
+        {items.map((item) => renderItem(item, '-a'))}
+        {items.map((item) => renderItem(item, '-b'))}
+      </div>
+      <style>{`
+        @keyframes marqueeScroll {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
     </div>
   );
 }
