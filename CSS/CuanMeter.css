@@ -82,10 +82,10 @@ body[data-theme="dark"] {
   --danger: #ff5470;
   --warning: #ffb547;
   --info: #4d8fff;
-  --radius-sm: 4px;
-  --radius: 6px;
-  --radius-lg: 10px;
-  --radius-xl: 14px;
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 32px;
   --shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.02);
   --shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
@@ -356,12 +356,8 @@ body[data-theme="brutal"] .btn-secondary:hover {
   box-shadow: 6px 6px 0 #0a0a0a;
 }
 
-body[data-theme="dark"] .btn {
-  border-radius: var(--radius);
-  height: 44px;
-}
 body[data-theme="dark"] .btn-primary {
-  box-shadow: 0 0 0 1px var(--primary), 0 0 30px -8px var(--primary);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 50%, transparent);
 }
 
 body[data-theme="aurora"] .btn-primary {
@@ -416,7 +412,10 @@ body[data-theme="brutal"] .select:focus {
 body[data-theme="dark"] .input,
 body[data-theme="dark"] .select {
   background: var(--surface-2);
-  border-radius: var(--radius);
+}
+body[data-theme="dark"] .input:focus,
+body[data-theme="dark"] .select:focus {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 12%, transparent);
 }
 
 body[data-theme="aurora"] .input,
