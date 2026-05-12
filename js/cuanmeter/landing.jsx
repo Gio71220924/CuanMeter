@@ -753,82 +753,109 @@ function GuidesSection({ onNavigate }) {
   );
 }
 
-/* ---------- Final CTA ---------- */
+/* ---------- Final CTA — Terminal style ---------- */
+const CTA_TICKER = [
+  { label: 'IHSG',  val: '+0.32%', up: true  },
+  { label: 'BBCA',  val: '+0.26%', up: true  },
+  { label: 'BBRI',  val: '-0.40%', up: false },
+  { label: 'BMRI',  val: '+1.20%', up: true  },
+  { label: 'TLKM',  val: '-0.15%', up: false },
+  { label: 'ANTM',  val: '+2.10%', up: true  },
+  { label: 'GOTO',  val: '-1.30%', up: false },
+  { label: 'BUMI',  val: '+0.85%', up: true  },
+  { label: 'PTBA',  val: '+0.60%', up: true  },
+  { label: 'ADMR',  val: '-0.55%', up: false },
+];
+
 function FinalCTA({ onNavigate }) {
   return (
     <section style={{ padding: '88px 0' }}>
       <div className="container">
-        <div
-          className="card"
-          style={{
-            padding: 'clamp(32px, 5vw, 64px)',
-            textAlign: 'center',
-            background:
-              'linear-gradient(135deg, var(--primary) 0%, color-mix(in oklab, var(--primary) 70%, #006040) 100%)',
-            color: '#fff',
-            border: 'none',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              top: -40,
-              right: -40,
-              width: 200,
-              height: 200,
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.1)',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              bottom: -60,
-              left: -30,
-              width: 160,
-              height: 160,
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.06)',
-            }}
-          />
+        <div className="cta-terminal" style={{
+          borderRadius: 'var(--radius-lg)',
+          overflow: 'hidden',
+          border: '1px solid rgba(255,255,255,0.07)',
+          background: 'var(--cta-terminal-bg)',
+          position: 'relative',
+        }}>
 
-          <div style={{ position: 'relative' }}>
-            <h2
-              style={{
-                fontSize: 'clamp(32px, 5vw, 56px)',
-                color: '#fff',
-                marginBottom: 16,
-                letterSpacing: '-0.03em',
-              }}
-            >
-              Stop nebak-nebak.<br />Mulai ngitung.
+          {/* Status bar */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '11px 24px',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            fontFamily: 'JetBrains Mono, IBM Plex Mono, monospace',
+            fontSize: 11,
+          }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+              background: 'var(--primary)',
+              boxShadow: '0 0 8px color-mix(in oklab, var(--primary) 60%, transparent)',
+            }} />
+            <span style={{ color: 'rgba(255,255,255,0.25)', letterSpacing: '0.12em' }}>
+              CUANMETER_TERMINAL
+            </span>
+            <span style={{ color: 'rgba(255,255,255,0.1)', margin: '0 4px' }}>·</span>
+            <span style={{ color: 'var(--primary)', opacity: 0.6, letterSpacing: '0.08em', fontSize: 10 }}>
+              IDX LIVE
+            </span>
+            <span style={{
+              marginLeft: 'auto', color: 'rgba(255,255,255,0.12)',
+              fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: '0.06em',
+            }}>
+              v1.0.0
+            </span>
+          </div>
+
+          {/* Main body */}
+          <div style={{
+            padding: 'clamp(36px, 5vw, 72px) clamp(24px, 5vw, 64px)',
+            textAlign: 'center',
+            position: 'relative',
+          }}>
+
+            {/* Terminal prompt */}
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontFamily: 'JetBrains Mono, IBM Plex Mono, monospace',
+              fontSize: 12, letterSpacing: '0.06em',
+              color: 'var(--primary)',
+              marginBottom: 20, opacity: 0.85,
+            }}>
+              <span style={{ opacity: 0.5 }}>{'$'}</span>
+              <span>exit nebak_mode</span>
+              <span style={{ animation: 'ctaCursorBlink 1.1s step-end infinite' }}>▌</span>
+            </div>
+
+            <h2 style={{
+              fontSize: 'clamp(34px, 5vw, 62px)',
+              color: '#fff',
+              marginBottom: 18,
+              letterSpacing: '-0.04em',
+              lineHeight: 0.97,
+            }}>
+              Stop nebak-nebak.<br />
+              <span style={{ color: 'var(--primary)' }}>Mulai ngitung.</span>
             </h2>
-            <p
-              style={{
-                fontSize: 18,
-                color: 'rgba(255,255,255,0.9)',
-                maxWidth: 540,
-                margin: '0 auto 32px',
-                lineHeight: 1.6,
-              }}
-            >
-              5 kalkulator. 1 web. Free forever. Bookmark sekarang biar pas market open lo udah
-              siap gas.
+
+            <p style={{
+              fontSize: 14,
+              color: 'rgba(255,255,255,0.38)',
+              maxWidth: 460,
+              margin: '0 auto 36px',
+              lineHeight: 1.7,
+              fontFamily: 'JetBrains Mono, IBM Plex Mono, monospace',
+              letterSpacing: '-0.01em',
+            }}>
+              // 5 kalkulator · 1 web · free forever<br />
+              // bookmark sekarang, gas pas market open
             </p>
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 12,
-                justifyContent: 'center',
-              }}
-            >
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
               <button
                 onClick={() => onNavigate('average')}
-                className="btn"
-                style={{ background: '#fff', color: 'var(--primary)' }}
+                className="btn btn-primary"
+                style={{ color: '#02110a', fontWeight: 800 }}
               >
                 Mulai Hitung <Icon name="arrow_right" size={16} />
               </button>
@@ -836,17 +863,57 @@ function FinalCTA({ onNavigate }) {
                 onClick={() => onNavigate('araarb')}
                 className="btn"
                 style={{
-                  background: 'rgba(255,255,255,0.15)',
-                  color: '#fff',
-                  border: '1px solid rgba(255,255,255,0.3)',
+                  background: 'transparent',
+                  color: 'rgba(255,255,255,0.7)',
+                  border: '1px solid rgba(255,255,255,0.15)',
                 }}
               >
                 Cek ARA/ARB
               </button>
             </div>
           </div>
+
+          {/* Bottom ticker strip */}
+          <div style={{
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            padding: '9px 0',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              display: 'flex',
+              width: 'max-content',
+              fontFamily: 'JetBrains Mono, IBM Plex Mono, monospace',
+              fontSize: 11,
+              animation: 'ctaTicker 28s linear infinite',
+            }}>
+              {[...CTA_TICKER, ...CTA_TICKER].map((item, i) => (
+                <span key={i} style={{
+                  padding: '0 18px',
+                  color: item.up
+                    ? 'color-mix(in oklab, var(--primary) 85%, white)'
+                    : 'rgba(255,84,112,0.85)',
+                  borderRight: '1px solid rgba(255,255,255,0.05)',
+                  letterSpacing: '0.04em',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {item.label} <span style={{ opacity: 0.6 }}>{item.val}</span>
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes ctaCursorBlink {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0; }
+        }
+        @keyframes ctaTicker {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
     </section>
   );
 }
