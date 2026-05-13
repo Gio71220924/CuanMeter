@@ -13,6 +13,11 @@ const PRED_COLOR = { UP: 'var(--primary)', DOWN: 'var(--danger)', NEUTRAL: 'var(
 const POPULAR_TICKERS = ['BBRI', 'BBCA', 'TLKM', 'ASII', 'ANTM', 'BUMI', 'BMRI', 'GOTO', 'ADRO'];
 const BROKER_CODES = ['MG', 'CC', 'YP', 'RG', 'BR', 'AT', 'GR', 'CS', 'KZ', 'NI', 'DH', 'YU'];
 
+const SCREENER_TICKERS = [
+  'ADRO','AKRA','BUMI','BYAN','DEWA','DSSA',
+  'ENRG','GEMS','ITMG','MEDC','PGAS','PTBA','PTRO','RAJA'
+];
+
 /* deterministic pseudo-random per ticker (LCG seeded by string hash) */
 function seededRand(seed) {
   let s = 0;
@@ -558,6 +563,123 @@ function AnalyzerChart({ ticker, mlData, mlLoading }) {
   );
 }
 
+/* ---------- Screener Panel ---------- */
+function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) {
+  const PRED_COLOR_S = { UP: 'var(--primary)', DOWN: 'var(--danger)', NEUTRAL: 'var(--warning)' };
+  const PRED_LABEL_S = { UP: '▲ BUY', DOWN: '▼ SELL', NEUTRAL: '● NEUTRAL' };
+  const ROW_BG = { UP: 'rgba(0,200,100,0.06)', DOWN: 'rgba(220,50,50,0.06)', NEUTRAL: 'transparent' };
+
+  const fmt = (v) => v != null ? (typeof v === 'number' ? v.toLocaleString('id-ID') : v) : '—';
+  const fmtPct = (v) => v != null ? v.toFixed(1) + '%' : '—';
+  const fmtCMF = (v) => v != null ? (v >= 0 ? '+' : '') + v.toFixed(3) : '—';
+  const fmtPrice = (v) => v != null ? v.toLocaleString('id-ID') : '—';
+
+  const lastScanStr = lastScan
+    ? lastScan.toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+    : null;
+
+  return (
+    <div>
+      {/* Header bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
+          {lastScanStr ? `Scan Terakhir: ${lastScanStr}` : 'Belum pernah di-scan'}
+        </div>
+        <button
+          onClick={onRefresh}
+          disabled={loading}
+          className="btn btn-secondary"
+          style={{ fontSize: 12, padding: '6px 14px', opacity: loading ? 0.5 : 1 }}
+        >
+          {loading ? 'Scanning...' : '↻ Refresh'}
+        </button>
+      </div>
+
+      {/* Loading skeleton */}
+      {loading && !data && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {Array.from({ length: 14 }).map((_, i) => (
+            <div key={i} style={{
+              height: 40, borderRadius: 'var(--radius-sm)',
+              background: 'var(--surface-2)', animation: 'pulse 1.5s infinite',
+              opacity: 0.6 - i * 0.02,
+            }} />
+          ))}
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && (
+        <div style={{
+          padding: 20, borderRadius: 'var(--radius)',
+          background: 'rgba(220,50,50,0.08)', border: '1px solid var(--danger)',
+          color: 'var(--danger)', fontSize: 13, textAlign: 'center',
+        }}>
+          {error} — Coba klik Refresh.
+        </div>
+      )}
+
+      {/* Table */}
+      {data && (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                {['Ticker', 'Signal', 'Strength', 'Win Rate', 'Stoch', 'CMF', 'ADX', 'Harga'].map((h) => (
+                  <th key={h} style={{
+                    padding: '8px 12px', textAlign: h === 'Ticker' ? 'left' : 'right',
+                    fontSize: 11, fontWeight: 800, letterSpacing: '0.06em',
+                    color: 'var(--fg-muted)', textTransform: 'uppercase',
+                  }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((row) => {
+                const isError = row.status === 'error';
+                const bg = isError ? 'transparent' : ROW_BG[row.prediction] || 'transparent';
+                return (
+                  <tr
+                    key={row.ticker}
+                    onClick={() => !isError && onSelect(row.ticker)}
+                    style={{
+                      background: bg,
+                      borderBottom: '1px solid var(--border)',
+                      cursor: isError ? 'default' : 'pointer',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => { if (!isError) e.currentTarget.style.background = 'var(--surface-2)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = bg; }}
+                  >
+                    <td style={{ padding: '10px 12px', fontWeight: 800, fontFamily: 'JetBrains Mono, monospace', color: 'var(--fg)' }}>
+                      {row.ticker}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: isError ? 'var(--fg-faint)' : PRED_COLOR_S[row.prediction] }}>
+                      {isError ? <span style={{ fontSize: 11, background: 'var(--danger)', color: '#fff', padding: '2px 6px', borderRadius: 4 }}>Error</span> : PRED_LABEL_S[row.prediction]}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--fg-muted)' }}>{isError ? '—' : fmtPct(row.strength * 100)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--fg-muted)' }}>{isError ? '—' : fmtPct(row.win_rate)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--fg-muted)', fontFamily: 'JetBrains Mono, monospace' }}>{isError ? '—' : fmt(row.indicators?.stoch)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: row.indicators?.cmf >= 0 ? 'var(--primary)' : 'var(--danger)', fontFamily: 'JetBrains Mono, monospace' }}>{isError ? '—' : fmtCMF(row.indicators?.cmf)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--fg-muted)', fontFamily: 'JetBrains Mono, monospace' }}>{isError ? '—' : fmt(row.indicators?.adx)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: 'var(--fg)' }}>{isError ? '—' : fmtPrice(row.price)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div style={{ marginTop: 16, fontSize: 11, color: 'var(--fg-faint)', lineHeight: 1.5 }}>
+        Klik baris untuk buka analisis lengkap. Data berdasarkan model SVM — bukan rekomendasi investasi. DYOR.
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Analyzer screen ---------- */
 function Analyzer() {
   const [ticker, setTicker] = useStateZ('BBRI');
@@ -577,6 +699,12 @@ function Analyzer() {
   const activeBand = useRefZ('');
   const [tvPrice, setTvPrice] = useStateZ(null);
   const activePrice = useRefZ('');
+  const [activeTab, setActiveTab] = useStateZ('analisis');
+  const [scanData, setScanData]   = useStateZ(null);
+  const [scanLoading, setScanLoading] = useStateZ(false);
+  const [scanError, setScanError] = useStateZ(null);
+  const [lastScan, setLastScan]   = useStateZ(null);
+  const hasScannedRef = useRefZ(false);
 
   const fetchTVPrice = (code) => {
     activePrice.current = code;
@@ -630,6 +758,27 @@ function Analyzer() {
       .then((d) => { setMlData(d); setMlLoading(false); })
       .catch(() => { setMlData({ status: 'offline' }); setMlLoading(false); });
     fetchBandarmology(code, bandFrom, bandTo);
+  };
+
+  const runScreener = () => {
+    if (scanLoading) return;
+    setScanLoading(true);
+    setScanError(null);
+    fetch('/screener')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.status === 'success') {
+          setScanData(d.results);
+          setLastScan(new Date());
+        } else {
+          setScanError(d.message || 'Scan gagal');
+        }
+        setScanLoading(false);
+      })
+      .catch(() => {
+        setScanError('Gagal menghubungi server');
+        setScanLoading(false);
+      });
   };
 
   return (
@@ -752,6 +901,40 @@ function Analyzer() {
         ))}
       </div>
 
+      {/* Tab bar */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '1px solid var(--border)' }}>
+        {[
+          { key: 'analisis', label: 'Analisis' },
+          { key: 'screener', label: 'Screener IDX Energy' },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => {
+              setActiveTab(key);
+              if (key === 'screener' && !hasScannedRef.current) {
+                hasScannedRef.current = true;
+                runScreener();
+              }
+            }}
+            style={{
+              padding: '10px 20px',
+              background: 'transparent',
+              border: 'none',
+              borderBottom: activeTab === key ? '2px solid var(--primary)' : '2px solid transparent',
+              color: activeTab === key ? 'var(--primary)' : 'var(--fg-muted)',
+              fontWeight: 800,
+              fontSize: 13,
+              cursor: 'pointer',
+              letterSpacing: '0.04em',
+              marginBottom: -1,
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'analisis' && (<>
       {/* price header */}
       <div
         style={{
@@ -1066,6 +1249,18 @@ function Analyzer() {
           <strong style={{ color: 'var(--fg)' }}>Disclaimer:</strong> Data bandarmology dari api-saham. ML Trading Plan menggunakan model SVM yang dilatih dari data historis IDX — bukan rekomendasi beli/jual. DYOR.
         </div>
       </div>
+      </>)}
+
+      {activeTab === 'screener' && (
+        <ScreenerPanel
+          data={scanData}
+          loading={scanLoading}
+          error={scanError}
+          lastScan={lastScan}
+          onRefresh={runScreener}
+          onSelect={(t) => { setActiveTab('analisis'); run(t); }}
+        />
+      )}
     </CalcScreen>
   );
 }

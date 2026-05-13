@@ -372,6 +372,38 @@ function handleMLPredict(ticker, res) {
 
 }
 
+// ─── /screener  →  Run screener script ───────────────────────────────────────
+function handleScreener(res) {
+    console.log('[Screener] Memulai scan 14 emiten...');
+
+    const python = spawn('python', [path.join(ROOT, 'screener.py')]);
+    let output = '';
+    let timedOut = false;
+    let timer = setTimeout(() => {
+        timedOut = true;
+        python.kill();
+        sendJSON(res, 504, { status: 'error', message: 'Screener timeout (>90 detik)' });
+    }, 90000);
+
+    python.stdout.on('data', (data) => { output += data.toString(); });
+    python.stderr.on('data', (data) => { console.error(`[Screener Error] ${data}`); });
+
+    python.on('close', () => {
+        if (timedOut) return;
+        clearTimeout(timer);
+        try {
+            const start = output.indexOf('[');
+            const end   = output.lastIndexOf(']');
+            if (start === -1 || end === -1) throw new Error('Output tidak valid');
+            const results = JSON.parse(output.substring(start, end + 1));
+            sendJSON(res, 200, { status: 'success', results });
+        } catch (e) {
+            console.error(`[Screener Parse Error] ${e.message}`);
+            sendJSON(res, 500, { status: 'error', message: 'Gagal parse output screener' });
+        }
+    });
+}
+
 // ─── Helper: send JSON with CORS ─────────────────────────────────────────────
 function sendJSON(res, status, obj) {
     res.writeHead(status, {
@@ -475,6 +507,13 @@ const server = http.createServer((req, res) => {
         const ticker = validateTicker(parsed.query.ticker);
         if (!ticker) { sendJSON(res, 400, { error: 'Invalid or missing ?ticker=' }); return; }
         return handleMLPredict(ticker, res);
+    }
+
+    // API: /screener
+    if (req.method === 'GET' && pathname === '/screener') {
+        const ip = req.socket.remoteAddress;
+        if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
+        return handleScreener(res);
     }
 
     // API: /api/prices/stream (SSE for Landing Page)
