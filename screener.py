@@ -18,6 +18,9 @@ TICKERS = [
     'ENRG', 'GEMS', 'ITMG', 'MEDC', 'PGAS', 'PTBA', 'PTRO', 'RAJA'
 ]
 
+FEE_BUFFER_PCT = 0.45
+MIN_EDGE_ATR_MULT = 0.5
+
 
 def load_models():
     try:
@@ -68,6 +71,12 @@ def calculate_indicators(df):
     atr = AverageTrueRange(high=high, low=low, close=close, window=14)
     df['ATR']     = atr.average_true_range()
     df['ATR_pct'] = df['ATR'] / df['Close']
+    df['MA20']    = close.rolling(20).mean()
+    df['MA50']    = close.rolling(50).mean()
+    df['MA20_SLOPE'] = df['MA20'].pct_change(5)
+    df['SPREAD'] = high - low
+    df['SPREAD_MA20'] = df['SPREAD'].rolling(20).mean()
+    df['SPREAD_RATIO'] = df['SPREAD'] / df['SPREAD_MA20'].replace(0, np.nan)
 
     vol_mean = volume.rolling(20).mean()
     vol_std  = volume.rolling(20).std()
@@ -86,7 +95,259 @@ def calculate_indicators(df):
     return df
 
 
-def screen_ticker(ticker, df_raw, models):
+def add_market_features(df, market=None):
+    df['RET_20D'] = df['Close'].pct_change(20)
+
+    if market is None or market.empty:
+        df['IHSG_RET_20D'] = 0.0
+        df['REL_STRENGTH_20D'] = df['RET_20D'].fillna(0)
+        df['MARKET_ABOVE_MA20'] = 1
+        df['MARKET_REGIME_SCORE'] = 0
+        return df
+
+    market = market.copy()
+    market.index = pd.to_datetime(market.index).normalize()
+    lookup_index = pd.to_datetime(df.index).normalize()
+    aligned = market.reindex(lookup_index, method='ffill').bfill()
+    aligned.index = df.index
+    if 'Close' not in aligned or aligned['Close'].isna().all():
+        df['IHSG_RET_20D'] = 0.0
+        df['REL_STRENGTH_20D'] = df['RET_20D'].fillna(0)
+        df['MARKET_ABOVE_MA20'] = 1
+        df['MARKET_REGIME_SCORE'] = 0
+        return df
+    mclose = aligned['Close'].replace(0, np.nan)
+    ma20 = mclose.rolling(20).mean()
+    df['IHSG_RET_20D'] = mclose.pct_change(20)
+    df['REL_STRENGTH_20D'] = df['RET_20D'] - df['IHSG_RET_20D']
+    df['MARKET_ABOVE_MA20'] = (mclose > ma20).astype(int)
+    df['MARKET_REGIME_SCORE'] = np.select(
+        [
+            (df['IHSG_RET_20D'] > 0.03) & (df['MARKET_ABOVE_MA20'] == 1),
+            (df['IHSG_RET_20D'] < -0.03) & (df['MARKET_ABOVE_MA20'] == 0),
+        ],
+        [1, -1],
+        default=0,
+    )
+    return df
+
+
+def safe_float(val, digits=4):
+    try:
+        v = float(val)
+        return round(v, digits) if not np.isnan(v) else None
+    except Exception:
+        return None
+
+
+def prediction_label(pred):
+    return 'UP' if int(pred) == 1 else 'DOWN' if int(pred) == -1 else 'NEUTRAL'
+
+
+def tick_size(price):
+    if price < 200:
+        return 1
+    if price < 500:
+        return 2
+    if price < 2000:
+        return 5
+    if price < 5000:
+        return 10
+    return 25
+
+
+def round_to_tick(price, mode='nearest'):
+    if price is None or not np.isfinite(price) or price <= 0:
+        return None
+    tick = tick_size(price)
+    if mode == 'up':
+        return int(np.ceil(price / tick) * tick)
+    if mode == 'down':
+        return int(np.floor(price / tick) * tick)
+    return int(round(price / tick) * tick)
+
+
+def detect_vsa(df):
+    last = df.iloc[-1]
+    close = float(last['Close'])
+    open_ = float(last['Open'])
+    vol_ratio = safe_float(last.get('vol_ratio')) or 0
+    spread_ratio = safe_float(last.get('SPREAD_RATIO')) or 0
+    close_pos = safe_float(last.get('close_pos')) or 0
+    ret_3d = (close / float(df['Close'].iloc[-4]) - 1) if len(df) >= 4 and float(df['Close'].iloc[-4]) > 0 else 0
+
+    if vol_ratio >= 2.5 and spread_ratio >= 1.4 and close_pos < 0.5:
+        return {'label': 'Climax Risk', 'score': -2}
+    if close > open_ and vol_ratio < 0.8 and close_pos < 0.65:
+        return {'label': 'Weak Rally', 'score': -1}
+    if close > open_ and vol_ratio >= 1.2 and close_pos >= 0.65 and spread_ratio >= 0.8:
+        return {'label': 'Demand Bar', 'score': 2}
+    if close < open_ and vol_ratio < 0.8 and spread_ratio < 0.85:
+        return {'label': 'No Supply', 'score': 2}
+    if close < open_ and ret_3d < -0.03 and vol_ratio >= 1.6 and close_pos >= 0.45:
+        return {'label': 'Stopping Volume', 'score': 2}
+    if vol_ratio >= 1.3 and close_pos >= 0.6:
+        return {'label': 'Accumulation', 'score': 1}
+    return {'label': 'Neutral', 'score': 0}
+
+
+def build_swing_setup(df, prediction, strength):
+    last = df.iloc[-1]
+    close = float(last['Close'])
+    ma20 = safe_float(last.get('MA20'))
+    ma50 = safe_float(last.get('MA50'))
+    ma20_slope = safe_float(last.get('MA20_SLOPE')) or 0
+    rel_strength = safe_float(last.get('REL_STRENGTH_20D')) or 0
+    adx = safe_float(last.get('ADX')) or 0
+    vol_ratio = safe_float(last.get('vol_ratio')) or 0
+    cmf = safe_float(last.get('CMF')) or 0
+    close_pos = safe_float(last.get('close_pos')) or 0
+    stoch = safe_float(last.get('STOCH_%K')) or 0
+    atr = safe_float(last.get('ATR')) or 0
+    recent_high = float(df['High'].tail(5).max())
+    recent_low = float(df['Low'].tail(10).min())
+    vsa = detect_vsa(df)
+
+    score = 0
+    if ma20 and close > ma20:
+        score += 2
+    if ma50 and close > ma50:
+        score += 2
+    if ma20 and ma50 and ma20 > ma50:
+        score += 1
+    if ma20_slope > 0:
+        score += 1
+    if rel_strength > 0:
+        score += 2
+    if adx >= 18:
+        score += 1
+    if vol_ratio >= 1.2:
+        score += 1
+    if cmf > 0:
+        score += 1
+    if close_pos >= 0.6:
+        score += 1
+    if stoch > 85:
+        score -= 1
+    if prediction == 'UP':
+        score += 1
+    elif prediction == 'DOWN':
+        score -= 1
+    if strength >= 0.65:
+        score += 1
+    score += vsa['score']
+    score = max(0, min(12, score))
+
+    if score >= 9:
+        label = 'Strong Swing'
+    elif score >= 6:
+        label = 'Watchlist'
+    elif score >= 4:
+        label = 'Early Setup'
+    else:
+        label = 'Skip'
+
+    trigger = max(close, recent_high)
+    entry = round_to_tick(trigger, 'up')
+    atr_stop = close - atr * 1.5 if atr > 0 else close * 0.94
+    ma_stop = ma20 * 0.98 if ma20 else close * 0.94
+    raw_sl = max(recent_low, atr_stop, ma_stop)
+    if raw_sl >= entry:
+        raw_sl = entry * 0.94
+    stop_loss = round_to_tick(raw_sl, 'down')
+    risk = entry - stop_loss if entry and stop_loss else 0
+    target = round_to_tick(entry + risk * 2, 'down') if risk > 0 else None
+
+    return {
+        'score': round(score, 1),
+        'setup': label,
+        'vsa': vsa['label'],
+        'entry': entry,
+        'target': target,
+        'stop_loss': stop_loss,
+        'risk_pct': round((risk / entry) * 100, 2) if entry and risk > 0 else None,
+        'rr': 2 if risk > 0 else None,
+        'volume_ratio': safe_float(last.get('vol_ratio')),
+        'relative_strength_20d': safe_float(last.get('REL_STRENGTH_20D')),
+    }
+
+
+def evaluate_signals(hist, horizon):
+    wins = total = 0
+    returns = []
+    actionable = 0
+    equity = peak = 1.0
+    max_dd = 0.0
+
+    for i in range(len(hist) - horizon):
+        sig = int(hist['pred'].iloc[i])
+        if sig == 0:
+            continue
+        cp = float(hist['Close'].iloc[i])
+        fp = float(hist['Close'].iloc[i + horizon])
+        gross = (fp - cp) / cp * 100 if sig == 1 else (cp - fp) / cp * 100
+        net = gross - FEE_BUFFER_PCT
+        total += 1
+        wins += 1 if net > 0 else 0
+        if sig == 1:
+            actionable += 1
+            returns.append(net)
+            trade_return = max(net / 100, -0.99)
+            equity *= (1 + trade_return)
+            peak = max(peak, equity)
+            drawdown_pct = (equity / peak - 1) * 100 if peak > 0 else 0
+            max_dd = min(max_dd, drawdown_pct)
+
+    gains = sum(r for r in returns if r > 0)
+    losses = abs(sum(r for r in returns if r < 0))
+    pf = round(gains / losses, 2) if losses > 0 else (round(gains, 2) if gains > 0 else 0)
+    return {
+        'win_rate': round(wins / total * 100, 1) if total else 0,
+        'signal_count': total,
+        'actionable_trades': actionable,
+        'avg_return_pct': round(float(np.mean(returns)), 2) if returns else 0,
+        'profit_factor': pf,
+        'max_drawdown_pct': round(max_dd, 2),
+    }
+
+
+def get_strength(model, x_last):
+    try:
+        return max(0, min(0.99, float(max(model.predict_proba(x_last)[0]))))
+    except Exception:
+        pass
+    try:
+        scores = model.decision_function(x_last)[0]
+        margin = float(max(abs(s) for s in scores)) if hasattr(scores, '__len__') else float(abs(scores))
+        return max(0, min(0.95, 0.5 + 0.5 * (margin / (1 + abs(margin)))))
+    except Exception:
+        return 0.0
+
+
+def apply_market_filter(raw_prediction, strength, last):
+    score = 0
+    regime_score = int(safe_float(last.get('MARKET_REGIME_SCORE'), 0) or 0)
+    rel_strength = safe_float(last.get('REL_STRENGTH_20D'))
+    adx = safe_float(last.get('ADX'))
+
+    if raw_prediction == 'UP':
+        score += 1 if regime_score > 0 else -1 if regime_score < 0 else 0
+        score += 1 if rel_strength is not None and rel_strength > 0 else -1 if rel_strength is not None and rel_strength < -0.03 else 0
+    elif raw_prediction == 'DOWN':
+        score += 1 if regime_score < 0 else -1 if regime_score > 0 else 0
+    if raw_prediction != 'NEUTRAL' and adx is not None and adx < 15:
+        score -= 1
+
+    prediction = raw_prediction
+    adjusted = max(0.05, min(0.95, strength + score * 0.04))
+    if raw_prediction != 'NEUTRAL' and score <= -2 and strength < 0.72:
+        prediction = 'NEUTRAL'
+
+    quality = 'WAIT' if prediction == 'NEUTRAL' else 'HIGH' if score >= 2 and adjusted >= 0.65 else 'MEDIUM' if score >= 0 else 'LOW'
+    return prediction, round(adjusted, 2), quality, score
+
+
+def screen_ticker(ticker, df_raw, models, market_df=None):
     try:
         # Extract single-ticker slice dari batch download
         if isinstance(df_raw.columns, pd.MultiIndex):
@@ -117,6 +378,7 @@ def screen_ticker(ticker, df_raw, models):
         df.dropna(subset=['Close'], inplace=True)
 
         df = calculate_indicators(df)
+        df = add_market_features(df, market_df)
         df.dropna(inplace=True)
 
         if len(df) < 10:
@@ -131,59 +393,47 @@ def screen_ticker(ticker, df_raw, models):
         horizon      = model_info.get('horizon', 5)
 
         available = [f for f in feature_cols if f in df.columns]
+        if not available:
+            return {'ticker': ticker, 'status': 'error', 'message': 'Tidak ada fitur cocok'}
 
-        # Win rate + last prediction dari 60 hari terakhir
+        # Backtest ringkas + last prediction dari 60 hari terakhir
         hist = df.tail(60).copy()
         hist_x = hist[available].ffill().fillna(0).values
         hist_preds = svm_model.predict(hist_x)
         hist = hist.iloc[-len(hist_preds):].copy()
         hist['pred'] = hist_preds
 
-        wins = 0
-        total = 0
-        for i in range(len(hist) - horizon):
-            sig = int(hist['pred'].iloc[i])
-            if sig != 0:
-                total += 1
-                cp = float(hist['Close'].iloc[i])
-                fp = float(hist['Close'].iloc[i + horizon])
-                if (sig == 1 and fp > cp) or (sig == -1 and fp < cp):
-                    wins += 1
-        win_rate = round(wins / total * 100, 1) if total > 0 else 0
-
-        last_pred = int(hist_preds[-1])
+        backtest = evaluate_signals(hist, horizon)
+        raw_prediction = prediction_label(hist_preds[-1])
         last = df.iloc[-1]
 
-        def safe(val):
-            try:
-                v = float(val)
-                return round(v, 4) if not np.isnan(v) else None
-            except Exception:
-                return None
-
         X_last = df[available].iloc[[-1]].ffill().fillna(0).values
-        try:
-            proba = svm_model.predict_proba(X_last)[0]
-            strength = round(float(max(proba)), 2)
-        except Exception:
-            try:
-                scores = svm_model.decision_function(X_last)[0]
-                strength = round(float(max(abs(scores)) if hasattr(scores, '__len__') else abs(scores)), 2)
-            except Exception:
-                strength = 0.0
+        strength = get_strength(svm_model, X_last)
+        prediction, strength, quality, filter_score = apply_market_filter(raw_prediction, strength, last)
+        swing = build_swing_setup(df, prediction, strength)
 
         return {
             'ticker':     ticker,
             'status':     'success',
-            'prediction': 'UP' if last_pred == 1 else 'DOWN' if last_pred == -1 else 'NEUTRAL',
+            'prediction': prediction,
+            'raw_prediction': raw_prediction,
             'strength':   strength,
-            'win_rate':   win_rate,
+            'signal_quality': quality,
+            'filter_score': filter_score,
+            'win_rate':   backtest['win_rate'],
+            'backtest':   backtest,
             'model_type': model_type,
-            'price':      safe(last.get('Close')),
+            'price':      safe_float(last.get('Close')),
+            'swing':      swing,
+            'market': {
+                'regime': 'bullish' if int(safe_float(last.get('MARKET_REGIME_SCORE'), 0) or 0) > 0 else 'bearish' if int(safe_float(last.get('MARKET_REGIME_SCORE'), 0) or 0) < 0 else 'sideways',
+                'relative_strength_20d': safe_float(last.get('REL_STRENGTH_20D')),
+            },
             'indicators': {
-                'stoch': safe(last.get('STOCH_%K')),
-                'cmf':   safe(last.get('CMF')),
-                'adx':   safe(last.get('ADX')),
+                'stoch': safe_float(last.get('STOCH_%K')),
+                'cmf':   safe_float(last.get('CMF')),
+                'adx':   safe_float(last.get('ADX')),
+                'vol_ratio': safe_float(last.get('vol_ratio')),
             },
         }
 
@@ -203,11 +453,18 @@ def run_screener():
             tickers_jk, period='100d', interval='1d',
             progress=False, auto_adjust=False, group_by='ticker'
         )
+        market_df = yf.download(
+            '^JKSE', period='140d', interval='1d',
+            progress=False, auto_adjust=False
+        )
+        if isinstance(market_df.columns, pd.MultiIndex):
+            market_df.columns = market_df.columns.get_level_values(0)
     except Exception as e:
         print(json.dumps({'status': 'error', 'message': f'Download gagal: {e}'}))
         return
 
-    results = [screen_ticker(t, df_all, models) for t in TICKERS]
+    results = [screen_ticker(t, df_all, models, market_df) for t in TICKERS]
+    results.sort(key=lambda r: r.get('swing', {}).get('score', -1) if r.get('status') == 'success' else -1, reverse=True)
     print(json.dumps(results))
 
 

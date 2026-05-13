@@ -625,7 +625,7 @@ function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) 
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                {['Ticker', 'Signal', 'Strength', 'Win Rate', 'Stoch', 'CMF', 'ADX', 'Harga'].map((h) => (
+                {['Ticker', 'Swing', 'VSA', 'Signal', 'Entry', 'TP', 'SL', 'Risk', 'Vol', 'RS', 'Harga'].map((h) => (
                   <th key={h} style={{
                     padding: '8px 12px', textAlign: h === 'Ticker' ? 'left' : 'right',
                     fontSize: 11, fontWeight: 800, letterSpacing: '0.06em',
@@ -656,14 +656,21 @@ function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) 
                     <td style={{ padding: '10px 12px', fontWeight: 800, fontFamily: 'JetBrains Mono, monospace', color: 'var(--fg)' }}>
                       {row.ticker}
                     </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 900, color: isError ? 'var(--fg-faint)' : (row.swing?.score >= 9 ? 'var(--primary)' : row.swing?.score >= 6 ? 'var(--success)' : row.swing?.score >= 4 ? 'var(--warning)' : 'var(--fg-muted)') }}>
+                      {isError ? '—' : `${row.swing?.score ?? 0} · ${row.swing?.setup ?? '-'}`}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: row.swing?.vsa === 'Climax Risk' || row.swing?.vsa === 'Weak Rally' ? 'var(--danger)' : row.swing?.vsa === 'Neutral' ? 'var(--fg-muted)' : 'var(--primary)', fontWeight: 700 }}>
+                      {isError ? '—' : (row.swing?.vsa || '—')}
+                    </td>
                     <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: isError ? 'var(--fg-faint)' : PRED_COLOR_S[row.prediction] }}>
                       {isError ? <span style={{ fontSize: 11, background: 'var(--danger)', color: '#fff', padding: '2px 6px', borderRadius: 4 }}>Error</span> : PRED_LABEL_S[row.prediction]}
                     </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--fg-muted)' }}>{isError ? '—' : fmtPct(row.strength * 100)}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--fg-muted)' }}>{isError ? '—' : fmtPct(row.win_rate)}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--fg-muted)', fontFamily: 'JetBrains Mono, monospace' }}>{isError ? '—' : fmt(row.indicators?.stoch)}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', color: row.indicators?.cmf >= 0 ? 'var(--primary)' : 'var(--danger)', fontFamily: 'JetBrains Mono, monospace' }}>{isError ? '—' : fmtCMF(row.indicators?.cmf)}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--fg-muted)', fontFamily: 'JetBrains Mono, monospace' }}>{isError ? '—' : fmt(row.indicators?.adx)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: 'var(--fg)' }}>{isError ? '—' : fmtPrice(row.swing?.entry)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: 'var(--primary)' }}>{isError ? '—' : fmtPrice(row.swing?.target)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: 'var(--danger)' }}>{isError ? '—' : fmtPrice(row.swing?.stop_loss)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--fg-muted)' }}>{isError ? '—' : fmtPct(row.swing?.risk_pct)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--fg-muted)', fontFamily: 'JetBrains Mono, monospace' }}>{isError ? '—' : (row.swing?.volume_ratio != null ? row.swing.volume_ratio.toFixed(2) + 'x' : '—')}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: row.swing?.relative_strength_20d >= 0 ? 'var(--primary)' : 'var(--danger)', fontFamily: 'JetBrains Mono, monospace' }}>{isError ? '—' : (row.swing?.relative_strength_20d != null ? (row.swing.relative_strength_20d * 100).toFixed(1) + '%' : '—')}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: 'var(--fg)' }}>{isError ? '—' : fmtPrice(row.price)}</td>
                   </tr>
                 );
@@ -1077,6 +1084,8 @@ function Analyzer() {
                   { label: 'CMF',       value: mlData.indicators?.cmf != null ? mlData.indicators.cmf.toFixed(3) : '—' },
                   { label: 'MFI',       value: mlData.indicators?.mfi != null ? mlData.indicators.mfi.toFixed(1) : '—' },
                   { label: 'Vol Ratio', value: mlData.indicators?.vol_ratio != null ? mlData.indicators.vol_ratio.toFixed(2) + 'x' : '—' },
+                  { label: 'Quality',   value: mlData.signal_quality ?? '—' },
+                  { label: 'RS IHSG',   value: mlData.market?.relative_strength_20d != null ? (mlData.market.relative_strength_20d * 100).toFixed(1) + '%' : '—' },
                 ].map((m) => (
                   <div key={m.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)' }}>
                     <span style={{ fontSize: 10, color: 'var(--fg-muted)', fontWeight: 700 }}>{m.label}</span>
@@ -1118,14 +1127,30 @@ function Analyzer() {
             <span className="mono tnum" style={{ fontSize: 48, fontWeight: 900, letterSpacing: '-0.03em', color: mlData?.status === 'success' ? (mlData.win_rate >= 50 ? 'var(--success)' : 'var(--danger)') : 'var(--fg)' }}>
               <AnimatedNumber value={mlData?.status === 'success' ? mlData.win_rate : data.plan.winRate} format={(n) => Math.round(n) + '%'} />
             </span>
-            <span style={{ fontSize: 13, color: 'var(--fg-muted)', fontWeight: 700 }}>Win Rate</span>
+            <span style={{ fontSize: 13, color: 'var(--fg-muted)', fontWeight: 700 }}>Direction WR</span>
           </div>
+
+          {mlData?.status === 'success' && mlData.backtest && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+              {[
+                { label: 'Buy Trades', value: mlData.backtest.actionable_trades ?? 0 },
+                { label: 'BUY Avg', value: (mlData.backtest.avg_return_pct ?? 0).toFixed(2) + '%' },
+                { label: 'BUY PF', value: mlData.backtest.profit_factor ?? 0 },
+                { label: 'Max DD', value: (mlData.backtest.max_drawdown_pct ?? 0).toFixed(2) + '%' },
+              ].map((m) => (
+                <div key={m.label} style={{ padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                  <span style={{ fontSize: 10, color: 'var(--fg-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{m.label}</span>
+                  <span className="mono" style={{ fontSize: 11, fontWeight: 800, color: 'var(--fg)' }}>{m.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Recent Trades table */}
           {mlData?.status === 'success' && mlData.recent_trades?.length > 0 ? (
             <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 2fr 1.5fr 1.5fr', padding: '6px 10px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
-                {['Tgl', 'Sinyal', 'Harga', 'Hasil', 'Profit'].map((h) => (
+                {['Tgl', 'Sinyal', 'Harga', 'Hasil', 'Move'].map((h) => (
                   <span key={h} style={{ fontSize: 9, fontWeight: 800, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</span>
                 ))}
               </div>
