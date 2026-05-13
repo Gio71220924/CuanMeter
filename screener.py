@@ -39,6 +39,10 @@ def load_models():
 
 
 def select_model(models, ticker):
+    meta = models.get('_meta') if isinstance(models.get('_meta'), dict) else {}
+    default_model = meta.get('default_model', 'universal')
+    if default_model == 'universal' and 'universal' in models:
+        return models['universal'], 'universal'
     if ticker.upper() in models:
         return models[ticker.upper()], 'per_emiten'
     if 'universal' in models:
@@ -71,9 +75,19 @@ def calculate_indicators(df):
     atr = AverageTrueRange(high=high, low=low, close=close, window=14)
     df['ATR']     = atr.average_true_range()
     df['ATR_pct'] = df['ATR'] / df['Close']
+    df['RET_1D'] = close.pct_change(1)
+    df['RET_3D'] = close.pct_change(3)
+    df['RET_5D'] = close.pct_change(5)
     df['MA20']    = close.rolling(20).mean()
     df['MA50']    = close.rolling(50).mean()
     df['MA20_SLOPE'] = df['MA20'].pct_change(5)
+    df['MA20_DISTANCE'] = close / df['MA20'].replace(0, np.nan) - 1
+    df['MA50_DISTANCE'] = close / df['MA50'].replace(0, np.nan) - 1
+    df['TREND_SCORE'] = (
+        (close > df['MA20']).astype(int)
+        + (df['MA20'] > df['MA50']).astype(int)
+        + (df['MA20_SLOPE'] > 0).astype(int)
+    )
     df['SPREAD'] = high - low
     df['SPREAD_MA20'] = df['SPREAD'].rolling(20).mean()
     df['SPREAD_RATIO'] = df['SPREAD'] / df['SPREAD_MA20'].replace(0, np.nan)
@@ -83,6 +97,26 @@ def calculate_indicators(df):
     df['vol_ratio']  = volume / vol_mean.replace(0, np.nan)
     df['vol_zscore'] = (volume - vol_mean) / vol_std.replace(0, np.nan)
     df['close_pos']  = (close - low) / (high - low + 1e-9)
+    df['VALUE_MA20'] = (close * volume).rolling(20).mean()
+    df['LIQUIDITY_SCORE'] = np.log1p(df['VALUE_MA20'].clip(lower=0))
+
+    strong_volume = df['vol_ratio'] > 1.5
+    high_volume = df['vol_ratio'] > 2.0
+    quiet_volume = df['vol_ratio'] < 0.8
+    wide_spread = df['SPREAD_RATIO'] > 1.4
+    narrow_spread = df['SPREAD_RATIO'] < 0.8
+    close_top = df['close_pos'] > 0.65
+    close_bottom = df['close_pos'] < 0.35
+    df['VSA_DEMAND'] = (strong_volume & close_top & (df['RET_1D'] > 0)).astype(int)
+    df['VSA_SUPPLY_RISK'] = (high_volume & close_bottom & wide_spread).astype(int)
+    df['VSA_ACCUMULATION'] = (high_volume & close_top & (df['RET_5D'] <= 0)).astype(int)
+    df['VSA_NO_SUPPLY'] = (quiet_volume & narrow_spread & (df['close_pos'] > 0.45)).astype(int)
+    df['VSA_SCORE'] = (
+        (2 * df['VSA_DEMAND'])
+        + df['VSA_ACCUMULATION']
+        + df['VSA_NO_SUPPLY']
+        - (2 * df['VSA_SUPPLY_RISK'])
+    )
 
     df['CMF'] = ChaikinMoneyFlowIndicator(
         high=high, low=low, close=close, volume=volume, window=20
