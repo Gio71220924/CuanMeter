@@ -303,26 +303,29 @@ function handleBandarmology(ticker, fromParam, toParam, res) {
     }, null, (err, data) => {
         if (err) { return sendJSON(res, 502, { error: err.message }); }
 
-        let netForeign = 0, netLocal = 0, netRetail = 0, lastPrice = null;
+        const netForeign = data.summary?.foreign?.net_val ?? 0;
+        const netLocal   = data.summary?.local?.net_val   ?? 0;
+        const netRetail  = data.summary?.retail?.net_val  ?? 0;
+        let lastPrice = null;
         for (const entry of (data.history || [])) {
-            const d = entry.data || {};
-            netForeign += (d.foreign?.net_val || 0);
-            netLocal   += (d.local?.net_val   || 0);
-            netRetail  += (d.retail?.net_val   || 0);
-            if (d.price) lastPrice = d.price;
+            if (entry.data?.price) lastPrice = entry.data.price;
         }
 
-        const mapBroker = (b) => ({
+        const mapBuyer = (b) => ({
             code:     b.code,
             type:     b.type || '',
             netVal:   (b.bval || 0) - (b.sval || 0),
             avgPrice: b.bvol > 0 ? Math.round((b.bval || 0) / b.bvol) : 0,
         });
+        const mapSeller = (b) => ({
+            code:     b.code,
+            type:     b.type || '',
+            netVal:   (b.sval || 0) - (b.bval || 0),
+            avgPrice: b.svol > 0 ? Math.round((b.sval || 0) / b.svol) : 0,
+        });
 
-        const buyers  = (data.summary?.top_buyers  || []).slice(0, 5).map(mapBroker)
-                            .sort((a, b) => b.netVal - a.netVal);
-        const sellers = (data.summary?.top_sellers || []).slice(0, 5).map(mapBroker)
-                            .sort((a, b) => a.netVal - b.netVal);
+        const buyers  = (data.summary?.top_net_buyers  || []).slice(0, 5).map(mapBuyer);
+        const sellers = (data.summary?.top_net_sellers || []).slice(0, 5).map(mapSeller);
 
         sendJSON(res, 200, { ticker, netForeign, netLocal, netRetail, lastPrice, buyers, sellers });
     });

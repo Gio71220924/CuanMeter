@@ -109,20 +109,16 @@ def fetch_bandarmology(ticker):
         resp.raise_for_status()
         data = resp.json()
 
-        net_foreign = 0.0
-        net_local   = 0.0
-        net_retail  = 0.0
+        summary     = data.get('summary', {})
+        net_foreign = float(summary.get('foreign', {}).get('net_val', 0) or 0)
+        net_local   = float(summary.get('local',   {}).get('net_val', 0) or 0)
+        net_retail  = float(summary.get('retail',  {}).get('net_val', 0) or 0)
         last_price  = None
-
         for entry in data.get('history', []):
-            d = entry.get('data', {})
-            net_foreign += float(d.get('foreign', {}).get('net_val', 0) or 0)
-            net_local   += float(d.get('local',   {}).get('net_val', 0) or 0)
-            net_retail  += float(d.get('retail',  {}).get('net_val', 0) or 0)
-            if d.get('price'):
-                last_price = d['price']
+            if entry.get('data', {}).get('price'):
+                last_price = entry['data']['price']
 
-        def map_broker(b):
+        def map_buyer(b):
             bval = float(b.get('bval') or 0)
             sval = float(b.get('sval') or 0)
             bvol = float(b.get('bvol') or 0)
@@ -133,14 +129,19 @@ def fetch_bandarmology(ticker):
                 'avgPrice': round(bval / bvol) if bvol > 0 else 0,
             }
 
-        buyers  = sorted(
-            [map_broker(b) for b in data.get('summary', {}).get('top_buyers',  [])[:5]],
-            key=lambda x: x['netVal'], reverse=True
-        )
-        sellers = sorted(
-            [map_broker(b) for b in data.get('summary', {}).get('top_sellers', [])[:5]],
-            key=lambda x: x['netVal']
-        )
+        def map_seller(b):
+            bval = float(b.get('bval') or 0)
+            sval = float(b.get('sval') or 0)
+            svol = float(b.get('svol') or 0)
+            return {
+                'code':     b.get('code', ''),
+                'type':     b.get('type', ''),
+                'netVal':   round(sval - bval, 0),
+                'avgPrice': round(sval / svol) if svol > 0 else 0,
+            }
+
+        buyers  = [map_buyer(b)  for b in data.get('summary', {}).get('top_net_buyers',  [])[:5]]
+        sellers = [map_seller(b) for b in data.get('summary', {}).get('top_net_sellers', [])[:5]]
 
         return {
             'net_foreign': round(net_foreign, 0),

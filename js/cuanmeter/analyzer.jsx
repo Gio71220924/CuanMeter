@@ -799,9 +799,9 @@ function Analyzer() {
           marginBottom: 16,
         }}
       >
-        <FlowCard icon="rocket"  label="Net Foreign" value={mlData?.bandarmology?.net_foreign ?? (bandData ? bandData.netForeign : data.netForeign)} color="#4d8fff" live={!!(mlData?.bandarmology || bandData)} />
-        <FlowCard icon="diamond" label="Net Local"   value={mlData?.bandarmology?.net_local   ?? (bandData ? bandData.netLocal   : data.netLocal)}   color="#a855f7" live={!!(mlData?.bandarmology || bandData)} />
-        <FlowCard icon="star"    label="Net Retail"  value={mlData?.bandarmology?.net_retail  ?? (bandData ? bandData.netRetail  : data.netRetail)}  color="#f59e0b" live={!!(mlData?.bandarmology || bandData)} />
+        <FlowCard icon="rocket"  label="Net Foreign" value={bandData ? bandData.netForeign : (mlData?.bandarmology?.net_foreign ?? data.netForeign)} color="#4d8fff" live={!!(bandData || mlData?.bandarmology)} />
+        <FlowCard icon="diamond" label="Net Local"   value={bandData ? bandData.netLocal   : (mlData?.bandarmology?.net_local   ?? data.netLocal)}   color="#a855f7" live={!!(bandData || mlData?.bandarmology)} />
+        <FlowCard icon="star"    label="Net Retail"  value={bandData ? bandData.netRetail  : (mlData?.bandarmology?.net_retail  ?? data.netRetail)}  color="#f59e0b" live={!!(bandData || mlData?.bandarmology)} />
       </div>
 
       {/* ML Trading Plan + Performance */}
@@ -858,12 +858,12 @@ function Analyzer() {
               ) : mlData.prediction === 'DOWN' ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                   <div style={{ padding: 14, background: 'color-mix(in oklab, var(--danger) 10%, transparent)', borderRadius: 12, border: '1px solid color-mix(in oklab, var(--danger) 25%, transparent)' }}>
-                    <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', color: 'var(--danger)', marginBottom: 4 }}>PROYEKSI TURUN</div>
+                    <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', color: 'var(--danger)', marginBottom: 4 }}>LEVEL TARGET TURUN</div>
                     <div className="mono tnum" style={{ fontSize: 18, fontWeight: 800, color: 'var(--danger)' }}>Rp {mlData.trading_plan.target_profit.toLocaleString('id-ID')}</div>
                     <div style={{ fontSize: 11, fontWeight: 700, marginTop: 2, color: 'var(--danger)' }}>{mlData.trading_plan.tp_percent}%</div>
                   </div>
                   <div style={{ padding: 14, background: 'color-mix(in oklab, var(--warning) 10%, transparent)', borderRadius: 12, border: '1px solid color-mix(in oklab, var(--warning) 25%, transparent)' }}>
-                    <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', color: 'var(--warning)', marginBottom: 4 }}>LEVEL WASPADA</div>
+                    <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.08em', color: 'var(--warning)', marginBottom: 4 }}>LEVEL STOP</div>
                     <div className="mono tnum" style={{ fontSize: 18, fontWeight: 800, color: 'var(--warning)' }}>Rp {mlData.trading_plan.stop_loss.toLocaleString('id-ID')}</div>
                     <div style={{ fontSize: 11, fontWeight: 700, marginTop: 2, color: 'var(--warning)' }}>+{mlData.trading_plan.sl_percent}%</div>
                   </div>
@@ -1033,15 +1033,15 @@ function Analyzer() {
       <div className="calc-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <BrokerTable
           title="Top Buyer"
-          subtitle={mlData?.bandarmology ? 'Live · ML Response' : bandData ? 'Live · 7 hari terakhir' : 'Akumulasi terbesar'}
-          list={mlData?.bandarmology?.top_buyers ?? (bandData ? bandData.buyers : data.buyers)}
+          subtitle={bandData ? `Live · ${bandFrom} s/d ${bandTo}` : mlData?.bandarmology ? 'Live · ML (7 hari)' : 'Akumulasi terbesar'}
+          list={bandData ? bandData.buyers : (mlData?.bandarmology?.top_buyers ?? data.buyers)}
           color="var(--success)"
           icon="rocket"
         />
         <BrokerTable
           title="Top Seller"
-          subtitle={mlData?.bandarmology ? 'Live · ML Response' : bandData ? 'Live · 7 hari terakhir' : 'Distribusi terbesar'}
-          list={mlData?.bandarmology?.top_sellers ?? (bandData ? bandData.sellers : data.sellers)}
+          subtitle={bandData ? `Live · ${bandFrom} s/d ${bandTo}` : mlData?.bandarmology ? 'Live · ML (7 hari)' : 'Distribusi terbesar'}
+          list={bandData ? bandData.sellers : (mlData?.bandarmology?.top_sellers ?? data.sellers)}
           color="var(--danger)"
           icon="arrow_left"
         />
