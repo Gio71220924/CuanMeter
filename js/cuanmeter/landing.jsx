@@ -309,30 +309,52 @@ function HeroMockup() {
 
 /* ---------- Stock ticker — custom real-time marquee via SSE ---------- */
 const MARQUEE_SYMBOLS = [
-  { key: 'IDX:COMPOSITE',   label: 'IHSG',    logo: 'indonesia'                   },
-  { key: 'IDX:LQ45',        label: 'LQ45',    logo: 'indonesia'                   },
+  { key: 'IDX:COMPOSITE',   label: 'IHSG',    logo: null                            },
+  { key: 'IDX:LQ45',        label: 'LQ45',    logo: null                            },
   { key: 'IDX:BBCA',        label: 'BBCA',    logo: 'bank-central-asia'           },
   { key: 'IDX:BBRI',        label: 'BBRI',    logo: 'bank-rakyat-indonesia'       },
-  { key: 'IDX:BBNI',        label: 'BBNI',    logo: 'bank-negara-indonesia'       },
-  { key: 'IDX:BMRI',        label: 'BMRI',    logo: 'bank-mandiri'                },
-  { key: 'IDX:BUMI',        label: 'BUMI',    logo: 'bumi-resources'              },
-  { key: 'IDX:TLKM',        label: 'TLKM',    logo: 'telkom-indonesia'            },
-  { key: 'IDX:ASII',        label: 'ASII',    logo: 'astra-international'         },
-  { key: 'IDX:ANTM',        label: 'ANTM',    logo: 'aneka-tambang'               },
-  { key: 'IDX:ADMR',        label: 'ADMR',    logo: 'adaro-minerals-indonesia'    },
-  { key: 'IDX:PTBA',        label: 'PTBA',    logo: 'bukit-asam'                  },
-  { key: 'IDX:GOTO',        label: 'GOTO',    logo: 'goto-gojek-tokopedia'        },
-  { key: 'IDX:AADI',        label: 'AADI',    logo: 'adaro-andalan-indonesia'     },
-  { key: 'IDX:MBMA',        label: 'MBMA',    logo: 'merdeka-battery-materials'   },
-  { key: 'BINANCE:BTCUSDT', label: 'BTC/USD', logo: 'bitcoin'                     },
-  { key: 'OANDA:XAUUSD',    label: 'GOLD',    logo: 'gold'                        },
+  { key: 'IDX:BBNI',        label: 'BBNI',    logo: 'bank-negara-indonesia-persero-tbk' },
+  { key: 'IDX:BMRI',        label: 'BMRI',    logo: 'bank-mandiri'                     },
+  { key: 'IDX:BUMI',        label: 'BUMI',    logo: 'bumi-resources-minerals'          },
+  { key: 'IDX:TLKM',        label: 'TLKM',    logo: 'tlkm-icon'                                  },
+  { key: 'IDX:ASII',        label: 'ASII',    logo: 'asii-icon'                                  },
+  { key: 'IDX:ANTM',        label: 'ANTM',    logo: 'antam'                                      },
+  { key: 'IDX:ADMR',        label: 'ADMR',    logo: 'adaro-minerals-indonesia-tbk'               },
+  { key: 'IDX:PTBA',        label: 'PTBA',    logo: 'bukit-asam-tbk'                             },
+  { key: 'IDX:GOTO',        label: 'GOTO',    logo: 'goto-icon'                                  },
+  { key: 'IDX:AADI',        label: 'AADI',    logo: 'aadi-icon'                                  },
+  { key: 'IDX:MBMA',        label: 'MBMA',    logo: 'merdeka-battery-materials-tbk'              },
+  { key: 'BINANCE:BTCUSDT', label: 'BTC/USD', logo: 'crypto/XTVCBTC'                             },
+  { key: 'OANDA:XAUUSD',    label: 'GOLD',    logo: 'gold-icon'                                  },
 ];
+
+function makeSvgLogo(text, bg, fg = '#fff') {
+  return `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="${bg}"/><text x="10" y="14" text-anchor="middle" font-size="8" font-weight="800" font-family="sans-serif" fill="${fg}">${text}</text></svg>`
+  )}`;
+}
+
+const SVG_LOGOS = {
+  'tlkm-icon': makeSvgLogo('TL', '#CC0000'),
+  'asii-icon': makeSvgLogo('AS', '#1B4693'),
+  'goto-icon': makeSvgLogo('GT', '#00AA13'),
+  'aadi-icon': makeSvgLogo('AA', '#003082'),
+  'gold-icon': makeSvgLogo('Au', '#F5A623', '#7A4F00'),
+};
 
 function MarqueeLogo({ slug, label }) {
   const [err, setErr] = useStateL(false);
-  const src = `https://s3-symbol-logo.tradingview.com/${slug}.svg`;
 
-  if (err) {
+  let src = null;
+  if (slug && SVG_LOGOS[slug]) {
+    src = SVG_LOGOS[slug];
+  } else if (slug && slug.startsWith('data:')) {
+    src = slug;
+  } else if (slug) {
+    src = `https://s3-symbol-logo.tradingview.com/${slug}.svg`;
+  }
+
+  if (!src || err) {
     return (
       <div style={{
         width: 20, height: 20, borderRadius: '50%',
