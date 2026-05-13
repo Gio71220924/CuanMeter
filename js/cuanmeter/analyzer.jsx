@@ -625,7 +625,7 @@ function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) 
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                {['Ticker', 'Swing', 'VSA', 'Signal', 'Entry', 'TP', 'SL', 'Risk', 'Vol', 'RS', 'Harga'].map((h) => (
+                {['Ticker', 'Swing', 'VSA', 'Signal', 'BO Entry', 'PB Entry', 'TP', 'SL', 'Risk', 'Vol', 'RS', 'Harga'].map((h) => (
                   <th key={h} style={{
                     padding: '8px 12px', textAlign: h === 'Ticker' ? 'left' : 'right',
                     fontSize: 11, fontWeight: 800, letterSpacing: '0.06em',
@@ -665,7 +665,8 @@ function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) 
                     <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: isError ? 'var(--fg-faint)' : PRED_COLOR_S[row.prediction] }}>
                       {isError ? <span style={{ fontSize: 11, background: 'var(--danger)', color: '#fff', padding: '2px 6px', borderRadius: 4 }}>Error</span> : PRED_LABEL_S[row.prediction]}
                     </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: 'var(--fg)' }}>{isError ? '—' : fmtPrice(row.swing?.entry)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: 'var(--fg)' }}>{isError ? '—' : fmtPrice(row.swing?.bo_entry ?? row.swing?.entry)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: 'var(--warning)' }}>{isError ? '—' : fmtPrice(row.swing?.pb_entry)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: 'var(--primary)' }}>{isError ? '—' : fmtPrice(row.swing?.target)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: 'var(--danger)' }}>{isError ? '—' : fmtPrice(row.swing?.stop_loss)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--fg-muted)' }}>{isError ? '—' : fmtPct(row.swing?.risk_pct)}</td>
@@ -679,6 +680,42 @@ function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) 
           </table>
         </div>
       )}
+
+      <div
+        className="card"
+        style={{
+          marginTop: 16,
+          padding: 16,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: 10,
+          background: 'var(--surface-2)',
+          border: '1px solid var(--border)',
+        }}
+      >
+        {[
+          { label: 'Swing', value: 'Skor setup swing. 9+ kuat, 6-8 watchlist, 4-5 early setup.' },
+          { label: 'VSA', value: 'Baca volume-spread: Demand/No Supply bagus, Climax/Weak Rally hati-hati.' },
+          { label: 'BO Entry', value: 'Harga trigger breakout di atas resistance pendek.' },
+          { label: 'PB Entry', value: 'Area pullback untuk cicil saat harga turun sehat.' },
+          { label: 'TP / SL', value: 'Target dan batas rugi dari BO Entry, memakai rasio risiko sekitar 1:2.' },
+          { label: 'Vol / RS', value: 'Vol adalah volume vs rata-rata. RS adalah kekuatan saham vs IHSG.' },
+        ].map((item) => (
+          <div key={item.label} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <span style={{ color: 'var(--primary)', marginTop: 2 }}>
+              <Icon name="info" size={14} />
+            </span>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--fg)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 3 }}>
+                {item.label}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--fg-muted)', lineHeight: 1.45 }}>
+                {item.value}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
 
       <div style={{ marginTop: 16, fontSize: 11, color: 'var(--fg-faint)', lineHeight: 1.5 }}>
         Klik baris untuk buka analisis lengkap. Data berdasarkan model SVM — bukan rekomendasi investasi. DYOR.

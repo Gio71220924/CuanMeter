@@ -248,24 +248,36 @@ def build_swing_setup(df, prediction, strength):
         label = 'Skip'
 
     trigger = max(close, recent_high)
-    entry = round_to_tick(trigger, 'up')
+    bo_entry = round_to_tick(trigger, 'up')
+
+    pullback_candidates = []
+    if atr > 0:
+        pullback_candidates.append(close - atr * 0.5)
+    if ma20 and close >= ma20:
+        pullback_candidates.append(ma20)
+    raw_pb = max([p for p in pullback_candidates if p and p > 0], default=close * 0.985)
+    raw_pb = min(raw_pb, close)
+    pb_entry = round_to_tick(raw_pb, 'down')
+
     atr_stop = close - atr * 1.5 if atr > 0 else close * 0.94
     ma_stop = ma20 * 0.98 if ma20 else close * 0.94
     raw_sl = max(recent_low, atr_stop, ma_stop)
-    if raw_sl >= entry:
-        raw_sl = entry * 0.94
+    if raw_sl >= bo_entry:
+        raw_sl = bo_entry * 0.94
     stop_loss = round_to_tick(raw_sl, 'down')
-    risk = entry - stop_loss if entry and stop_loss else 0
-    target = round_to_tick(entry + risk * 2, 'down') if risk > 0 else None
+    risk = bo_entry - stop_loss if bo_entry and stop_loss else 0
+    target = round_to_tick(bo_entry + risk * 2, 'down') if risk > 0 else None
 
     return {
         'score': round(score, 1),
         'setup': label,
         'vsa': vsa['label'],
-        'entry': entry,
+        'entry': bo_entry,
+        'bo_entry': bo_entry,
+        'pb_entry': pb_entry,
         'target': target,
         'stop_loss': stop_loss,
-        'risk_pct': round((risk / entry) * 100, 2) if entry and risk > 0 else None,
+        'risk_pct': round((risk / bo_entry) * 100, 2) if bo_entry and risk > 0 else None,
         'rr': 2 if risk > 0 else None,
         'volume_ratio': safe_float(last.get('vol_ratio')),
         'relative_strength_20d': safe_float(last.get('REL_STRENGTH_20D')),
