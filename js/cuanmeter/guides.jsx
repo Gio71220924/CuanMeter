@@ -662,7 +662,7 @@ function GuideReader({ guide, onClose }) {
           }}
         >
           <span style={{ fontSize: 12, color: 'var(--fg-faint)' }}>
-            Last updated: Mei 2026 · CuanMeter Edu
+            Last updated: Mei 2026 · Sahamath Edu
           </span>
           <button onClick={onClose} className="btn btn-secondary">
             Tutup panduan

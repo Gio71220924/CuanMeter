@@ -83,6 +83,16 @@ function Icon({ name, size = 20, stroke = 2 }) {
   );
 }
 
+/* ---------- SahamathLogo ---------- */
+function SahamathLogo({ size = 20 }) {
+  return (
+    <span style={{ fontWeight: 900, fontSize: size, letterSpacing: '-0.03em', lineHeight: 1, userSelect: 'none' }}>
+      <span style={{ color: 'var(--fg)' }}>Saha</span>
+      <span style={{ color: 'var(--primary)', borderBottom: '2px solid var(--primary)', paddingBottom: 1 }}>math</span>
+    </span>
+  );
+}
+
 /* ---------- CoinLogo — candlestick chart ---------- */
 function CoinLogo({ size = 36 }) {
   const r = Math.round(size * 0.22);
@@ -145,19 +155,10 @@ function Header({ route, onNavigate, theme, onThemeChange }) {
       >
         <button
           onClick={() => onNavigate('home')}
+          aria-label="Sahamath — ke halaman utama"
           style={{ display: 'flex', alignItems: 'center', gap: 12 }}
         >
-          <CoinLogo size={36} />
-          <span
-            style={{
-              fontWeight: 800,
-              fontSize: 20,
-              letterSpacing: '-0.03em',
-              color: 'var(--fg)',
-            }}
-          >
-            CuanMeter
-          </span>
+          <SahamathLogo size={22} />
         </button>
 
         <nav
@@ -290,17 +291,7 @@ function Footer({ onNavigate }) {
       >
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <CoinLogo size={36} />
-            <span
-              style={{
-                fontWeight: 800,
-                fontSize: 20,
-                letterSpacing: '-0.03em',
-                color: 'var(--fg)',
-              }}
-            >
-              CuanMeter
-            </span>
+            <SahamathLogo size={22} />
           </div>
           <p
             style={{
@@ -380,7 +371,7 @@ function Footer({ onNavigate }) {
         }}
       >
         <span style={{ fontSize: 13, color: 'var(--fg-faint)' }}>
-          © 2026 CuanMeter. Bukan ajakan beli/jual.
+          © 2026 Sahamath. Bukan ajakan beli/jual.
         </span>
         <span style={{ fontSize: 13, color: 'var(--fg-faint)' }}>
           Made for Indonesian traders 🇮🇩
