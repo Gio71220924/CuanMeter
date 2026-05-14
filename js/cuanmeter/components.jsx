@@ -89,7 +89,7 @@ function SahamathLogo({ size = 20 }) {
   return (
     <span style={{ fontWeight: 900, fontSize: size, letterSpacing: '-0.03em', lineHeight: 1, userSelect: 'none' }}>
       <span style={{ color: 'var(--fg)' }}>Saha</span>
-      <span style={{ display: 'inline-block', position: 'relative', color: 'var(--primary)', paddingBottom: lineH + 1 }}>
+      <span className="logo-math" style={{ display: 'inline-block', position: 'relative', color: 'var(--primary)', paddingBottom: lineH + 1 }}>
         math
         <svg
           viewBox="0 0 48 8"
@@ -97,6 +97,7 @@ function SahamathLogo({ size = 20 }) {
           style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: lineH, display: 'block' }}
         >
           <polyline
+            className="logo-sparkline"
             points="0,7 4,6 10,7 16,4 22,5 28,2 34,3 40,1 48,2"
             fill="none"
             stroke="var(--primary)"
@@ -173,7 +174,15 @@ function Header({ route, onNavigate, theme, onThemeChange }) {
         <button
           onClick={() => onNavigate('home')}
           aria-label="Sahamath — ke halaman utama"
+          className="logo-btn"
           style={{ display: 'flex', alignItems: 'center', gap: 12 }}
+          onMouseMove={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            const x = ((e.clientX - r.left) / r.width - 0.5) * 10;
+            const y = ((e.clientY - r.top) / r.height - 0.5) * 10;
+            e.currentTarget.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+          }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = ''; }}
         >
           <SahamathLogo size={22} />
         </button>
@@ -275,6 +284,23 @@ function Header({ route, onNavigate, theme, onThemeChange }) {
       )}
 
       <style>{`
+        .logo-btn {
+          transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .logo-sparkline {
+          stroke-dasharray: 55;
+          stroke-dashoffset: 55;
+          transition: stroke-dashoffset 0.65s ease;
+        }
+        .logo-btn:hover .logo-sparkline {
+          stroke-dashoffset: 0;
+        }
+        .logo-btn:hover .logo-math {
+          text-shadow: 0 0 12px rgba(0,168,107,0.55), 0 0 28px rgba(0,168,107,0.25);
+        }
+        .logo-math {
+          transition: text-shadow 0.25s;
+        }
         .nav-link {
           padding: 10px 16px;
           font-size: 14px;

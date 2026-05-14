@@ -118,6 +118,7 @@ function Hero({ onNavigate }) {
 /* ---------- HeroMockup — 3D isometric finance illustration ---------- */
 function HeroMockup() {
   const [tick, setTick] = useStateL(0);
+  const [glow, setGlow] = useStateL({ x: 50, y: 50, on: false });
 
   useEffectL(() => {
     const id = setInterval(() => setTick((t) => t + 1), 1600);
@@ -130,19 +131,61 @@ function HeroMockup() {
     ), [tick]);
 
   return (
-    <div className="fade-up fade-up-2 hero-3d" style={{
-      position: 'relative', height: 560,
-      marginTop: 60,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      perspective: 1400,
-    }}>
+    <div
+      className="fade-up fade-up-2 hero-3d"
+      style={{
+        position: 'relative', height: 560,
+        marginTop: 60,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        perspective: 1400,
+        transition: 'transform 0.35s cubic-bezier(0.23, 1, 0.32, 1)',
+        willChange: 'transform',
+        cursor: 'default',
+      }}
+      onMouseMove={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        const nx = (e.clientX - r.left) / r.width;
+        const ny = (e.clientY - r.top) / r.height;
+        const rx = (nx - 0.5) * 12;
+        const ry = (ny - 0.5) * 8;
+        e.currentTarget.style.transform = `rotateY(${rx.toFixed(2)}deg) rotateX(${(-ry).toFixed(2)}deg)`;
+        setGlow({ x: nx * 100, y: ny * 100, on: true });
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = '';
+        setGlow((g) => ({ ...g, on: false }));
+      }}
+    >
       {/* glow backdrop */}
-      <div style={{
+      <div className="hero-glow" style={{
         position: 'absolute', inset: 0,
         background: 'radial-gradient(circle at 50% 55%, var(--primary-soft) 0%, transparent 65%)',
         filter: 'blur(20px)',
         opacity: 0.9,
+        transition: 'opacity 0.35s',
       }} />
+
+      {/* cursor spotlight */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        pointerEvents: 'none',
+        overflow: 'hidden',
+        borderRadius: 28,
+        opacity: glow.on ? 1 : 0,
+        transition: 'opacity 0.3s',
+      }}>
+        <div style={{
+          position: 'absolute',
+          left: `${glow.x}%`,
+          top: `${glow.y}%`,
+          width: 260,
+          height: 260,
+          transform: 'translate(-50%, -50%)',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(0,168,107,0.22) 0%, rgba(0,168,107,0.06) 45%, transparent 70%)',
+          filter: 'blur(4px)',
+        }} />
+      </div>
 
       {/* main isometric scene */}
       <div style={{
@@ -284,6 +327,7 @@ function HeroMockup() {
       </div>
 
       <style>{`
+        .hero-3d:hover .hero-glow { opacity: 1.0 !important; filter: blur(14px) !important; }
         @keyframes hero3dFloat {
           0%, 100% { transform: rotateX(55deg) rotateZ(-35deg) translateY(0px); }
           50%       { transform: rotateX(55deg) rotateZ(-35deg) translateY(-12px); }
