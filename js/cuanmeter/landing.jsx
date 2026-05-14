@@ -593,11 +593,40 @@ function getCurrentMonthWeek(date = new Date()) {
   return Math.min(4, Math.max(1, Math.ceil(date.getDate() / 7)));
 }
 
-function impactStyle(impact) {
-  if (impact === 'high') {
+function impactStyle(impact, category) {
+  if (impact === 'high' && category === 'macro') {
     return { color: '#b91c1c', background: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.22)' };
   }
   return { color: 'var(--primary)', background: 'var(--primary-soft)', border: 'var(--border)' };
+}
+
+function formatRupsDisplay(text = '') {
+  if (!text) return text;
+  if (/^Pukul \d/.test(text)) return text;
+  const timeMatch = text.match(/Waktu\s*:\s*(\d{1,2}:\d{2})\s*WIB/i);
+  const venueMatch = text.match(/Tempat\s*:\s*(.+)/i);
+  const time = timeMatch ? timeMatch[1] : null;
+  const rawVenue = venueMatch ? venueMatch[1].trim() : null;
+
+  let venueName = null;
+  if (rawVenue) {
+    if (/elektron|virtual|online|zoom|webex/i.test(rawVenue)) {
+      venueName = 'Online / Elektronik';
+    } else {
+      venueName = rawVenue
+        .split(/,|\.\s+(?:Jl|Jalan|No|Rt|Rw|Kel|Kec)\b/i)[0]
+        .replace(/\s*\(.*$/, '')
+        .replace(/\s+\d{1,3}(?:st|nd|rd|th)?\s+(?:floor|lt|lantai)\b.*/i, '')
+        .replace(/\s+(?:lt|lantai)\.?\s*\d+\b.*/i, '')
+        .replace(/(\s+\S+)?\s*\.{3}$/, '')
+        .trim();
+    }
+  }
+
+  if (time && venueName) return `Pukul ${time} WIB · ${venueName}`;
+  if (time) return `Pukul ${time} WIB`;
+  if (venueName) return venueName;
+  return text;
 }
 
 function MarketCalendarWidget() {
@@ -613,7 +642,7 @@ function MarketCalendarWidget() {
 
   useEffectL(() => {
     let alive = true;
-    const limit = range === 'week' ? 40 : 80;
+    const limit = range === 'week' ? 40 : 300;
     const weekParam = range === 'week' ? `&week=${week}` : '';
     setLoading(true);
     setLoadError(null);
@@ -778,7 +807,7 @@ function MarketCalendarWidget() {
             )}
 
             {events.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE).map((event) => {
-              const impact = impactStyle(event.impact);
+              const impact = impactStyle(event.impact, event.category);
               const dateParts = calendarDateParts(event);
               return (
                 <div
@@ -844,9 +873,18 @@ function MarketCalendarWidget() {
                     >
                       {formatCalendarEventTitle(event)}
                     </h3>
-                    <p style={{ margin: 0, color: 'var(--fg-muted)', fontSize: 13, lineHeight: 1.45 }}>
-                      {event.summary || event.detail}
-                    </p>
+                    {event.label === 'RUPS' || event.label === 'RUPO' ? (
+                      <p style={{ margin: 0, color: 'var(--fg-muted)', fontSize: 13, lineHeight: 1.45 }}>
+                        {formatRupsDisplay(event.summary || event.detail)}
+                      </p>
+                    ) : (
+                      <p style={{
+                        margin: 0, color: 'var(--fg-muted)', fontSize: 13, lineHeight: 1.45,
+                        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                      }}>
+                        {event.summary || event.detail}
+                      </p>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
