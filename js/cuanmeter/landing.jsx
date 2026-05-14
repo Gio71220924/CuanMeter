@@ -851,6 +851,7 @@ function MarketCalendarWidget() {
           </div>
 
           <div
+            className="cal-events-panel"
             style={{
               display: 'grid',
               gap: 10,
@@ -920,6 +921,19 @@ function MarketCalendarWidget() {
               })}
             </div>
 
+            <div className="cal-dot-legend">
+              {[
+                { color: 'var(--primary)', label: 'Dividen' },
+                { color: '#3b82f6', label: 'RUPS / RUPO' },
+                { color: '#b91c1c', label: 'Makro' },
+              ].map(({ color, label }) => (
+                <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{label}</span>
+                </span>
+              ))}
+            </div>
+
             {(loading || loadError || events.length === 0) && (
               <div style={{
                 padding: 18,
@@ -953,6 +967,7 @@ function MarketCalendarWidget() {
                   }}
                 >
                   <div
+                    className="cal-event-datebox"
                     style={{
                       minHeight: 64,
                       borderRadius: 8,
@@ -963,8 +978,14 @@ function MarketCalendarWidget() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       textAlign: 'center',
+                      position: 'relative',
                     }}
                   >
+                    <span className="cal-event-dot" style={{
+                      background: event.label === 'Dividen' ? 'var(--primary)' :
+                        (event.label === 'RUPS' || event.label === 'RUPO') ? '#3b82f6' :
+                        event.category === 'macro' ? '#b91c1c' : 'var(--primary)'
+                    }} />
                     <span
                       className="mono"
                       style={{
@@ -992,6 +1013,16 @@ function MarketCalendarWidget() {
                   </div>
 
                   <div style={{ minWidth: 0 }}>
+                    <div className="cal-event-meta-mobile">
+                      <span className="cal-event-dot-inline" style={{
+                        background: event.label === 'Dividen' ? 'var(--primary)' :
+                          (event.label === 'RUPS' || event.label === 'RUPO') ? '#3b82f6' :
+                          event.category === 'macro' ? '#b91c1c' : 'var(--primary)'
+                      }} />
+                      <span className="mono" style={{ fontSize: 11, fontWeight: 800, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        {dateParts.day} {dateParts.month}
+                      </span>
+                    </div>
                     <h3
                       className="cal-event-title"
                       style={{
@@ -1077,13 +1108,6 @@ function MarketCalendarWidget() {
         @media (max-width: 860px) {
           .market-calendar-grid {
             grid-template-columns: 1fr !important;
-          }
-          .market-calendar-grid [style*="76px"] {
-            grid-template-columns: 64px minmax(0, 1fr) !important;
-          }
-          .market-calendar-grid [style*="justify-content: flex-end"] {
-            justify-content: flex-start !important;
-            grid-column: 2;
           }
         }
       `}</style>
