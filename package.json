@@ -1,7 +1,7 @@
 {
     "name": "cuanmeter",
     "version": "2.0.0",
-    "description": "CuanMeter — Kalkulator saham IDX buat trader Gen Z (SPA)",
+    "description": "Sahamath - kalkulator saham IDX untuk trader Indonesia",
     "scripts": {
         "start": "node server.js"
     },
@@ -13,6 +13,6 @@
         "saham",
         "bursa efek"
     ],
-    "author": "CuanMeter",
+    "author": "Sahamath",
     "license": "MIT"
 }
