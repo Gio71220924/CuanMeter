@@ -589,6 +589,10 @@ function formatCalendarEventTitle(event) {
   return `${event.ticker} ${typeLabel}`;
 }
 
+function getCurrentMonthWeek(date = new Date()) {
+  return Math.min(4, Math.max(1, Math.ceil(date.getDate() / 7)));
+}
+
 function impactStyle(impact) {
   if (impact === 'high') {
     return { color: '#b91c1c', background: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.22)' };
@@ -597,8 +601,8 @@ function impactStyle(impact) {
 }
 
 function MarketCalendarWidget() {
-  const [range, setRange] = useStateL('month');
-  const [week, setWeek] = useStateL(Math.min(4, Math.ceil(new Date().getDate() / 7)));
+  const [range, setRange] = useStateL('week');
+  const [week, setWeek] = useStateL(getCurrentMonthWeek());
   const [events, setEvents] = useStateL([]);
   const [updatedAt, setUpdatedAt] = useStateL(null);
   const [rangeMeta, setRangeMeta] = useStateL(null);
