@@ -23,7 +23,7 @@ const ROOT = __dirname;           // folder server.js berada
 const DEFAULT = '/index.html';   // halaman yang dibuka otomatis
 const DATA_DIR = path.join(ROOT, 'data');
 const CALENDAR_CACHE_FILE = path.join(DATA_DIR, 'calendar-cache.json');
-const CALENDAR_CACHE_VERSION = 6;
+const CALENDAR_CACHE_VERSION = 8;
 const KSEI_DETAIL_PAGE_LIMIT = 80;
 const KSEI_EVENT_LIMIT = 160;
 const KSEI_RETRY_COUNT = 2;
@@ -303,12 +303,51 @@ function stripHtml(text = '') {
     return decodeHtml(text.replace(/<[^>]*>/g, ' '));
 }
 
+function shortVenueName(venue = '') {
+    // Take first segment before comma (building name), strip floor/level noise
+    const firstPart = venue.split(',')[0].trim();
+    const noFloor = firstPart
+        .replace(/\s+\d{1,3}(?:st|nd|rd|th)?\s+(?:floor|lt|lantai)\b.*/i, '')
+        .replace(/\s+(?:lt|lantai)\.?\s*\d+\b.*/i, '')
+        .trim();
+    // If there's a descriptive name before a parenthetical, prefer that
+    const beforeParen = noFloor.replace(/\s*\(.*$/, '').trim();
+    return beforeParen.length >= 4 ? beforeParen : noFloor;
+}
+
+function parseRupsDescription(description = '') {
+    const timeMatch = description.match(/Waktu\s*:\s*(\d{1,2}:\d{2})\s*WIB/i);
+    const venueMatch = description.match(/Tempat\s*:\s*(.+)/i);
+    return {
+        time: timeMatch ? timeMatch[1] : null,
+        venue: venueMatch ? venueMatch[1].trim() : null,
+    };
+}
+
 function summarizeCorporateAction(label, description = '') {
     const divMatch = description.match(/Rp\s*([\d.,]+)/i);
     if ((label === 'Dividen' || /dividen/i.test(description)) && divMatch) {
         return `Div ${divMatch[1]} rupiah/lembar`;
     }
+
+    if (label === 'RUPS' || label === 'RUPO') {
+        const { time, venue } = parseRupsDescription(description);
+        const venueName = venue ? shortVenueName(venue) : null;
+        if (time && venueName) return `Pukul ${time} WIB · ${venueName}`;
+        if (time) return `Pukul ${time} WIB`;
+        if (venueName) return venueName;
+    }
+
     return description.length > 72 ? description.slice(0, 69) + '...' : description;
+}
+
+function formatRupsDetail(description = '') {
+    const { time, venue } = parseRupsDescription(description);
+    if (!time && !venue) return description;
+    const lines = [];
+    if (time) lines.push(`Pukul ${time} WIB`);
+    if (venue) lines.push(`Tempat: ${venue}`);
+    return lines.join('\n');
 }
 
 function isIdxStockTicker(code = '') {
@@ -380,8 +419,12 @@ function parseKseiDetail(html, eventDate, detailPath) {
         const securityName = nameMatch ? decodeHtml(nameMatch[1]) : '';
         const description = descMatch ? stripHtml(descMatch[1]) : '';
         const label = actionLabelFromDetail(`${block} ${description}`);
-        const shortDesc = description.length > 110 ? description.slice(0, 107) + '...' : description;
+        const isRups = label === 'RUPS' || label === 'RUPO';
+        const shortDesc = (!isRups && description.length > 110) ? description.slice(0, 107) + '...' : description;
         const summary = summarizeCorporateAction(label, description);
+        const detail = isRups
+            ? (formatRupsDetail(description) || shortDesc || `${securityName || ticker} masuk jadwal ${type.label} KSEI.`)
+            : (shortDesc || `${securityName || ticker} masuk jadwal ${type.label} KSEI.`);
 
         events.push({
             id: `ksei-${type.type}-${eventDate}-${ticker}`,
@@ -390,7 +433,7 @@ function parseKseiDetail(html, eventDate, detailPath) {
             label,
             ticker,
             title: `${ticker} - ${type.label}`,
-            detail: shortDesc || `${securityName || ticker} masuk jadwal ${type.label} KSEI.`,
+            detail,
             summary: summary || `${ticker} ${type.label}`,
             impact: type.type === 'cum' ? 'high' : 'medium',
             source: 'KSEI',
@@ -407,8 +450,7 @@ async function fetchKseiCalendarEvents() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const from = startOfMonth(today);
-    const until = new Date(today);
-    until.setDate(until.getDate() + 30);
+    const until = endOfMonth(addMonths(today, 1));
 
     const months = [today, addMonths(today, 1)];
     const detailItems = [];
@@ -640,8 +682,9 @@ function handleCalendar(query, res) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const weekRange = monthWeekRange(today, query.week);
-    const defaultLimit = range === 'week' ? 40 : 80;
-    const limit = Math.max(1, Math.min(parseInt(query.limit || String(defaultLimit), 10) || defaultLimit, 80));
+    const maxLimit = range === 'week' ? 80 : 300;
+    const defaultLimit = range === 'week' ? 40 : 300;
+    const limit = Math.max(1, Math.min(parseInt(query.limit || String(defaultLimit), 10) || defaultLimit, maxLimit));
     const forceRefresh = query.refresh === '1';
     const rangeStart = range === 'week' ? weekRange.start : startOfMonth(today);
     const rangeEnd = range === 'week' ? weekRange.end : endOfMonth(today);
