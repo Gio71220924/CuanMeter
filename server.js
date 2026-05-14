@@ -221,7 +221,7 @@ function getMacroEvents() {
     // BI RDG — scan current year + next year
     for (const year of [today.getFullYear(), today.getFullYear() + 1]) {
         const rdgDates = BI_RDG_SCHEDULE[year];
-        if (!rdgDates) { console.warn(`[Calendar] BI_RDG_SCHEDULE missing year ${year}`); continue; }
+        if (!rdgDates) continue;
         for (const date of rdgDates) {
             const d = new Date(date + 'T00:00:00');
             if (d < from || d > until) continue;
@@ -651,6 +651,7 @@ async function loadCalendarCache(forceRefresh = false) {
         calendarRefreshInFlight = (async () => {
             try {
                 const kseiEvents = await fetchKseiCalendarEvents();
+                console.log(`[Calendar] KSEI: ${countCorporateEvents(kseiEvents)} corporate action events`);
 
                 let idxEvents = [];
                 try {
@@ -684,7 +685,16 @@ async function loadCalendarCache(forceRefresh = false) {
         })();
     }
 
-    // Return immediately with macro + stale KSEI (don't wait for background fetch)
+    // On a fresh deploy there is no disk cache yet. Wait once so the public site
+    // does not render a macro-only calendar while KSEI is still warming up.
+    if (forceRefresh || !fs.existsSync(CALENDAR_CACHE_FILE)) {
+        await calendarRefreshInFlight;
+        const refreshed = readCalendarCache();
+        if (refreshed) return { ...refreshed, cached: true };
+        return getCalendarFallback(calendarLastRefreshError || 'KSEI belum tersedia.');
+    }
+
+    // Return immediately with macro + stale KSEI while background fetch refreshes cache.
     return getCalendarFallback('KSEI sedang dimuat di background, refresh untuk data lengkap.');
 }
 
