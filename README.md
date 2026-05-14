@@ -99,6 +99,27 @@ Catatan penting:
 - Jika repo public, jangan push `best_models.pkl`.
 - Jika ingin satu repo dan model tetap private, ubah repository menjadi private.
 
+Environment variable yang perlu diisi di Render untuk download model dari Supabase private bucket:
+
+```text
+SUPABASE_URL=isi_project_url
+SUPABASE_SERVICE_ROLE_KEY=isi_secret_key
+SUPABASE_BUCKET=models
+SUPABASE_MODEL_PATH=best_models.pkl
+```
+
+Render build command:
+
+```bash
+npm install && pip install -r requirements.txt && npm run download:model
+```
+
+Render start command:
+
+```bash
+npm start
+```
+
 ## Dokumentasi Pengguna
 
 Dokumentasi pengguna lengkap tersedia di:

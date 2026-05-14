@@ -18,7 +18,7 @@ const path = require('path');
 const url = require('url');
 const { exec, spawn } = require('child_process');
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;           // folder server.js berada
 const DEFAULT = '/index.html';   // halaman yang dibuka otomatis
 const DATA_DIR = path.join(ROOT, 'data');
