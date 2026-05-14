@@ -608,6 +608,8 @@ function MarketCalendarWidget() {
   const [rangeMeta, setRangeMeta] = useStateL(null);
   const [loading, setLoading] = useStateL(true);
   const [loadError, setLoadError] = useStateL(null);
+  const [page, setPage] = useStateL(0);
+  const PAGE_SIZE = 5;
 
   useEffectL(() => {
     let alive = true;
@@ -615,6 +617,7 @@ function MarketCalendarWidget() {
     const weekParam = range === 'week' ? `&week=${week}` : '';
     setLoading(true);
     setLoadError(null);
+    setPage(0);
     fetch(`/calendar?range=${range}${weekParam}&limit=${limit}`)
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
@@ -627,6 +630,7 @@ function MarketCalendarWidget() {
         setEvents(data.events);
         setUpdatedAt(data.generated_at);
         setRangeMeta(data.range_start && data.range_end ? `${data.range_start} - ${data.range_end}` : null);
+        setLoadError(data.error && !data.cached ? 'Data KSEI belum lengkap, coba refresh lagi nanti.' : null);
       })
       .catch(() => {
         if (!alive) return;
@@ -773,7 +777,7 @@ function MarketCalendarWidget() {
               </div>
             )}
 
-            {events.map((event) => {
+            {events.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE).map((event) => {
               const impact = impactStyle(event.impact);
               const dateParts = calendarDateParts(event);
               return (
@@ -865,6 +869,38 @@ function MarketCalendarWidget() {
                 </div>
               );
             })}
+
+            {events.length > PAGE_SIZE && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4 }}>
+                <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
+                  {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, events.length)} dari {events.length} event
+                </span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => setPage(p => p - 1)}
+                    disabled={page === 0}
+                    style={{
+                      padding: '5px 12px', fontSize: 13, fontWeight: 700,
+                      borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                      background: 'var(--bg)', color: page === 0 ? 'var(--fg-faint)' : 'var(--fg)',
+                      cursor: page === 0 ? 'default' : 'pointer',
+                    }}
+                  >‹ Prev</button>
+                  <button
+                    type="button"
+                    onClick={() => setPage(p => p + 1)}
+                    disabled={(page + 1) * PAGE_SIZE >= events.length}
+                    style={{
+                      padding: '5px 12px', fontSize: 13, fontWeight: 700,
+                      borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                      background: 'var(--bg)', color: (page + 1) * PAGE_SIZE >= events.length ? 'var(--fg-faint)' : 'var(--fg)',
+                      cursor: (page + 1) * PAGE_SIZE >= events.length ? 'default' : 'pointer',
+                    }}
+                  >Next ›</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
