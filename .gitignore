@@ -20,13 +20,30 @@ Thumbs.db
 .idea/
 *.sublime-*
 
+# Tooling notes
+.claude/
+docs/superpowers/
+
 # Cache
 .cache/
 .parcel-cache/
+data/calendar-cache.json
+__pycache__/
+*.pyc
+
+# ML models
+*.pkl
+
+# Notebooks
+*.ipynb
+.ipynb_checkpoints/
 
 # Environment
 .env
 .env.local
+.venv/
+venv/
+env/
 
 # Testing
 coverage/
