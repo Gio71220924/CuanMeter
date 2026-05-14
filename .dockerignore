@@ -1,0 +1,15 @@
+node_modules/
+.venv/
+venv/
+env/
+dist/
+build/
+.git/
+.github/
+*.ipynb
+.ipynb_checkpoints/
+*.pkl
+data/calendar-cache.json
+__pycache__/
+*.pyc
+*.log

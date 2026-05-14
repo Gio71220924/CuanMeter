@@ -120,6 +120,8 @@ Render start command:
 npm start
 ```
 
+Untuk Railway, deploy paling stabil memakai `Dockerfile` yang sudah tersedia di repository. Kosongkan custom build command/start command jika Railway mendeteksi Dockerfile, lalu isi environment variable Supabase yang sama.
+
 ## Dokumentasi Pengguna
 
 Dokumentasi pengguna lengkap tersedia di:
