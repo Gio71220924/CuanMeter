@@ -21,6 +21,11 @@ const { exec, spawn } = require('child_process');
 const PORT = 3000;
 const ROOT = __dirname;           // folder server.js berada
 const DEFAULT = '/index.html';   // halaman yang dibuka otomatis
+const DATA_DIR = path.join(ROOT, 'data');
+const CALENDAR_CACHE_FILE = path.join(DATA_DIR, 'calendar-cache.json');
+const CALENDAR_CACHE_VERSION = 3;
+const KSEI_DETAIL_PAGE_LIMIT = 80;
+const KSEI_EVENT_LIMIT = 160;
 
 // ─── MIME types ──────────────────────────────────────────────────────────────
 const MIME = {
@@ -54,6 +59,37 @@ function tvRequest(opts, body, callback) {
     req.setTimeout(8000, () => { req.destroy(); callback(new Error('Timeout')); });
     if (body) req.write(body);
     req.end();
+}
+
+function httpsGetRaw(hostname, requestPath, timeout = 15000) {
+    return new Promise((resolve, reject) => {
+        const req = https.request({
+            hostname,
+            path: requestPath,
+            method: 'GET',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'text/html,application/json,*/*',
+            },
+        }, (res) => {
+            let data = '';
+            res.setEncoding('utf8');
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                if (res.statusCode >= 400) {
+                    reject(new Error(`HTTP ${res.statusCode} ${hostname}${requestPath}`));
+                    return;
+                }
+                resolve(data);
+            });
+        });
+        req.on('error', reject);
+        req.setTimeout(timeout, () => {
+            req.destroy();
+            reject(new Error(`Timeout ${hostname}${requestPath}`));
+        });
+        req.end();
+    });
 }
 
 const TV_HEADERS = {
@@ -93,6 +129,320 @@ function isRateLimited(ip) {
     }
     entry.count++;
     return entry.count > MAX;
+}
+
+// Market calendar: macro events are curated, KSEI corporate actions are fetched
+// daily from KSEI's calendar JSON + detail HTML and cached on disk.
+const MARKET_CALENDAR_EVENTS = [
+    {
+        id: 'bi-rdg-2026-05-19',
+        date: '2026-05-19',
+        endDate: '2026-05-20',
+        category: 'macro',
+        label: 'BI Rate',
+        title: 'RDG Bank Indonesia',
+        detail: 'Rapat Dewan Gubernur BI. Pantau arah suku bunga, rupiah, dan sentimen sektor bank.',
+        impact: 'high',
+        source: 'Bank Indonesia',
+        url: 'https://www.bi.go.id/en/publikasi/Kalender/',
+    },
+    {
+        id: 'bps-monthly-2026-06-01',
+        date: '2026-06-01',
+        category: 'macro',
+        label: 'BPS',
+        title: 'Rilis indikator ekonomi bulanan',
+        detail: 'Pantau inflasi, nilai tukar petani, pariwisata, dan indikator bulanan lain dari BPS.',
+        impact: 'medium',
+        source: 'BPS',
+        url: 'https://www.bps.go.id/assets/arc',
+    },
+];
+
+function ymdLocal(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function addMonths(date, months) {
+    const d = new Date(date);
+    d.setMonth(d.getMonth() + months);
+    return d;
+}
+
+function addDays(date, days) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+}
+
+function decodeHtml(text = '') {
+    return text
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'")
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function stripHtml(text = '') {
+    return decodeHtml(text.replace(/<[^>]*>/g, ' '));
+}
+
+function summarizeCorporateAction(label, description = '') {
+    const divMatch = description.match(/Rp\s*([\d.,]+)/i);
+    if ((label === 'Dividen' || /dividen/i.test(description)) && divMatch) {
+        return `Div ${divMatch[1]} rupiah/lembar`;
+    }
+    return description.length > 72 ? description.slice(0, 69) + '...' : description;
+}
+
+function isIdxStockTicker(code = '') {
+    return /^[A-Z]{4}$/.test(code);
+}
+
+function isAllowedCalendarEvent(event = {}) {
+    if (event.category === 'macro') return true;
+    if (event.category === 'corporate') return isIdxStockTicker(event.ticker || '');
+    return false;
+}
+
+function normalizeCalendarEvent(event = {}) {
+    if (event.category !== 'corporate') return event;
+    const detailText = `${event.detail || ''} ${event.summary || ''}`;
+    if (/dividen/i.test(detailText)) {
+        return {
+            ...event,
+            label: 'Dividen',
+            summary: event.summary || summarizeCorporateAction('Dividen', detailText),
+        };
+    }
+    return event;
+}
+
+function kseiTypeFromPath(detailPath = '') {
+    if (detailPath.includes('/cum/')) return { label: 'Cum Date', type: 'cum' };
+    if (detailPath.includes('/rec/')) return { label: 'Record Date', type: 'rec' };
+    if (detailPath.includes('/eff/')) return { label: 'Effective Date', type: 'eff' };
+    return { label: 'Corporate Action', type: 'ca' };
+}
+
+function kseiPathPriority(detailPath = '') {
+    if (detailPath.includes('/cum/')) return 0;
+    if (detailPath.includes('/rec/')) return 1;
+    if (detailPath.includes('/eff/')) return 2;
+    return 3;
+}
+
+function actionLabelFromDetail(html = '') {
+    const upper = html.toUpperCase();
+    if (upper.includes('DIVIDEN')) return 'Dividen';
+    if (upper.includes('CASH DIVIDEND')) return 'Dividen';
+    if (upper.includes('RUPS') || upper.includes('RUPO')) return 'RUPS';
+    if (upper.includes('RIGHT')) return 'Rights';
+    if (upper.includes('STOCK SPLIT')) return 'Stock Split';
+    if (upper.includes('SHARE DIVIDEND')) return 'Share Div';
+    return 'Corp Act';
+}
+
+function parseKseiDetail(html, eventDate, detailPath) {
+    const type = kseiTypeFromPath(detailPath);
+    const blocks = html.match(/<section class="accordion accordion--nested accordion--last">[\s\S]*?<\/section>/g) || [];
+    const events = [];
+
+    for (const block of blocks) {
+        const codeMatch = block.match(/<b>\s*Security Code:\s*<\/b>[\s\S]*?<span>\s*([^<]+?)\s*<\/span>/i);
+        if (!codeMatch) continue;
+        const nameMatch = block.match(/<b>\s*Security Name:\s*<\/b>[\s\S]*?<span>\s*([^<]+?)\s*<\/span>/i);
+        const descMatch = block.match(/<dt[^>]*>\s*CA Description\s*<\/dt>\s*<dd>([\s\S]*?)<\/dd>/i);
+
+        const ticker = decodeHtml(codeMatch[1]).trim().toUpperCase();
+        if (!isIdxStockTicker(ticker)) continue;
+
+        const securityName = nameMatch ? decodeHtml(nameMatch[1]) : '';
+        const description = descMatch ? stripHtml(descMatch[1]) : '';
+        const label = actionLabelFromDetail(`${block} ${description}`);
+        const shortDesc = description.length > 110 ? description.slice(0, 107) + '...' : description;
+        const summary = summarizeCorporateAction(label, description);
+
+        events.push({
+            id: `ksei-${type.type}-${eventDate}-${ticker}`,
+            date: eventDate,
+            category: 'corporate',
+            label,
+            ticker,
+            title: `${ticker} - ${type.label}`,
+            detail: shortDesc || `${securityName || ticker} masuk jadwal ${type.label} KSEI.`,
+            summary: summary || `${ticker} ${type.label}`,
+            impact: type.type === 'cum' ? 'high' : 'medium',
+            source: 'KSEI',
+            url: `https://web.ksei.co.id${detailPath}`,
+            eventType: type.type,
+            securityName,
+        });
+    }
+
+    return events;
+}
+
+async function fetchKseiCalendarEvents() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const until = new Date(today);
+    until.setDate(until.getDate() + 30);
+
+    const months = [today, addMonths(today, 1)];
+    const detailItems = [];
+
+    for (const monthDate of months) {
+        const month = String(monthDate.getMonth() + 1).padStart(2, '0');
+        const year = monthDate.getFullYear();
+        const raw = await httpsGetRaw('web.ksei.co.id', `/ksei_calendar/get_json/event-${month}-${year}-all.json`);
+        const json = JSON.parse(raw);
+        for (const group of (json.data || [])) {
+            for (const item of (group.events || [])) {
+                if (!item.start || !item.description) continue;
+                const date = new Date(`${item.start}T00:00:00`);
+                if (date < today || date > until) continue;
+                detailItems.push({ date: item.start, path: item.description });
+            }
+        }
+    }
+
+    const uniqueDetails = [...new Map(detailItems.map(item => [`${item.date}|${item.path}`, item])).values()]
+        .sort((a, b) => {
+            const pa = kseiPathPriority(a.path);
+            const pb = kseiPathPriority(b.path);
+            if (pa !== pb) return pa - pb;
+            return a.date.localeCompare(b.date);
+        });
+    const events = [];
+    for (const item of uniqueDetails.slice(0, KSEI_DETAIL_PAGE_LIMIT)) {
+        try {
+            const html = await httpsGetRaw('web.ksei.co.id', item.path);
+            events.push(...parseKseiDetail(html, item.date, item.path));
+        } catch (e) {
+            if (!item.path.includes('/eff/')) {
+                console.error('[Calendar] KSEI detail error:', e.message);
+            }
+        }
+    }
+
+    return events.slice(0, KSEI_EVENT_LIMIT);
+}
+
+function readCalendarCache() {
+    try {
+        if (!fs.existsSync(CALENDAR_CACHE_FILE)) return null;
+        const cache = JSON.parse(fs.readFileSync(CALENDAR_CACHE_FILE, 'utf8'));
+        if (cache.version !== CALENDAR_CACHE_VERSION) return null;
+        if (cache.cache_date !== ymdLocal()) return null;
+        if (!Array.isArray(cache.events)) return null;
+        return cache;
+    } catch {
+        return null;
+    }
+}
+
+function writeCalendarCache(events) {
+    try {
+        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+        const payload = {
+            version: CALENDAR_CACHE_VERSION,
+            cache_date: ymdLocal(),
+            generated_at: new Date().toISOString(),
+            events,
+        };
+        fs.writeFileSync(CALENDAR_CACHE_FILE, JSON.stringify(payload, null, 2));
+        return payload;
+    } catch (e) {
+        console.error('[Calendar] Cache write error:', e.message);
+        return { generated_at: new Date().toISOString(), events };
+    }
+}
+
+async function loadCalendarCache(forceRefresh = false) {
+    if (!forceRefresh) {
+        const cached = readCalendarCache();
+        if (cached) return { ...cached, cached: true };
+    }
+
+    try {
+        const kseiEvents = await fetchKseiCalendarEvents();
+        const allEvents = [...MARKET_CALENDAR_EVENTS, ...kseiEvents].filter(isAllowedCalendarEvent);
+        return { ...writeCalendarCache(allEvents), cached: false };
+    } catch (e) {
+        console.error('[Calendar] Refresh error:', e.message);
+        const stale = (() => {
+            try {
+                if (!fs.existsSync(CALENDAR_CACHE_FILE)) return null;
+                return JSON.parse(fs.readFileSync(CALENDAR_CACHE_FILE, 'utf8'));
+            } catch {
+                return null;
+            }
+        })();
+        const fallbackEvents = (stale?.events || MARKET_CALENDAR_EVENTS).filter(isAllowedCalendarEvent);
+        return { generated_at: new Date().toISOString(), events: fallbackEvents, cached: !!stale, error: e.message };
+    }
+}
+
+function handleCalendar(query, res) {
+    const type = (query.type || 'all').toString().toLowerCase();
+    const range = query.range === '30d' ? '30d' : '7d';
+    const defaultLimit = range === '7d' ? 20 : 8;
+    const limit = Math.max(1, Math.min(parseInt(query.limit || String(defaultLimit), 10) || defaultLimit, 40));
+    const forceRefresh = query.refresh === '1';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const rangeStart = today;
+    const rangeEnd = range === '7d' ? addDays(today, 7) : new Date(today);
+    if (range === '30d') rangeEnd.setDate(rangeEnd.getDate() + 30);
+
+    loadCalendarCache(forceRefresh).then((calendar) => {
+        const filtered = calendar.events
+        .filter(isAllowedCalendarEvent)
+        .filter(event => type === 'all' || event.category === type)
+        .map(normalizeCalendarEvent)
+        .map(event => {
+            const eventDate = event.date ? new Date(event.date + 'T00:00:00') : null;
+            const daysUntil = eventDate ? Math.round((eventDate - today) / 86400000) : null;
+            return { ...event, daysUntil };
+        })
+        .filter(event => {
+            if (!event.date) return false;
+            const eventDate = new Date(event.date + 'T00:00:00');
+            return eventDate >= rangeStart && eventDate <= rangeEnd;
+        })
+        .sort((a, b) => {
+            const av = a.daysUntil === null ? 999 : a.daysUntil;
+            const bv = b.daysUntil === null ? 999 : b.daysUntil;
+            return av - bv;
+        })
+        .slice(0, limit);
+
+        sendJSON(res, 200, {
+            status: 'success',
+            generated_at: calendar.generated_at || new Date().toISOString(),
+            cached: calendar.cached,
+            error: calendar.error || null,
+            range,
+            range_start: ymdLocal(rangeStart),
+            range_end: ymdLocal(rangeEnd),
+            events: filtered,
+            sources: [
+                { name: 'Bank Indonesia', url: 'https://www.bi.go.id/en/publikasi/Kalender/' },
+                { name: 'BPS', url: 'https://www.bps.go.id/assets/arc' },
+                { name: 'KSEI', url: 'https://web.ksei.co.id/ksei-calendar?setLocale=id-ID' },
+            ],
+        });
+    }).catch((e) => {
+        sendJSON(res, 500, { status: 'error', message: e.message });
+    });
 }
 
 // ─── /search  →  TradingView symbol search ───────────────────────────────────
@@ -514,6 +864,13 @@ const server = http.createServer((req, res) => {
         const ip = req.socket.remoteAddress;
         if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
         return handleScreener(res);
+    }
+
+    // API: /calendar
+    if (req.method === 'GET' && pathname === '/calendar') {
+        const ip = req.socket.remoteAddress;
+        if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
+        return handleCalendar(parsed.query, res);
     }
 
     // API: /api/prices/stream (SSE for Landing Page)

@@ -520,6 +520,327 @@ function IHSGChart() {
   );
 }
 
+/* ---------- Market calendar widget ---------- */
+const MARKET_CALENDAR_FALLBACK = [
+  {
+    id: 'bi-rdg-2026-05-19',
+    date: '2026-05-19',
+    endDate: '2026-05-20',
+    category: 'macro',
+    label: 'BI Rate',
+    title: 'RDG Bank Indonesia',
+    detail: 'Pantau arah suku bunga, rupiah, dan sentimen sektor bank.',
+    impact: 'high',
+    source: 'Bank Indonesia',
+    url: 'https://www.bi.go.id/en/publikasi/Kalender/',
+  },
+  {
+    id: 'bps-monthly-2026-06-01',
+    date: '2026-06-01',
+    category: 'macro',
+    label: 'BPS',
+    title: 'Rilis indikator ekonomi bulanan',
+    detail: 'Inflasi, pariwisata, dan indikator bulanan dari BPS.',
+    impact: 'medium',
+    source: 'BPS',
+    url: 'https://www.bps.go.id/assets/arc',
+  },
+  {
+    id: 'ksei-dividend-watch',
+    date: null,
+    category: 'corporate',
+    label: 'Dividen',
+    title: 'Pantau cum/ex date dividen',
+    detail: 'Cek jadwal dividen KSEI sebelum entry saham yield tinggi.',
+    impact: 'medium',
+    source: 'KSEI',
+    url: 'https://www.ksei.co.id/publications/corporate-action-schedules/cash-dividend?setLocale=id-ID',
+  },
+];
+
+function formatCalendarDate(event) {
+  if (!event.date) return 'Harian';
+  const start = new Date(`${event.date}T00:00:00`);
+  const startLabel = start.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+  if (!event.endDate) return startLabel;
+  const end = new Date(`${event.endDate}T00:00:00`);
+  const endLabel = end.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+  return `${startLabel} - ${endLabel}`;
+}
+
+function calendarDateParts(event) {
+  if (!event.date) return { day: 'Pantau', month: 'Harian' };
+  const start = new Date(`${event.date}T00:00:00`);
+  return {
+    day: start.toLocaleDateString('id-ID', { day: '2-digit' }),
+    month: start.toLocaleDateString('id-ID', { month: 'short' }),
+  };
+}
+
+function formatCalendarEventTitle(event) {
+  if (!event.ticker) return event.title;
+
+  const typeLabel = {
+    cum: 'CUM DATE',
+    rec: 'RECORD DATE',
+    eff: 'EFFECTIVE DATE',
+  }[event.eventType] || 'CORP ACT';
+
+  return `${event.ticker} ${typeLabel}`;
+}
+
+function impactStyle(impact) {
+  if (impact === 'high') {
+    return { color: '#b91c1c', background: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.22)' };
+  }
+  return { color: 'var(--primary)', background: 'var(--primary-soft)', border: 'var(--border)' };
+}
+
+function MarketCalendarWidget() {
+  const [range, setRange] = useStateL('30d');
+  const [events, setEvents] = useStateL(MARKET_CALENDAR_FALLBACK);
+  const [updatedAt, setUpdatedAt] = useStateL(null);
+  const [rangeMeta, setRangeMeta] = useStateL(null);
+
+  useEffectL(() => {
+    let alive = true;
+    const limit = range === '7d' ? 20 : 8;
+    fetch(`/calendar?range=${range}&limit=${limit}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (!alive || !Array.isArray(data?.events)) return;
+        setEvents(data.events);
+        setUpdatedAt(data.generated_at);
+        setRangeMeta(data.range_start && data.range_end ? `${data.range_start} - ${data.range_end}` : null);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [range]);
+
+  return (
+    <section
+      style={{
+        padding: '56px 0',
+        background: 'var(--bg-soft)',
+        borderTop: '1px solid var(--border)',
+        borderBottom: '1px solid var(--border)',
+      }}
+    >
+      <div className="container">
+        <div
+          className="market-calendar-grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(240px, 0.85fr) minmax(0, 1.6fr)',
+            gap: 24,
+            alignItems: 'stretch',
+          }}
+        >
+          <div style={{ alignSelf: 'center' }}>
+            <div className="badge" style={{ marginBottom: 14 }}>
+              <Icon name="bookmark" size={12} />
+              <span>MARKET CALENDAR</span>
+            </div>
+            <h2
+              style={{
+                fontSize: 'clamp(26px, 4vw, 38px)',
+                lineHeight: 1.04,
+                letterSpacing: '-0.03em',
+                marginBottom: 12,
+              }}
+            >
+              Event penting<br />
+              <span style={{ color: 'var(--primary)' }}>{range === '7d' ? '7 hari.' : '30 hari.'}</span>
+            </h2>
+            <p style={{ color: 'var(--fg-muted)', lineHeight: 1.6, margin: 0, fontSize: 14 }}>
+              Corporate action dan data makro yang perlu dicek sebelum masuk posisi.
+            </p>
+            {updatedAt && (
+              <div className="mono" style={{ marginTop: 14, fontSize: 11, color: 'var(--fg-muted)' }}>
+                Sync {new Date(updatedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            )}
+            {rangeMeta && (
+              <div className="mono" style={{ marginTop: 6, fontSize: 11, color: 'var(--fg-muted)' }}>
+                {rangeMeta}
+              </div>
+            )}
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gap: 10,
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius)',
+              boxShadow: 'var(--shadow)',
+              padding: 12,
+            }}
+          >
+            <div style={{
+              display: 'flex',
+              gap: 8,
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              padding: '0 2px 2px',
+            }}>
+              {[
+                { id: '30d', label: '30 hari' },
+                { id: '7d', label: '7 hari' },
+              ].map((option) => {
+                const active = range === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setRange(option.id)}
+                    style={{
+                      border: `1px solid ${active ? 'var(--primary)' : 'var(--border)'}`,
+                      background: active ? 'var(--primary-soft)' : 'var(--bg)',
+                      color: active ? 'var(--primary)' : 'var(--fg-muted)',
+                      borderRadius: 6,
+                      padding: '7px 10px',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {events.length === 0 && (
+              <div style={{
+                padding: 18,
+                borderRadius: 'calc(var(--radius) - 4px)',
+                border: '1px dashed var(--border)',
+                background: 'var(--bg)',
+                color: 'var(--fg-muted)',
+                fontSize: 13,
+                lineHeight: 1.5,
+              }}>
+                Belum ada event terjadwal di range ini.
+              </div>
+            )}
+
+            {events.map((event) => {
+              const impact = impactStyle(event.impact);
+              const dateParts = calendarDateParts(event);
+              return (
+                <div
+                  key={event.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '76px minmax(0, 1fr) auto',
+                    gap: 14,
+                    alignItems: 'center',
+                    padding: 14,
+                    borderRadius: 'calc(var(--radius) - 4px)',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg)',
+                  }}
+                >
+                  <div
+                    style={{
+                      minHeight: 64,
+                      borderRadius: 8,
+                      border: '1px solid var(--border)',
+                      background: 'var(--bg-soft)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <span
+                      className="mono"
+                      style={{
+                        fontSize: event.date ? 24 : 12,
+                        fontWeight: 800,
+                        color: 'var(--fg)',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {dateParts.day}
+                    </span>
+                    <span
+                      className="mono"
+                      style={{
+                        marginTop: 5,
+                        fontSize: 10,
+                        fontWeight: 800,
+                        color: 'var(--fg-muted)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                      }}
+                    >
+                      {dateParts.month}
+                    </span>
+                  </div>
+
+                  <div style={{ minWidth: 0 }}>
+                    <h3
+                      style={{
+                        fontSize: 16,
+                        letterSpacing: '-0.02em',
+                        marginBottom: 5,
+                        textTransform: event.ticker ? 'uppercase' : 'none',
+                      }}
+                    >
+                      {formatCalendarEventTitle(event)}
+                    </h3>
+                    <p style={{ margin: 0, color: 'var(--fg-muted)', fontSize: 13, lineHeight: 1.45 }}>
+                      {event.summary || event.detail}
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 900,
+                        letterSpacing: '0.06em',
+                        padding: '5px 7px',
+                        borderRadius: 6,
+                        color: impact.color,
+                        background: impact.background,
+                        border: `1px solid ${impact.border}`,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {event.label}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @media (max-width: 860px) {
+          .market-calendar-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .market-calendar-grid [style*="76px"] {
+            grid-template-columns: 64px minmax(0, 1fr) !important;
+          }
+          .market-calendar-grid [style*="justify-content: flex-end"] {
+            justify-content: flex-start !important;
+            grid-column: 2;
+          }
+        }
+      `}</style>
+    </section>
+  );
+}
+
 /* ---------- Tools grid (6 calculators) ---------- */
 const TOOLS = [
   { id: 'analyzer', icon: 'chart',  title: 'Stock Analyzer',         tag: 'BANDARMOLOGY + AI', desc: 'Lacak smart money: net flow asing/lokal/retail, top broker buyer/seller, plus AI trading plan.' },
@@ -946,6 +1267,7 @@ function LandingPage({ onNavigate }) {
       <Hero onNavigate={onNavigate} />
       <StockMarquee />
       <IHSGChart />
+      <MarketCalendarWidget />
       <ToolsGrid onNavigate={onNavigate} />
       <GuidesSection onNavigate={onNavigate} />
       <FinalCTA onNavigate={onNavigate} />
