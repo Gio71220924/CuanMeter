@@ -551,3 +551,45 @@ body[data-theme="dark"] .cta-terminal {
   height: 100%;
   overflow: visible;
 }
+
+/* ============================================================
+   Mobile responsiveness
+   ============================================================ */
+
+/* Hero 3D illustration — shrink on tablet, hide on small phone */
+@media (max-width: 860px) {
+  .hero-3d { height: 400px !important; margin-top: 0 !important; }
+}
+@media (max-width: 600px) {
+  .hero-3d { display: none !important; }
+}
+
+/* Hero section — prevent horizontal overflow on mobile */
+@media (max-width: 900px) {
+  #hero-grid { overflow: hidden; }
+}
+
+/* Calendar event cards — tighter grid on small screens */
+@media (max-width: 480px) {
+  .cal-event-card {
+    grid-template-columns: 56px minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+  .cal-event-badge { display: none !important; }
+}
+
+/* Touch devices — disable hover-only interactive effects */
+@media (hover: none) {
+  .logo-btn { transition: none !important; }
+  .logo-sparkline {
+    stroke-dasharray: unset !important;
+    stroke-dashoffset: 0 !important;
+    transition: none !important;
+  }
+  .logo-math { transition: none !important; }
+  .hero-3d { transition: none !important; }
+  .nav-link:hover {
+    color: var(--fg-muted) !important;
+    background: transparent !important;
+  }
+}

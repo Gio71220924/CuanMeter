@@ -856,6 +856,7 @@ function MarketCalendarWidget() {
               return (
                 <div
                   key={event.id}
+                  className="cal-event-card"
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '76px minmax(0, 1fr) auto',
@@ -931,7 +932,7 @@ function MarketCalendarWidget() {
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <div className="cal-event-badge" style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <span
                       style={{
                         fontSize: 10,
