@@ -592,46 +592,46 @@ async function loadCalendarCache(forceRefresh = false) {
         return getCalendarFallback(calendarLastRefreshError || 'KSEI refresh paused after recent failure');
     }
 
-    if (calendarRefreshInFlight) return calendarRefreshInFlight;
-
-    calendarRefreshInFlight = (async () => {
-        try {
-            const kseiEvents = await fetchKseiCalendarEvents();
-
-            let idxEvents = [];
+    // Start background KSEI fetch if not already running
+    if (!calendarRefreshInFlight) {
+        calendarRefreshInFlight = (async () => {
             try {
-                idxEvents = await fetchIdxCorporateActions();
-                if (idxEvents.length > 0) console.log(`[Calendar] IDX: ${idxEvents.length} corporate action events`);
+                const kseiEvents = await fetchKseiCalendarEvents();
+
+                let idxEvents = [];
+                try {
+                    idxEvents = await fetchIdxCorporateActions();
+                    if (idxEvents.length > 0) console.log(`[Calendar] IDX: ${idxEvents.length} corporate action events`);
+                } catch (e) {
+                    console.warn('[Calendar] IDX fetch skipped:', e.message);
+                }
+
+                const kseiKeys = new Set(kseiEvents.map(e => `${e.date}|${e.ticker}|${e.eventType}`));
+                const kseiTickerDates = new Set(
+                    kseiEvents.filter(e => e.eventType === 'ca').map(e => `${e.date}|${e.ticker}`)
+                );
+                const idxUnique = idxEvents.filter(e =>
+                    !kseiKeys.has(`${e.date}|${e.ticker}|${e.eventType}`) &&
+                    !kseiTickerDates.has(`${e.date}|${e.ticker}`)
+                );
+
+                const allEvents = [...getMacroEvents(), ...kseiEvents, ...idxUnique].filter(isAllowedCalendarEvent);
+                writeCalendarCache(allEvents);
+                calendarLastRefreshError = null;
+                calendarRefreshBlockedUntil = 0;
+                console.log(`[Calendar] Background refresh selesai: ${allEvents.length} events.`);
             } catch (e) {
-                console.warn('[Calendar] IDX fetch skipped:', e.message);
+                calendarLastRefreshError = e.message;
+                calendarRefreshBlockedUntil = Date.now() + CALENDAR_REFRESH_COOLDOWN_MS;
+                console.warn('[Calendar] Background refresh gagal:', e.message);
+            } finally {
+                calendarRefreshInFlight = null;
             }
+        })();
+    }
 
-            // Prefer KSEI over IDX when same (date, ticker, eventType)
-            const kseiKeys = new Set(kseiEvents.map(e => `${e.date}|${e.ticker}|${e.eventType}`));
-            const kseiTickerDates = new Set(
-                kseiEvents.filter(e => e.eventType === 'ca').map(e => `${e.date}|${e.ticker}`)
-            );
-            const idxUnique = idxEvents.filter(e =>
-                !kseiKeys.has(`${e.date}|${e.ticker}|${e.eventType}`) &&
-                !kseiTickerDates.has(`${e.date}|${e.ticker}`)
-            );
-
-            const allEvents = [...getMacroEvents(), ...kseiEvents, ...idxUnique].filter(isAllowedCalendarEvent);
-            const payload = { ...writeCalendarCache(allEvents), cached: false };
-            calendarLastRefreshError = null;
-            calendarRefreshBlockedUntil = 0;
-            return payload;
-        } catch (e) {
-            calendarLastRefreshError = e.message;
-            calendarRefreshBlockedUntil = Date.now() + CALENDAR_REFRESH_COOLDOWN_MS;
-            console.warn('[Calendar] Refresh skipped, using fallback:', e.message);
-            return getCalendarFallback(e.message);
-        } finally {
-            calendarRefreshInFlight = null;
-        }
-    })();
-
-    return calendarRefreshInFlight;
+    // Return immediately with macro + stale KSEI (don't wait for background fetch)
+    return getCalendarFallback('KSEI sedang dimuat di background, refresh untuk data lengkap.');
 }
 
 function handleCalendar(query, res) {
