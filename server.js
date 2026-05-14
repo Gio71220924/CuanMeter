@@ -23,7 +23,7 @@ const ROOT = __dirname;           // folder server.js berada
 const DEFAULT = '/index.html';   // halaman yang dibuka otomatis
 const DATA_DIR = path.join(ROOT, 'data');
 const CALENDAR_CACHE_FILE = path.join(DATA_DIR, 'calendar-cache.json');
-const CALENDAR_CACHE_VERSION = 3;
+const CALENDAR_CACHE_VERSION = 4;
 const KSEI_DETAIL_PAGE_LIMIT = 80;
 const KSEI_EVENT_LIMIT = 160;
 
@@ -172,10 +172,21 @@ function addMonths(date, months) {
     return d;
 }
 
-function addDays(date, days) {
-    const d = new Date(date);
-    d.setDate(d.getDate() + days);
-    return d;
+function startOfMonth(date = new Date()) {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function endOfMonth(date = new Date()) {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+
+function monthWeekRange(date = new Date(), weekNumber = 1) {
+    const safeWeek = Math.max(1, Math.min(parseInt(weekNumber, 10) || 1, 4));
+    const start = new Date(date.getFullYear(), date.getMonth(), 1 + ((safeWeek - 1) * 7));
+    const end = safeWeek === 4
+        ? endOfMonth(date)
+        : new Date(date.getFullYear(), date.getMonth(), safeWeek * 7, 23, 59, 59, 999);
+    return { start, end, week: safeWeek };
 }
 
 function decodeHtml(text = '') {
@@ -293,6 +304,7 @@ function parseKseiDetail(html, eventDate, detailPath) {
 async function fetchKseiCalendarEvents() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const from = startOfMonth(today);
     const until = new Date(today);
     until.setDate(until.getDate() + 30);
 
@@ -308,7 +320,7 @@ async function fetchKseiCalendarEvents() {
             for (const item of (group.events || [])) {
                 if (!item.start || !item.description) continue;
                 const date = new Date(`${item.start}T00:00:00`);
-                if (date < today || date > until) continue;
+                if (date < from || date > until) continue;
                 detailItems.push({ date: item.start, path: item.description });
             }
         }
@@ -393,15 +405,15 @@ async function loadCalendarCache(forceRefresh = false) {
 
 function handleCalendar(query, res) {
     const type = (query.type || 'all').toString().toLowerCase();
-    const range = query.range === '30d' ? '30d' : '7d';
-    const defaultLimit = range === '7d' ? 20 : 8;
-    const limit = Math.max(1, Math.min(parseInt(query.limit || String(defaultLimit), 10) || defaultLimit, 40));
-    const forceRefresh = query.refresh === '1';
+    const range = query.range === 'week' ? 'week' : 'month';
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const rangeStart = today;
-    const rangeEnd = range === '7d' ? addDays(today, 7) : new Date(today);
-    if (range === '30d') rangeEnd.setDate(rangeEnd.getDate() + 30);
+    const weekRange = monthWeekRange(today, query.week);
+    const defaultLimit = range === 'week' ? 40 : 80;
+    const limit = Math.max(1, Math.min(parseInt(query.limit || String(defaultLimit), 10) || defaultLimit, 80));
+    const forceRefresh = query.refresh === '1';
+    const rangeStart = range === 'week' ? weekRange.start : startOfMonth(today);
+    const rangeEnd = range === 'week' ? weekRange.end : endOfMonth(today);
 
     loadCalendarCache(forceRefresh).then((calendar) => {
         const filtered = calendar.events
@@ -431,6 +443,7 @@ function handleCalendar(query, res) {
             cached: calendar.cached,
             error: calendar.error || null,
             range,
+            week: range === 'week' ? weekRange.week : null,
             range_start: ymdLocal(rangeStart),
             range_end: ymdLocal(rangeEnd),
             events: filtered,

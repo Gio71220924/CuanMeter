@@ -597,25 +597,43 @@ function impactStyle(impact) {
 }
 
 function MarketCalendarWidget() {
-  const [range, setRange] = useStateL('30d');
-  const [events, setEvents] = useStateL(MARKET_CALENDAR_FALLBACK);
+  const [range, setRange] = useStateL('month');
+  const [week, setWeek] = useStateL(Math.min(4, Math.ceil(new Date().getDate() / 7)));
+  const [events, setEvents] = useStateL([]);
   const [updatedAt, setUpdatedAt] = useStateL(null);
   const [rangeMeta, setRangeMeta] = useStateL(null);
+  const [loading, setLoading] = useStateL(true);
+  const [loadError, setLoadError] = useStateL(null);
 
   useEffectL(() => {
     let alive = true;
-    const limit = range === '7d' ? 20 : 8;
-    fetch(`/calendar?range=${range}&limit=${limit}`)
+    const limit = range === 'week' ? 40 : 80;
+    const weekParam = range === 'week' ? `&week=${week}` : '';
+    setLoading(true);
+    setLoadError(null);
+    fetch(`/calendar?range=${range}${weekParam}&limit=${limit}`)
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
-        if (!alive || !Array.isArray(data?.events)) return;
+        if (!alive) return;
+        if (!Array.isArray(data?.events)) {
+          setEvents([]);
+          setLoadError('Kalender belum bisa dimuat.');
+          return;
+        }
         setEvents(data.events);
         setUpdatedAt(data.generated_at);
         setRangeMeta(data.range_start && data.range_end ? `${data.range_start} - ${data.range_end}` : null);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!alive) return;
+        setEvents([]);
+        setLoadError('Kalender belum bisa dimuat.');
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
     return () => { alive = false; };
-  }, [range]);
+  }, [range, week]);
 
   return (
     <section
@@ -650,7 +668,7 @@ function MarketCalendarWidget() {
               }}
             >
               Event penting<br />
-              <span style={{ color: 'var(--primary)' }}>{range === '7d' ? '7 hari.' : '30 hari.'}</span>
+              <span style={{ color: 'var(--primary)' }}>{range === 'week' ? `minggu ${week}.` : 'bulan ini.'}</span>
             </h2>
             <p style={{ color: 'var(--fg-muted)', lineHeight: 1.6, margin: 0, fontSize: 14 }}>
               Corporate action dan data makro yang perlu dicek sebelum masuk posisi.
@@ -687,8 +705,7 @@ function MarketCalendarWidget() {
               padding: '0 2px 2px',
             }}>
               {[
-                { id: '30d', label: '30 hari' },
-                { id: '7d', label: '7 hari' },
+                { id: 'month', label: 'Bulan ini' },
               ].map((option) => {
                 const active = range === option.id;
                 return (
@@ -711,9 +728,34 @@ function MarketCalendarWidget() {
                   </button>
                 );
               })}
+              {[1, 2, 3, 4].map((weekNo) => {
+                const active = range === 'week' && week === weekNo;
+                return (
+                  <button
+                    key={weekNo}
+                    type="button"
+                    onClick={() => {
+                      setRange('week');
+                      setWeek(weekNo);
+                    }}
+                    style={{
+                      border: `1px solid ${active ? 'var(--primary)' : 'var(--border)'}`,
+                      background: active ? 'var(--primary-soft)' : 'var(--bg)',
+                      color: active ? 'var(--primary)' : 'var(--fg-muted)',
+                      borderRadius: 6,
+                      padding: '7px 10px',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    M{weekNo}
+                  </button>
+                );
+              })}
             </div>
 
-            {events.length === 0 && (
+            {(loading || loadError || events.length === 0) && (
               <div style={{
                 padding: 18,
                 borderRadius: 'calc(var(--radius) - 4px)',
@@ -723,7 +765,7 @@ function MarketCalendarWidget() {
                 fontSize: 13,
                 lineHeight: 1.5,
               }}>
-                Belum ada event terjadwal di range ini.
+                {loading ? 'Memuat kalender...' : loadError || 'Belum ada event terjadwal di range ini.'}
               </div>
             )}
 
