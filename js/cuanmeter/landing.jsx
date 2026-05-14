@@ -271,6 +271,37 @@ function HeroMockup() {
           }}>{i === 4 && 'Rp'}</div>
         ))}
 
+        {/* shimmer sweep on platform surface */}
+        <div style={{
+          position: 'absolute', left: 70, top: 70, width: 340, height: 340,
+          borderRadius: 28,
+          transform: 'translateZ(2px)',
+          overflow: 'hidden',
+          pointerEvents: 'none',
+        }}>
+          <div className="hero-shimmer" />
+        </div>
+
+        {/* floating particles from coin area */}
+        {[
+          { left: 142, delay: 0,    dur: 2.8 },
+          { left: 158, delay: 0.9,  dur: 3.2 },
+          { left: 133, delay: 1.7,  dur: 2.5 },
+          { left: 170, delay: 2.4,  dur: 3.6 },
+          { left: 148, delay: 0.4,  dur: 2.9 },
+        ].map((p, i) => (
+          <div key={i} className="hero-particle" style={{
+            position: 'absolute',
+            left: p.left, top: 295,
+            width: 6, height: 6,
+            borderRadius: '50%',
+            background: 'var(--primary)',
+            transform: 'translateZ(120px)',
+            animationDelay: `${p.delay}s`,
+            animationDuration: `${p.dur}s`,
+          }} />
+        ))}
+
         {/* green upward arrow */}
         <svg viewBox="0 0 120 200" style={{
           position: 'absolute', left: 290, top: 110,
@@ -328,6 +359,36 @@ function HeroMockup() {
 
       <style>{`
         .hero-3d:hover .hero-glow { opacity: 1.0 !important; filter: blur(14px) !important; }
+
+        /* Shimmer sweep */
+        .hero-shimmer {
+          position: absolute; inset: 0;
+          background: linear-gradient(
+            115deg,
+            transparent 0%, transparent 40%,
+            rgba(255,255,255,0.18) 50%,
+            transparent 60%, transparent 100%
+          );
+          background-size: 200% 100%;
+          animation: heroShimmer 4s ease-in-out infinite;
+        }
+        @keyframes heroShimmer {
+          0%   { background-position: 200% center; }
+          100% { background-position: -200% center; }
+        }
+
+        /* Floating particles */
+        .hero-particle {
+          animation: heroParticle linear infinite;
+          opacity: 0;
+        }
+        @keyframes heroParticle {
+          0%   { transform: translateZ(120px) translateY(0px);   opacity: 0; }
+          10%  { opacity: 0.7; }
+          80%  { opacity: 0.15; }
+          100% { transform: translateZ(120px) translateY(-90px); opacity: 0; }
+        }
+
         @keyframes hero3dFloat {
           0%, 100% { transform: rotateX(55deg) rotateZ(-35deg) translateY(0px); }
           50%       { transform: rotateX(55deg) rotateZ(-35deg) translateY(-12px); }
@@ -644,33 +705,56 @@ function impactStyle(impact, category) {
   return { color: 'var(--primary)', background: 'var(--primary-soft)', border: 'var(--border)' };
 }
 
+function cleanVenueName(raw = '') {
+  if (/elektron|virtual|online|zoom|webex/i.test(raw)) return 'Online / Elektronik';
+  return raw
+    // Split at address markers or KSEI participant instruction phrases
+    .split(/,|\.\s+(?:Jl|Jalan|No|Rt|Rw|Kel|Kec)\b|\s+Jl\.\s|\s+Bagi\s+Pemegang|\s+Peserta\s+RUPS|\s+Yang\s+Akan\s+Hadir|\s+Pemegang\s+(?:Saham|Rekening)\s+(?:Yang|yang)/i)[0]
+    .replace(/\s*\(.*$/, '')
+    .replace(/\s+\d{1,3}(?:st|nd|rd|th)?\s+(?:floor|lt|lantai)\b.*/i, '')
+    .replace(/\s+(?:lt|lantai)\.?\s*\d+\b.*/i, '')
+    .replace(/(\s+\S+)?\s*\.{3}$/, '')
+    .trim();
+}
+
 function formatRupsDisplay(text = '') {
   if (!text) return text;
-  if (/^Pukul \d/.test(text)) return text;
+
+  // Already server-formatted "Pukul X WIB · VenueName" — still clean up venue part
+  const preFormatted = text.match(/^(Pukul \d{1,2}:\d{2} WIB)\s*·\s*(.+)$/);
+  if (preFormatted) {
+    return `${preFormatted[1]} · ${cleanVenueName(preFormatted[2])}`;
+  }
+
+  // Already formatted "Pukul X WIB\nTempat: ..." (server detail format)
+  const detailFormatted = text.match(/^Pukul (\d{1,2}:\d{2}) WIB\n?Tempat:\s*(.+)$/s);
+  if (detailFormatted) {
+    return `Pukul ${detailFormatted[1]} WIB · ${cleanVenueName(detailFormatted[2])}`;
+  }
+
+  // Raw KSEI format "Waktu : HH:MM WIB - selesai Tempat : [venue]"
   const timeMatch = text.match(/Waktu\s*:\s*(\d{1,2}:\d{2})\s*WIB/i);
   const venueMatch = text.match(/Tempat\s*:\s*(.+)/i);
   const time = timeMatch ? timeMatch[1] : null;
   const rawVenue = venueMatch ? venueMatch[1].trim() : null;
 
-  let venueName = null;
-  if (rawVenue) {
-    if (/elektron|virtual|online|zoom|webex/i.test(rawVenue)) {
-      venueName = 'Online / Elektronik';
-    } else {
-      venueName = rawVenue
-        .split(/,|\.\s+(?:Jl|Jalan|No|Rt|Rw|Kel|Kec)\b/i)[0]
-        .replace(/\s*\(.*$/, '')
-        .replace(/\s+\d{1,3}(?:st|nd|rd|th)?\s+(?:floor|lt|lantai)\b.*/i, '')
-        .replace(/\s+(?:lt|lantai)\.?\s*\d+\b.*/i, '')
-        .replace(/(\s+\S+)?\s*\.{3}$/, '')
-        .trim();
-    }
-  }
-
-  if (time && venueName) return `Pukul ${time} WIB · ${venueName}`;
+  if (time && rawVenue) return `Pukul ${time} WIB · ${cleanVenueName(rawVenue)}`;
   if (time) return `Pukul ${time} WIB`;
-  if (venueName) return venueName;
+  if (rawVenue) return cleanVenueName(rawVenue);
   return text;
+}
+
+function formatDivSummary(text = '') {
+  // Fix cached summaries like "Div 0,9574 rupiah/lembar" → "Div 0,96 rupiah/lembar"
+  return text.replace(/^Div\s+([\d.,]+)\s+rupiah\/lembar$/i, (_, raw) => {
+    const num = parseFloat(raw.replace(/\./g, '').replace(',', '.'));
+    if (isNaN(num)) return _;
+    const rounded = Math.round(num * 100) / 100;
+    const formatted = rounded % 1 === 0
+      ? rounded.toLocaleString('id-ID')
+      : rounded.toFixed(2).replace('.', ',');
+    return `Div ${formatted} rupiah/lembar`;
+  });
 }
 
 function MarketCalendarWidget() {
@@ -909,6 +993,7 @@ function MarketCalendarWidget() {
 
                   <div style={{ minWidth: 0 }}>
                     <h3
+                      className="cal-event-title"
                       style={{
                         fontSize: 16,
                         letterSpacing: '-0.02em',
@@ -919,15 +1004,15 @@ function MarketCalendarWidget() {
                       {formatCalendarEventTitle(event)}
                     </h3>
                     {event.label === 'RUPS' || event.label === 'RUPO' ? (
-                      <p style={{ margin: 0, color: 'var(--fg-muted)', fontSize: 13, lineHeight: 1.45 }}>
+                      <p className="cal-event-desc" style={{ margin: 0, color: 'var(--fg-muted)', fontSize: 13, lineHeight: 1.45 }}>
                         {formatRupsDisplay(event.summary || event.detail)}
                       </p>
                     ) : (
-                      <p style={{
+                      <p className="cal-event-desc" style={{
                         margin: 0, color: 'var(--fg-muted)', fontSize: 13, lineHeight: 1.45,
                         display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                       }}>
-                        {event.summary || event.detail}
+                        {formatDivSummary(event.summary || event.detail || '')}
                       </p>
                     )}
                   </div>

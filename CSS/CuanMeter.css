@@ -574,8 +574,18 @@ body[data-theme="dark"] .cta-terminal {
   .cal-event-card {
     grid-template-columns: 56px minmax(0, 1fr) !important;
     gap: 10px !important;
+    padding: 10px !important;
   }
   .cal-event-badge { display: none !important; }
+  .cal-event-title {
+    font-size: 13px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cal-event-desc {
+    font-size: 12px !important;
+  }
 }
 
 /* Touch devices — disable hover-only interactive effects */

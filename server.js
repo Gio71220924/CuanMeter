@@ -23,7 +23,7 @@ const ROOT = __dirname;           // folder server.js berada
 const DEFAULT = '/index.html';   // halaman yang dibuka otomatis
 const DATA_DIR = path.join(ROOT, 'data');
 const CALENDAR_CACHE_FILE = path.join(DATA_DIR, 'calendar-cache.json');
-const CALENDAR_CACHE_VERSION = 8;
+const CALENDAR_CACHE_VERSION = 10;
 const KSEI_DETAIL_PAGE_LIMIT = 80;
 const KSEI_EVENT_LIMIT = 160;
 const KSEI_RETRY_COUNT = 2;
@@ -304,13 +304,12 @@ function stripHtml(text = '') {
 }
 
 function shortVenueName(venue = '') {
-    // Take first segment before comma (building name), strip floor/level noise
-    const firstPart = venue.split(',')[0].trim();
+    // Split at comma OR street address marker (Jl./Jalan/No.)
+    const firstPart = venue.split(/,|\.\s+(?:Jl|Jalan|No)\b|\s+Jl\.\s/i)[0].trim();
     const noFloor = firstPart
         .replace(/\s+\d{1,3}(?:st|nd|rd|th)?\s+(?:floor|lt|lantai)\b.*/i, '')
         .replace(/\s+(?:lt|lantai)\.?\s*\d+\b.*/i, '')
         .trim();
-    // If there's a descriptive name before a parenthetical, prefer that
     const beforeParen = noFloor.replace(/\s*\(.*$/, '').trim();
     return beforeParen.length >= 4 ? beforeParen : noFloor;
 }
@@ -324,10 +323,23 @@ function parseRupsDescription(description = '') {
     };
 }
 
+function parseDivAmount(raw) {
+    // Indonesian format: period = thousand sep, comma = decimal sep
+    const normalized = raw.replace(/\./g, '').replace(',', '.');
+    const num = parseFloat(normalized);
+    if (isNaN(num)) return raw;
+    // Round to max 2 decimal places, strip trailing zeros
+    const rounded = Math.round(num * 100) / 100;
+    // Format back to Indonesian: comma as decimal separator
+    return rounded % 1 === 0
+        ? rounded.toLocaleString('id-ID')
+        : rounded.toFixed(2).replace('.', ',');
+}
+
 function summarizeCorporateAction(label, description = '') {
     const divMatch = description.match(/Rp\s*([\d.,]+)/i);
     if ((label === 'Dividen' || /dividen/i.test(description)) && divMatch) {
-        return `Div ${divMatch[1]} rupiah/lembar`;
+        return `Div ${parseDivAmount(divMatch[1])} rupiah/lembar`;
     }
 
     if (label === 'RUPS' || label === 'RUPO') {
