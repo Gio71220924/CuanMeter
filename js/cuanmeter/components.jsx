@@ -85,10 +85,27 @@ function Icon({ name, size = 20, stroke = 2 }) {
 
 /* ---------- SahamathLogo ---------- */
 function SahamathLogo({ size = 20 }) {
+  const lineH = Math.max(5, Math.round(size * 0.32));
   return (
     <span style={{ fontWeight: 900, fontSize: size, letterSpacing: '-0.03em', lineHeight: 1, userSelect: 'none' }}>
       <span style={{ color: 'var(--fg)' }}>Saha</span>
-      <span style={{ color: 'var(--primary)', borderBottom: '2px solid var(--primary)', paddingBottom: 1 }}>math</span>
+      <span style={{ display: 'inline-block', position: 'relative', color: 'var(--primary)', paddingBottom: lineH + 1 }}>
+        math
+        <svg
+          viewBox="0 0 48 8"
+          preserveAspectRatio="none"
+          style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: lineH, display: 'block' }}
+        >
+          <polyline
+            points="0,7 4,6 10,7 16,4 22,5 28,2 34,3 40,1 48,2"
+            fill="none"
+            stroke="var(--primary)"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
     </span>
   );
 }
@@ -169,15 +186,7 @@ function Header({ route, onNavigate, theme, onThemeChange }) {
             <button
               key={l.id}
               onClick={() => onNavigate(l.id)}
-              style={{
-                padding: '10px 16px',
-                fontSize: 14,
-                fontWeight: 600,
-                color: route === l.id ? 'var(--primary)' : 'var(--fg-muted)',
-                borderRadius: 'var(--radius)',
-                background: route === l.id ? 'var(--primary-soft)' : 'transparent',
-                transition: 'all 0.15s',
-              }}
+              className={`nav-link${route === l.id ? ' nav-link--active' : ''}`}
             >
               {l.label}
             </button>
@@ -210,6 +219,8 @@ function Header({ route, onNavigate, theme, onThemeChange }) {
             Mulai Hitung
           </button>
           <button
+            type="button"
+            aria-label={menuOpen ? 'Tutup menu' : 'Buka menu'}
             onClick={() => setMenuOpen(!menuOpen)}
             className="nav-mobile"
             style={{
@@ -264,6 +275,23 @@ function Header({ route, onNavigate, theme, onThemeChange }) {
       )}
 
       <style>{`
+        .nav-link {
+          padding: 10px 16px;
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--fg-muted);
+          border-radius: var(--radius);
+          background: transparent;
+          transition: color 0.15s, background 0.15s;
+        }
+        .nav-link:hover {
+          color: var(--primary);
+          background: var(--primary-soft);
+        }
+        .nav-link--active {
+          color: var(--primary);
+          background: var(--primary-soft);
+        }
         @media (max-width: 900px) {
           .nav-desktop { display: none !important; }
           .nav-mobile { display: flex !important; }
