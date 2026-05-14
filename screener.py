@@ -296,9 +296,16 @@ def build_swing_setup(df, prediction, strength):
     atr_stop = close - atr * 1.5 if atr > 0 else close * 0.94
     ma_stop = ma20 * 0.98 if ma20 else close * 0.94
     raw_sl = max(recent_low, atr_stop, ma_stop)
-    if raw_sl >= bo_entry:
-        raw_sl = bo_entry * 0.94
+    lowest_entry = min([p for p in [bo_entry, pb_entry] if p and p > 0], default=bo_entry)
+    sl_guard_applied = False
+    if raw_sl >= lowest_entry:
+        guard_distance = max((atr * 1.5) if atr > 0 else 0, lowest_entry * 0.03)
+        raw_sl = lowest_entry - guard_distance
+        sl_guard_applied = True
     stop_loss = round_to_tick(raw_sl, 'down')
+    if stop_loss and lowest_entry and stop_loss >= lowest_entry:
+        stop_loss = round_to_tick(lowest_entry - tick_size(lowest_entry), 'down')
+        sl_guard_applied = True
     risk = bo_entry - stop_loss if bo_entry and stop_loss else 0
     target = round_to_tick(bo_entry + risk * 2, 'down') if risk > 0 else None
 
@@ -311,6 +318,7 @@ def build_swing_setup(df, prediction, strength):
         'pb_entry': pb_entry,
         'target': target,
         'stop_loss': stop_loss,
+        'sl_guard_applied': sl_guard_applied,
         'risk_pct': round((risk / bo_entry) * 100, 2) if bo_entry and risk > 0 else None,
         'rr': 2 if risk > 0 else None,
         'volume_ratio': safe_float(last.get('vol_ratio')),
