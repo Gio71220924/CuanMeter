@@ -1,0 +1,62 @@
+[build]
+command = "npm run build:static"
+publish = "dist"
+
+[[redirects]]
+from = "/search"
+to = "https://sahamath-production.up.railway.app/search"
+status = 200
+force = true
+
+[[redirects]]
+from = "/price"
+to = "https://sahamath-production.up.railway.app/price"
+status = 200
+force = true
+
+[[redirects]]
+from = "/board"
+to = "https://sahamath-production.up.railway.app/board"
+status = 200
+force = true
+
+[[redirects]]
+from = "/bandarmology"
+to = "https://sahamath-production.up.railway.app/bandarmology"
+status = 200
+force = true
+
+[[redirects]]
+from = "/ml-predict"
+to = "https://sahamath-production.up.railway.app/ml-predict"
+status = 200
+force = true
+
+[[redirects]]
+from = "/screener"
+to = "https://sahamath-production.up.railway.app/screener"
+status = 200
+force = true
+
+[[redirects]]
+from = "/calendar"
+to = "https://sahamath-production.up.railway.app/calendar"
+status = 200
+force = true
+
+[[redirects]]
+from = "/api/prices/stream"
+to = "https://sahamath-production.up.railway.app/api/prices/stream"
+status = 200
+force = true
+
+[[redirects]]
+from = "/prices/stream"
+to = "https://sahamath-production.up.railway.app/prices/stream"
+status = 200
+force = true
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200

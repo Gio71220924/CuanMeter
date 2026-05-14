@@ -3,6 +3,7 @@
     "version": "2.0.0",
     "description": "Sahamath - kalkulator saham IDX untuk trader Indonesia",
     "scripts": {
+        "build:static": "node scripts/build-static.js",
         "download:model": "node scripts/download-model.js",
         "start": "node server.js"
     },

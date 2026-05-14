@@ -91,6 +91,12 @@ Netlify  -> frontend static
 Render   -> backend Node + Python + model ML
 ```
 
+Railway juga bisa dipakai sebagai backend pengganti Render. Konfigurasi Netlify di repo ini sudah mem-proxy API ke:
+
+```text
+https://sahamath-production.up.railway.app
+```
+
 Catatan penting:
 
 - Netlify tidak menjalankan `server.js` sebagai backend permanen.
@@ -106,6 +112,18 @@ SUPABASE_URL=isi_project_url
 SUPABASE_SERVICE_ROLE_KEY=isi_secret_key
 SUPABASE_BUCKET=models
 SUPABASE_MODEL_PATH=best_models.pkl
+```
+
+Netlify build command:
+
+```bash
+npm run build:static
+```
+
+Netlify publish directory:
+
+```text
+dist
 ```
 
 Render build command:
