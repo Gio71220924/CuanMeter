@@ -23,7 +23,7 @@ const ROOT = __dirname;           // folder server.js berada
 const DEFAULT = '/index.html';   // halaman yang dibuka otomatis
 const DATA_DIR = path.join(ROOT, 'data');
 const CALENDAR_CACHE_FILE = path.join(DATA_DIR, 'calendar-cache.json');
-const CALENDAR_CACHE_VERSION = 5;
+const CALENDAR_CACHE_VERSION = 6;
 const KSEI_DETAIL_PAGE_LIMIT = 80;
 const KSEI_EVENT_LIMIT = 160;
 const KSEI_RETRY_COUNT = 2;
@@ -1148,6 +1148,28 @@ const server = http.createServer((req, res) => {
     serveStatic(pathname, res);
 });
 
+// ─── Daily calendar refresh ───────────────────────────────────────────────────
+function scheduleDailyCalendarRefresh() {
+    const now = new Date();
+    const nextMidnightWIB = new Date(now);
+    nextMidnightWIB.setUTCHours(17, 0, 0, 0); // 00:00 WIB = 17:00 UTC
+    if (nextMidnightWIB <= now) nextMidnightWIB.setUTCDate(nextMidnightWIB.getUTCDate() + 1);
+    const msUntilMidnight = nextMidnightWIB - now;
+
+    setTimeout(() => {
+        loadCalendarCache(true)
+            .then(() => console.log('[Calendar] Daily refresh selesai.'))
+            .catch(e => console.error('[Calendar] Daily refresh gagal:', e.message));
+        setInterval(() => {
+            loadCalendarCache(true)
+                .then(() => console.log('[Calendar] Daily refresh selesai.'))
+                .catch(e => console.error('[Calendar] Daily refresh gagal:', e.message));
+        }, 24 * 60 * 60 * 1000);
+    }, msUntilMidnight);
+
+    console.log(`[Calendar] Daily refresh dijadwalkan dalam ${Math.round(msUntilMidnight / 60000)} menit (00:00 WIB).`);
+}
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 server.listen(PORT, () => {
     const baseUrl = `http://localhost:${PORT}`;
@@ -1161,6 +1183,7 @@ server.listen(PORT, () => {
     console.log('');
     console.log('  Tekan Ctrl+C untuk berhenti.');
     console.log('');
+    scheduleDailyCalendarRefresh();
 });
 
 server.on('error', (err) => {
