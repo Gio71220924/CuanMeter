@@ -232,7 +232,7 @@ function BrokerTable({ title, subtitle, list, color, icon }) {
     letterSpacing: '0.06em',
   };
   return (
-    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+    <div className="card broker-card" style={{ padding: 0, overflow: 'hidden' }}>
       <div
         style={{
           padding: '16px 20px',
@@ -260,7 +260,7 @@ function BrokerTable({ title, subtitle, list, color, icon }) {
           </div>
         </div>
       </div>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table className="broker-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ background: 'var(--surface-2)' }}>
             <th style={{ ...cellTh, textAlign: 'left' }}>Broker</th>
@@ -271,7 +271,7 @@ function BrokerTable({ title, subtitle, list, color, icon }) {
         <tbody>
           {list.map((b, i) => (
             <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
-              <td style={{ padding: '12px 20px' }}>
+              <td className="broker-cell-code" style={{ padding: '12px 20px' }}>
                 <span
                   style={{
                     display: 'inline-flex',
@@ -291,13 +291,13 @@ function BrokerTable({ title, subtitle, list, color, icon }) {
                 </span>
               </td>
               <td
-                className="mono tnum"
+                className="mono tnum broker-cell-value"
                 style={{ padding: '12px 20px', textAlign: 'right', fontWeight: 700, color }}
               >
                 Rp {fmt.compact(b.netVal)}
               </td>
               <td
-                className="mono tnum"
+                className="mono tnum broker-cell-price"
                 style={{
                   padding: '12px 20px',
                   textAlign: 'right',
@@ -658,7 +658,66 @@ function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) 
 
       {/* Table */}
       {data && (
-        <div style={{ overflowX: 'auto' }}>
+        <div className="screener-mobile-list">
+          {data.map((row) => {
+            const isError = row.status === 'error';
+            const signalColor = isError ? 'var(--danger)' : PRED_COLOR_S[row.prediction];
+            const swingColor = isError
+              ? 'var(--fg-faint)'
+              : (row.swing?.score >= 9 ? 'var(--primary)' : row.swing?.score >= 6 ? 'var(--success)' : row.swing?.score >= 4 ? 'var(--warning)' : 'var(--fg-muted)');
+            return (
+              <button
+                key={row.ticker}
+                type="button"
+                className="screener-mobile-card"
+                onClick={() => !isError && onSelect(row.ticker)}
+                disabled={isError}
+              >
+                <div className="screener-mobile-card-head">
+                  <div>
+                    <div className="screener-mobile-ticker">{row.ticker}</div>
+                    <div className="screener-mobile-sub" style={{ color: swingColor }}>
+                      {isError ? row.message : `${row.swing?.score ?? 0} - ${row.swing?.setup ?? '-'}`}
+                    </div>
+                  </div>
+                  <div className="screener-mobile-signal" style={{ color: signalColor }}>
+                    {isError ? 'ERROR' : PRED_LABEL_S[row.prediction]}
+                  </div>
+                </div>
+
+                {!isError && (
+                  <>
+                    <div className="screener-mobile-meta">
+                      <span>VSA</span>
+                      <strong>{row.swing?.vsa || '-'}</strong>
+                      <span>Vol</span>
+                      <strong>{row.swing?.volume_ratio != null ? row.swing.volume_ratio.toFixed(2) + 'x' : '-'}</strong>
+                      <span>RS</span>
+                      <strong>{row.swing?.relative_strength_20d != null ? (row.swing.relative_strength_20d * 100).toFixed(1) + '%' : '-'}</strong>
+                    </div>
+                    <div className="screener-mobile-levels">
+                      {[
+                        ['BO', fmtPrice(row.swing?.bo_entry ?? row.swing?.entry)],
+                        ['PB', fmtPrice(row.swing?.pb_entry)],
+                        ['TP', fmtPrice(row.swing?.target)],
+                        ['SL', fmtPrice(row.swing?.stop_loss)],
+                      ].map(([label, value]) => (
+                        <div key={label}>
+                          <span>{label}</span>
+                          <strong>{value}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {data && (
+        <div className="screener-table-wrap" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--border)' }}>
@@ -1034,11 +1093,11 @@ function Analyzer() {
 
       {/* ML Trading Plan + Performance */}
       <div
-        className="calc-grid"
+        className="calc-grid analyzer-ml-grid"
         style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}
       >
         {/* Card 1: Trading Plan */}
-        <div className="card" style={{ padding: 24 }}>
+        <div className="card analyzer-ml-card" style={{ padding: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--primary-soft)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1114,7 +1173,7 @@ function Analyzer() {
                 {mlData.trading_plan.note}
               </div>
               {/* Indicators mini grid */}
-              <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              <div className="analyzer-metric-grid" style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                 {[
                   { label: 'Stoch %K',  value: mlData.indicators?.stoch != null ? mlData.indicators.stoch.toFixed(1) : '—' },
                   { label: 'BB',        value: mlData.indicators?.bb_pos ?? '—' },
@@ -1148,7 +1207,7 @@ function Analyzer() {
         </div>
 
         {/* Card 2: Win Rate + Recent Trades */}
-        <div className="card" style={{ padding: 24 }}>
+        <div className="card analyzer-ml-card" style={{ padding: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--primary-soft)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="check" size={18} />
@@ -1169,7 +1228,7 @@ function Analyzer() {
           </div>
 
           {mlData?.status === 'success' && mlData.backtest && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+            <div className="analyzer-metric-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
               {[
                 { label: 'Buy Trades', value: mlData.backtest.actionable_trades ?? 0 },
                 { label: 'BUY Avg', value: (mlData.backtest.avg_return_pct ?? 0).toFixed(2) + '%' },
@@ -1187,7 +1246,7 @@ function Analyzer() {
           {/* Recent Trades table */}
           {mlData?.status === 'success' && mlData.recent_trades?.length > 0 ? (
             <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 2fr 1.5fr 1.5fr', padding: '6px 10px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
+              <div className="analyzer-trade-header" style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 2fr 1.5fr 1.5fr', padding: '6px 10px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
                 {['Tgl', 'Sinyal', 'Harga', 'Hasil', 'Move'].map((h) => (
                   <span key={h} style={{ fontSize: 9, fontWeight: 800, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</span>
                 ))}
@@ -1196,7 +1255,7 @@ function Analyzer() {
                 const isWin = t.result === 'WIN';
                 const isBuy = t.signal === 'BUY';
                 return (
-                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 2fr 1.5fr 1.5fr', padding: '8px 10px', borderBottom: i < mlData.recent_trades.length - 1 ? '1px solid var(--border)' : 'none', background: isWin ? 'color-mix(in oklab, var(--success) 5%, transparent)' : 'color-mix(in oklab, var(--danger) 5%, transparent)', alignItems: 'center' }}>
+                  <div key={i} className="analyzer-trade-row" style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 2fr 1.5fr 1.5fr', padding: '8px 10px', borderBottom: i < mlData.recent_trades.length - 1 ? '1px solid var(--border)' : 'none', background: isWin ? 'color-mix(in oklab, var(--success) 5%, transparent)' : 'color-mix(in oklab, var(--danger) 5%, transparent)', alignItems: 'center' }}>
                     <span style={{ fontSize: 11, color: 'var(--fg-muted)', fontWeight: 600 }}>{t.date}</span>
                     <span style={{ fontSize: 10, fontWeight: 900, color: isBuy ? 'var(--success)' : 'var(--danger)', letterSpacing: '0.04em' }}>{t.signal}</span>
                     <span className="mono tnum" style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg)' }}>Rp {Math.round(t.price).toLocaleString('id-ID')}</span>
@@ -1232,6 +1291,7 @@ function Analyzer() {
 
       {/* broker tables — date range picker */}
       <div
+        className="band-filter-row"
         style={{
           display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10,
           marginBottom: 12, padding: '10px 16px',

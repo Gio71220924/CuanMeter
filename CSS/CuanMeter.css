@@ -574,9 +574,71 @@ body[data-theme="dark"] .cta-terminal {
 .cal-dot-legend    { display: none; }
 .cal-event-meta-mobile { display: none; }
 .cal-event-dot-inline  { display: none; }
+.screener-mobile-list { display: none; }
 
 /* Calendar — single breakpoint for all mobile overrides (no conflict) */
 @media (max-width: 640px) {
+  .calc-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  .calc-grid > * {
+    min-width: 0 !important;
+  }
+  .calc-grid .card {
+    padding: 20px !important;
+  }
+  .calculator-screen {
+    padding: 32px 0 64px !important;
+  }
+  .calculator-screen .fade-up {
+    margin-bottom: 28px !important;
+  }
+  .calculator-screen h1 {
+    font-size: 34px !important;
+    line-height: 1.08 !important;
+    letter-spacing: 0 !important;
+  }
+  .calculator-screen p {
+    font-size: 14px !important;
+  }
+  .calculator-screen .calc-grid .card {
+    padding: 18px !important;
+  }
+  .calculator-screen .calc-grid [style*="grid-template-columns: 1fr 1fr"],
+  .calculator-screen .calc-grid [style*="grid-template-columns: 1fr 1.4fr auto"] {
+    grid-template-columns: 1fr !important;
+  }
+  .input-group {
+    min-width: 0;
+  }
+  .input {
+    width: 100%;
+    min-width: 0;
+  }
+  .card .mono.tnum {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .band-filter-row {
+    align-items: stretch !important;
+    padding: 12px !important;
+  }
+  .band-filter-row .input {
+    flex: 1 1 130px;
+    width: 100% !important;
+  }
+  .band-filter-row .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+  .band-filter-row > span:last-child {
+    flex: 1 1 100%;
+    margin-left: 0 !important;
+    justify-content: center;
+    text-align: center;
+  }
+
   /* Collapse 2-column calendar grid */
   .market-calendar-grid {
     display: flex !important;
@@ -644,6 +706,160 @@ body[data-theme="dark"] .cta-terminal {
     -webkit-line-clamp: 2 !important;
     -webkit-box-orient: vertical !important;
     overflow: hidden !important;
+  }
+
+  /* Analyzer mobile: prevent card clipping. */
+  .analyzer-ml-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .analyzer-ml-card {
+    padding: 20px !important;
+    min-width: 0 !important;
+  }
+  .analyzer-metric-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .analyzer-trade-header,
+  .analyzer-trade-row {
+    grid-template-columns: 1.25fr 0.9fr 1.35fr 1fr 1fr !important;
+    column-gap: 6px !important;
+  }
+  .analyzer-trade-header span,
+  .analyzer-trade-row span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Screener mobile: use cards instead of a wide table. */
+  .screener-table-wrap {
+    display: none !important;
+  }
+  .screener-mobile-list {
+    display: grid;
+    gap: 10px;
+  }
+  .screener-mobile-card {
+    width: 100%;
+    text-align: left;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 12px;
+    color: var(--fg);
+    box-shadow: var(--shadow-sm);
+  }
+  .screener-mobile-card:disabled {
+    opacity: 0.72;
+  }
+  .screener-mobile-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .screener-mobile-ticker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--fg);
+    letter-spacing: 0;
+  }
+  .screener-mobile-sub {
+    margin-top: 3px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.25;
+  }
+  .screener-mobile-signal {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .screener-mobile-meta,
+  .screener-mobile-levels {
+    display: grid;
+    gap: 6px;
+  }
+  .screener-mobile-meta {
+    grid-template-columns: auto 1fr auto 1fr auto 1fr;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+  }
+  .screener-mobile-meta span,
+  .screener-mobile-levels span {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .screener-mobile-meta strong {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--fg);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .screener-mobile-levels {
+    grid-template-columns: repeat(4, 1fr);
+    margin-top: 10px;
+  }
+  .screener-mobile-levels div {
+    min-width: 0;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+  }
+  .screener-mobile-levels strong {
+    display: block;
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--fg);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Broker flow cards: compact readable table on phones. */
+  .broker-card {
+    padding: 0 !important;
+  }
+  .broker-card > div:first-child {
+    padding: 14px 16px !important;
+  }
+  .broker-table th {
+    padding: 9px 12px !important;
+    font-size: 10px !important;
+  }
+  .broker-table th:nth-child(3),
+  .broker-cell-price {
+    display: none !important;
+  }
+  .broker-cell-code {
+    padding: 12px 12px !important;
+    width: 68px;
+  }
+  .broker-cell-code span {
+    width: 42px !important;
+    height: 30px !important;
+    font-size: 12px !important;
+  }
+  .broker-cell-value {
+    padding: 12px 14px 12px 8px !important;
+    font-size: 15px !important;
+    line-height: 1.15 !important;
+    white-space: nowrap;
   }
 }
 

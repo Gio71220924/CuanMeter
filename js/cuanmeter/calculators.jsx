@@ -73,7 +73,7 @@ function NumberInput({ label, value, onChange, prefix, suffix, hint, placeholder
 /* ---------- screen wrapper ---------- */
 function CalcScreen({ icon, tag, title, subtitle, children }) {
   return (
-    <main style={{ padding: '48px 0 80px' }}>
+    <main className="calculator-screen" style={{ padding: '48px 0 80px' }}>
       <div className="container">
         <div className="fade-up" style={{ marginBottom: 40, maxWidth: 720 }}>
           <div className="badge" style={{ marginBottom: 16 }}>
