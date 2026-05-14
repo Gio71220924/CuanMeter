@@ -23,9 +23,18 @@ const ROOT = __dirname;           // folder server.js berada
 const DEFAULT = '/index.html';   // halaman yang dibuka otomatis
 const DATA_DIR = path.join(ROOT, 'data');
 const CALENDAR_CACHE_FILE = path.join(DATA_DIR, 'calendar-cache.json');
-const CALENDAR_CACHE_VERSION = 4;
+const CALENDAR_CACHE_VERSION = 5;
 const KSEI_DETAIL_PAGE_LIMIT = 80;
 const KSEI_EVENT_LIMIT = 160;
+const KSEI_RETRY_COUNT = 2;
+const KSEI_RETRY_DELAY_MS = 450;
+const KSEI_MIN_CORPORATE_EVENTS = 2;
+const CALENDAR_REFRESH_COOLDOWN_MS = 5 * 60 * 1000;
+const MACRO_WINDOW_PAST_DAYS   = 30;
+const MACRO_WINDOW_FUTURE_DAYS = 90;
+let calendarRefreshInFlight = null;
+let calendarRefreshBlockedUntil = 0;
+let calendarLastRefreshError = null;
 
 // ─── MIME types ──────────────────────────────────────────────────────────────
 const MIME = {
@@ -92,6 +101,46 @@ function httpsGetRaw(hostname, requestPath, timeout = 15000) {
     });
 }
 
+function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isTransientNetworkError(error) {
+    const msg = (error?.message || '').toLowerCase();
+    return (
+        msg.includes('socket hang up')
+        || msg.includes('timeout')
+        || msg.includes('econnreset')
+        || msg.includes('etimedout')
+        || msg.includes('eai_again')
+        || msg.includes('network')
+        || msg.includes('500')
+        || msg.includes('502')
+        || msg.includes('503')
+        || msg.includes('504')
+    );
+}
+
+async function httpsGetRawWithRetry(hostname, requestPath, options = {}) {
+    const {
+        retries = KSEI_RETRY_COUNT,
+        timeout = 20000,
+        delayMs = KSEI_RETRY_DELAY_MS,
+    } = options;
+
+    let lastError;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            return await httpsGetRaw(hostname, requestPath, timeout);
+        } catch (error) {
+            lastError = error;
+            if (!isTransientNetworkError(error) || attempt === retries) break;
+            await wait(delayMs * (attempt + 1));
+        }
+    }
+    throw lastError;
+}
+
 const TV_HEADERS = {
     'Origin': 'https://www.tradingview.com',
     'Referer': 'https://www.tradingview.com/',
@@ -131,39 +180,88 @@ function isRateLimited(ip) {
     return entry.count > MAX;
 }
 
-// Market calendar: macro events are curated, KSEI corporate actions are fetched
-// daily from KSEI's calendar JSON + detail HTML and cached on disk.
-const MARKET_CALENDAR_EVENTS = [
-    {
-        id: 'bi-rdg-2026-05-19',
-        date: '2026-05-19',
-        endDate: '2026-05-20',
-        category: 'macro',
-        label: 'BI Rate',
-        title: 'RDG Bank Indonesia',
-        detail: 'Rapat Dewan Gubernur BI. Pantau arah suku bunga, rupiah, dan sentimen sektor bank.',
-        impact: 'high',
-        source: 'Bank Indonesia',
-        url: 'https://www.bi.go.id/en/publikasi/Kalender/',
-    },
-    {
-        id: 'bps-monthly-2026-06-01',
-        date: '2026-06-01',
-        category: 'macro',
-        label: 'BPS',
-        title: 'Rilis indikator ekonomi bulanan',
-        detail: 'Pantau inflasi, nilai tukar petani, pariwisata, dan indikator bulanan lain dari BPS.',
-        impact: 'medium',
-        source: 'BPS',
-        url: 'https://www.bps.go.id/assets/arc',
-    },
-];
-
 function ymdLocal(date = new Date()) {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
+}
+
+// Market calendar: macro events generated dynamically.
+// BI RDG schedule published annually by Bank Indonesia — add new year once/year.
+// KSEI corporate actions fetched daily and cached on disk.
+const BI_RDG_SCHEDULE = {
+    2025: [
+        '2025-01-14', '2025-02-18', '2025-03-18', '2025-04-22',
+        '2025-05-20', '2025-06-17', '2025-07-15', '2025-08-19',
+        '2025-09-16', '2025-10-14', '2025-11-18', '2025-12-16',
+    ],
+    2026: [
+        '2026-01-14', '2026-02-18', '2026-03-18', '2026-04-22',
+        '2026-05-19', '2026-06-17', '2026-07-15', '2026-08-19',
+        '2026-09-16', '2026-10-21', '2026-11-18', '2026-12-16',
+    ],
+};
+
+/** @param {number} month - 0-indexed (0 = January) */
+function firstBusinessDay(year, month) {
+    const d = new Date(year, month, 1);
+    const dow = d.getDay();
+    if (dow === 0) d.setDate(2);
+    else if (dow === 6) d.setDate(3);
+    return ymdLocal(d);
+}
+
+function getMacroEvents() {
+    const today = new Date();
+    const from = new Date(today); from.setDate(from.getDate() - MACRO_WINDOW_PAST_DAYS);
+    const until = new Date(today); until.setDate(until.getDate() + MACRO_WINDOW_FUTURE_DAYS);
+    const events = [];
+
+    // BI RDG — scan current year + next year
+    for (const year of [today.getFullYear(), today.getFullYear() + 1]) {
+        const rdgDates = BI_RDG_SCHEDULE[year];
+        if (!rdgDates) { console.warn(`[Calendar] BI_RDG_SCHEDULE missing year ${year}`); continue; }
+        for (const date of rdgDates) {
+            const d = new Date(date + 'T00:00:00');
+            if (d < from || d > until) continue;
+            const endD = new Date(d); endD.setDate(endD.getDate() + 1);
+            events.push({
+                id: `bi-rdg-${date}`,
+                date,
+                endDate: ymdLocal(endD),
+                category: 'macro',
+                label: 'BI Rate',
+                title: 'RDG Bank Indonesia',
+                detail: 'Rapat Dewan Gubernur BI. Pantau arah suku bunga, rupiah, dan sentimen sektor bank.',
+                impact: 'high',
+                source: 'Bank Indonesia',
+                url: 'https://www.bi.go.id/en/publikasi/Kalender/',
+            });
+        }
+    }
+
+    // BPS — first business day of each month, up to 30 days back, up to 3 months ahead
+    for (let offset = -1; offset <= 3; offset++) {
+        const ref = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+        const date = firstBusinessDay(ref.getFullYear(), ref.getMonth());
+        const d = new Date(date + 'T00:00:00');
+        if (d < from || d > until) continue;
+        const monthLabel = ref.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+        events.push({
+            id: `bps-${date}`,
+            date,
+            category: 'macro',
+            label: 'BPS',
+            title: `Rilis Data Ekonomi ${monthLabel}`,
+            detail: 'Data ekonomi bulanan BPS: inflasi, nilai tukar petani, pariwisata, dan indikator lainnya.',
+            impact: 'medium',
+            source: 'BPS',
+            url: 'https://www.bps.go.id/id/statistics-table',
+        });
+    }
+
+    return events;
 }
 
 function addMonths(date, months) {
@@ -234,6 +332,10 @@ function normalizeCalendarEvent(event = {}) {
         };
     }
     return event;
+}
+
+function countCorporateEvents(events = []) {
+    return events.filter(event => event.category === 'corporate').length;
 }
 
 function kseiTypeFromPath(detailPath = '') {
@@ -314,7 +416,7 @@ async function fetchKseiCalendarEvents() {
     for (const monthDate of months) {
         const month = String(monthDate.getMonth() + 1).padStart(2, '0');
         const year = monthDate.getFullYear();
-        const raw = await httpsGetRaw('web.ksei.co.id', `/ksei_calendar/get_json/event-${month}-${year}-all.json`);
+        const raw = await httpsGetRawWithRetry('web.ksei.co.id', `/ksei_calendar/get_json/event-${month}-${year}-all.json`);
         const json = JSON.parse(raw);
         for (const group of (json.data || [])) {
             for (const item of (group.events || [])) {
@@ -334,18 +436,100 @@ async function fetchKseiCalendarEvents() {
             return a.date.localeCompare(b.date);
         });
     const events = [];
+    let skippedDetails = 0;
     for (const item of uniqueDetails.slice(0, KSEI_DETAIL_PAGE_LIMIT)) {
         try {
-            const html = await httpsGetRaw('web.ksei.co.id', item.path);
+            const html = await httpsGetRawWithRetry('web.ksei.co.id', item.path);
             events.push(...parseKseiDetail(html, item.date, item.path));
         } catch (e) {
-            if (!item.path.includes('/eff/')) {
+            skippedDetails++;
+            if (!isTransientNetworkError(e) && !item.path.includes('/eff/')) {
                 console.error('[Calendar] KSEI detail error:', e.message);
             }
         }
+        await wait(120);
+    }
+
+    if (skippedDetails > 0) {
+        console.warn(`[Calendar] KSEI skipped ${skippedDetails} detail page(s) after retry.`);
+    }
+
+    if (countCorporateEvents(events) < KSEI_MIN_CORPORATE_EVENTS) {
+        throw new Error(`KSEI corporate events too low (${countCorporateEvents(events)}), skip cache write`);
     }
 
     return events.slice(0, KSEI_EVENT_LIMIT);
+}
+
+async function fetchIdxCorporateActions() {
+    // IDX corporate actions API endpoint:
+    //   https://www.idx.co.id/primary/TradingData/GetCorporateAction
+    // Expected request params:
+    //   indexFrom=0, pageSize=80, type=, code=, startDate=YYYY-MM-DD, endDate=YYYY-MM-DD
+    //
+    // NOTE: IDX website is protected by Cloudflare and blocks automated requests (curl, HTTPS client).
+    // Browser-based JavaScript clients (with Cloudflare challenges enabled) can reach it.
+    // A headless browser solution (Puppeteer/Playwright) or Cloudflare bypass is required for production use.
+    //
+    // For now, return empty array. When Cloudflare access is available, uncomment the fetch logic:
+    /*
+    const today = new Date();
+    const startDate = ymdLocal(new Date(today.getFullYear(), today.getMonth(), 1));
+    const endDate   = ymdLocal(new Date(today.getFullYear(), today.getMonth() + 2, 0));
+    const path = `/primary/TradingData/GetCorporateAction?indexFrom=0&pageSize=80&type=&code=&startDate=${startDate}&endDate=${endDate}`;
+
+    const raw = await httpsGetRawWithRetry('www.idx.co.id', path, { timeout: 15000 });
+    const json = JSON.parse(raw);
+    const events = [];
+
+    for (const item of (json.Results || [])) {
+        // Use actual field names from IDX API response (found via browser inspection)
+        const ticker = ((item.Code || item.StockCode || '')).toUpperCase().trim();
+        if (!isIdxStockTicker(ticker)) continue;
+
+        const actionType = item.TypeCA || item.ActionType || '';
+        const label = actionLabelFromDetail(actionType + ' ' + (item.Detail || item.Description || ''));
+        const cumDate = item.CumDate || item.ExDate || null;
+        const payDate = item.PayDate || item.PaymentDate || null;
+
+        if (cumDate) {
+            events.push({
+                id: `idx-cum-${cumDate.slice(0, 10)}-${ticker}`,
+                date: cumDate.slice(0, 10),
+                category: 'corporate',
+                label,
+                ticker,
+                title: `${ticker} - Cum Date`,
+                detail: item.Detail || item.Description || `${ticker} ${label}`,
+                summary: item.Detail || item.Description || label,
+                impact: 'high',
+                source: 'IDX',
+                url: 'https://www.idx.co.id/en/market-data/corporate-actions/',
+                eventType: 'cum',
+            });
+        }
+
+        if (payDate && payDate.slice(0, 10) !== (cumDate || '').slice(0, 10)) {
+            events.push({
+                id: `idx-pay-${payDate.slice(0, 10)}-${ticker}`,
+                date: payDate.slice(0, 10),
+                category: 'corporate',
+                label,
+                ticker,
+                title: `${ticker} - Payment Date`,
+                detail: item.Detail || item.Description || `${ticker} ${label}`,
+                summary: item.Detail || item.Description || label,
+                impact: 'medium',
+                source: 'IDX',
+                url: 'https://www.idx.co.id/en/market-data/corporate-actions/',
+                eventType: 'pay',
+            });
+        }
+    }
+
+    return events;
+    */
+    return [];
 }
 
 function readCalendarCache() {
@@ -378,29 +562,76 @@ function writeCalendarCache(events) {
     }
 }
 
+function getCalendarFallback(errorMessage) {
+    const stale = (() => {
+        try {
+            if (!fs.existsSync(CALENDAR_CACHE_FILE)) return null;
+            return JSON.parse(fs.readFileSync(CALENDAR_CACHE_FILE, 'utf8'));
+        } catch {
+            return null;
+        }
+    })();
+    const staleEvents = (stale?.events || []).filter(isAllowedCalendarEvent);
+    const canUseStale = countCorporateEvents(staleEvents) >= KSEI_MIN_CORPORATE_EVENTS;
+    const fallbackEvents = canUseStale ? staleEvents : getMacroEvents();
+    return {
+        generated_at: canUseStale ? stale.generated_at : new Date().toISOString(),
+        events: fallbackEvents,
+        cached: canUseStale,
+        error: errorMessage,
+    };
+}
+
 async function loadCalendarCache(forceRefresh = false) {
     if (!forceRefresh) {
         const cached = readCalendarCache();
         if (cached) return { ...cached, cached: true };
     }
 
-    try {
-        const kseiEvents = await fetchKseiCalendarEvents();
-        const allEvents = [...MARKET_CALENDAR_EVENTS, ...kseiEvents].filter(isAllowedCalendarEvent);
-        return { ...writeCalendarCache(allEvents), cached: false };
-    } catch (e) {
-        console.error('[Calendar] Refresh error:', e.message);
-        const stale = (() => {
-            try {
-                if (!fs.existsSync(CALENDAR_CACHE_FILE)) return null;
-                return JSON.parse(fs.readFileSync(CALENDAR_CACHE_FILE, 'utf8'));
-            } catch {
-                return null;
-            }
-        })();
-        const fallbackEvents = (stale?.events || MARKET_CALENDAR_EVENTS).filter(isAllowedCalendarEvent);
-        return { generated_at: new Date().toISOString(), events: fallbackEvents, cached: !!stale, error: e.message };
+    if (!forceRefresh && calendarRefreshBlockedUntil > Date.now()) {
+        return getCalendarFallback(calendarLastRefreshError || 'KSEI refresh paused after recent failure');
     }
+
+    if (calendarRefreshInFlight) return calendarRefreshInFlight;
+
+    calendarRefreshInFlight = (async () => {
+        try {
+            const kseiEvents = await fetchKseiCalendarEvents();
+
+            let idxEvents = [];
+            try {
+                idxEvents = await fetchIdxCorporateActions();
+                if (idxEvents.length > 0) console.log(`[Calendar] IDX: ${idxEvents.length} corporate action events`);
+            } catch (e) {
+                console.warn('[Calendar] IDX fetch skipped:', e.message);
+            }
+
+            // Prefer KSEI over IDX when same (date, ticker, eventType)
+            const kseiKeys = new Set(kseiEvents.map(e => `${e.date}|${e.ticker}|${e.eventType}`));
+            const kseiTickerDates = new Set(
+                kseiEvents.filter(e => e.eventType === 'ca').map(e => `${e.date}|${e.ticker}`)
+            );
+            const idxUnique = idxEvents.filter(e =>
+                !kseiKeys.has(`${e.date}|${e.ticker}|${e.eventType}`) &&
+                !kseiTickerDates.has(`${e.date}|${e.ticker}`)
+            );
+
+            const allEvents = [...getMacroEvents(), ...kseiEvents, ...idxUnique].filter(isAllowedCalendarEvent);
+            const payload = { ...writeCalendarCache(allEvents), cached: false };
+            calendarLastRefreshError = null;
+            calendarRefreshBlockedUntil = 0;
+            return payload;
+        } catch (e) {
+            calendarLastRefreshError = e.message;
+            calendarRefreshBlockedUntil = Date.now() + CALENDAR_REFRESH_COOLDOWN_MS;
+            console.warn('[Calendar] Refresh skipped, using fallback:', e.message);
+            return getCalendarFallback(e.message);
+        } finally {
+            calendarRefreshInFlight = null;
+        }
+    })();
+
+    return calendarRefreshInFlight;
 }
 
 function handleCalendar(query, res) {
@@ -451,6 +682,7 @@ function handleCalendar(query, res) {
                 { name: 'Bank Indonesia', url: 'https://www.bi.go.id/en/publikasi/Kalender/' },
                 { name: 'BPS', url: 'https://www.bps.go.id/assets/arc' },
                 { name: 'KSEI', url: 'https://web.ksei.co.id/ksei-calendar?setLocale=id-ID' },
+                { name: 'IDX', url: 'https://www.idx.co.id/en/market-data/corporate-actions/' },
             ],
         });
     }).catch((e) => {
@@ -607,6 +839,11 @@ function fetchBoardList() {
         res.on('data', c => data += c);
         res.on('end', () => {
             try {
+                const trimmed = data.trim();
+                if (res.statusCode >= 400 || trimmed.startsWith('<')) {
+                    console.warn(`[Board] IDX returned non-JSON response (status ${res.statusCode}); keeping existing cache.`);
+                    return;
+                }
                 const json = JSON.parse(data);
                 const list = json.data || json.Data || json.results || json.Results || [];
                 if (!Array.isArray(list) || list.length === 0) {
