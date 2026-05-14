@@ -1021,7 +1021,7 @@ function handleMLPredict(ticker, res) {
             sendJSON(res, 200, jsonResult);
         } catch (e) {
             console.error(`[Parse Error] ${e.message}. Raw output: ${output}`);
-            sendJSON(res, 500, { error: "Gagal parsing JSON", detail: output });
+            sendJSON(res, 500, { error: "Prediksi tidak tersedia saat ini." });
         }
     });
 
