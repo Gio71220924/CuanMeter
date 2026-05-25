@@ -238,6 +238,62 @@ def detect_vsa(df):
     return {'label': 'Neutral', 'score': 0}
 
 
+def triple_confirmation(df):
+    if len(df) < 30:
+        return None
+
+    last = df.iloc[-1]
+    prev = df.iloc[-2] if len(df) >= 2 else last
+
+    rsi       = safe_float(last.get('RSI'))
+    macd      = safe_float(last.get('MACD'))
+    macd_sig  = safe_float(last.get('MACD_SIGNAL'))
+    macd_prev = safe_float(prev.get('MACD'))
+    msig_prev = safe_float(prev.get('MACD_SIGNAL'))
+    close     = safe_float(last.get('Close'))
+    ma20      = safe_float(last.get('MA20'))
+
+    if any(v is None for v in [rsi, macd, macd_sig, close, ma20]):
+        return None
+
+    bullish_cross = (macd > macd_sig and macd_prev is not None and msig_prev is not None and macd_prev <= msig_prev)
+    bearish_cross = (macd < macd_sig and macd_prev is not None and msig_prev is not None and macd_prev >= msig_prev)
+    above_ma20    = close > ma20
+
+    buy_score = 0
+    if rsi < 40:
+        buy_score += round(33 * (40 - rsi) / 40)
+    if bullish_cross:
+        buy_score += 33
+    if above_ma20:
+        buy_score += min(34, round(34 * (1 + (close - ma20) / ma20)))
+
+    sell_score = 0
+    if rsi > 60:
+        sell_score += round(33 * (rsi - 60) / 40)
+    if bearish_cross:
+        sell_score += 33
+    if not above_ma20:
+        sell_score += min(34, round(34 * (1 + (ma20 - close) / ma20)))
+
+    if rsi < 40 and bullish_cross and above_ma20:
+        signal, score = 'BUY', min(100, buy_score)
+    elif rsi > 60 and bearish_cross and not above_ma20:
+        signal, score = 'SELL', min(100, sell_score)
+    else:
+        signal, score = 'NEUTRAL', max(buy_score, sell_score)
+
+    return {
+        'signal':            signal,
+        'score':             score,
+        'rsi':               round(rsi, 1),
+        'macd_signal':       'bullish_cross' if bullish_cross else 'bearish_cross' if bearish_cross else 'no_cross',
+        'macd_value':        round(macd, 4),
+        'ma20_position':     'above' if above_ma20 else 'below',
+        'ma20_distance_pct': round((close - ma20) / ma20 * 100, 2) if ma20 else None,
+    }
+
+
 def build_swing_setup(df, prediction, strength):
     last = df.iloc[-1]
     close = float(last['Close'])
