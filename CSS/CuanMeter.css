@@ -576,6 +576,85 @@ body[data-theme="dark"] .cta-terminal {
 .cal-event-dot-inline  { display: none; }
 .screener-mobile-list { display: none; }
 
+/* Strategy picker */
+.strategy-checkbox {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+.strategy-checkbox.checked {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+}
+.strategy-mode-btn {
+  padding: 4px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.strategy-mode-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* Screener strategy breakdown block (inside mobile card) */
+.screener-strategy-block {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.screener-strategy-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.screener-strategy-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  flex: 1;
+}
+.screener-strategy-score {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--fg-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+.screener-score-bar-track {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+.screener-score-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.screener-strategy-breakdown {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
 /* Calendar — single breakpoint for all mobile overrides (no conflict) */
 @media (max-width: 640px) {
   .calc-grid {
@@ -829,6 +908,15 @@ body[data-theme="dark"] .cta-terminal {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  /* Strategy picker: compact on mobile */
+  .strategy-picker {
+    padding: 12px 14px !important;
+  }
+  .screener-strategy-breakdown {
+    gap: 8px;
+    font-size: 10px;
   }
 
   /* Broker flow cards: compact readable table on phones. */

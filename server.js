@@ -1038,10 +1038,18 @@ function handleMLPredict(ticker, res) {
 }
 
 // ─── /screener  →  Run screener script ───────────────────────────────────────
-function handleScreener(res) {
-    console.log('[Screener] Memulai scan 14 emiten...');
+function handleScreener(req, res) {
+    const parsed     = url.parse(req.url, true);
+    const strategies = /^[a-z,]+$/.test(parsed.query.strategies || '') ? parsed.query.strategies : 'triple';
+    const mode       = parsed.query.mode === 'or' ? 'or' : 'and';
 
-    const python = spawn('python', [path.join(ROOT, 'screener.py')]);
+    console.log(`[Screener] Scan 14 emiten | strategies=${strategies} mode=${mode}`);
+
+    const python = spawn('python', [
+        path.join(ROOT, 'screener.py'),
+        '--strategies', strategies,
+        '--mode', mode,
+    ]);
     let output = '';
     let timedOut = false;
     let timer = setTimeout(() => {
@@ -1057,11 +1065,8 @@ function handleScreener(res) {
         if (timedOut) return;
         clearTimeout(timer);
         try {
-            const start = output.indexOf('[');
-            const end   = output.lastIndexOf(']');
-            if (start === -1 || end === -1) throw new Error('Output tidak valid');
-            const results = JSON.parse(output.substring(start, end + 1));
-            sendJSON(res, 200, { status: 'success', results });
+            const result = JSON.parse(output.trim());
+            sendJSON(res, 200, result);
         } catch (e) {
             console.error(`[Screener Parse Error] ${e.message}`);
             sendJSON(res, 500, { status: 'error', message: 'Gagal parse output screener' });
@@ -1178,7 +1183,7 @@ const server = http.createServer((req, res) => {
     if (req.method === 'GET' && pathname === '/screener') {
         const ip = req.socket.remoteAddress;
         if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
-        return handleScreener(res);
+        return handleScreener(req, res);
     }
 
     // API: /calendar

@@ -470,7 +470,7 @@ def apply_market_filter(raw_prediction, strength, last):
     return prediction, round(adjusted, 2), quality, score
 
 
-def screen_ticker(ticker, df_raw, models, market_df=None):
+def screen_ticker(ticker, df_raw, models, market_df=None, strategies=None):
     try:
         # Extract single-ticker slice dari batch download
         if isinstance(df_raw.columns, pd.MultiIndex):
@@ -535,6 +535,12 @@ def screen_ticker(ticker, df_raw, models, market_df=None):
         prediction, strength, quality, filter_score = apply_market_filter(raw_prediction, strength, last)
         swing = build_swing_setup(df, prediction, strength)
 
+        strategy_results = {}
+        if strategies and 'triple' in strategies:
+            tc = triple_confirmation(df)
+            if tc:
+                strategy_results['triple'] = tc
+
         return {
             'ticker':     ticker,
             'status':     'success',
@@ -548,6 +554,7 @@ def screen_ticker(ticker, df_raw, models, market_df=None):
             'model_type': model_type,
             'price':      safe_float(last.get('Close')),
             'swing':      swing,
+            'strategies': strategy_results,
             'market': {
                 'regime': 'bullish' if int(safe_float(last.get('MARKET_REGIME_SCORE'), 0) or 0) > 0 else 'bearish' if int(safe_float(last.get('MARKET_REGIME_SCORE'), 0) or 0) < 0 else 'sideways',
                 'relative_strength_20d': safe_float(last.get('REL_STRENGTH_20D')),
@@ -564,7 +571,10 @@ def screen_ticker(ticker, df_raw, models, market_df=None):
         return {'ticker': ticker, 'status': 'error', 'message': str(e)}
 
 
-def run_screener():
+def run_screener(strategies=None, mode='and'):
+    if strategies is None:
+        strategies = ['triple']
+
     models = load_models()
     if models is None:
         print(json.dumps({'status': 'error', 'message': 'best_models.pkl tidak ditemukan'}))
@@ -586,10 +596,18 @@ def run_screener():
         print(json.dumps({'status': 'error', 'message': f'Download gagal: {e}'}))
         return
 
-    results = [screen_ticker(t, df_all, models, market_df) for t in TICKERS]
+    results = [screen_ticker(t, df_all, models, market_df, strategies=strategies) for t in TICKERS]
     results.sort(key=lambda r: r.get('swing', {}).get('score', -1) if r.get('status') == 'success' else -1, reverse=True)
-    print(json.dumps(results))
+    print(json.dumps({'status': 'ok', 'mode': mode, 'strategies': strategies, 'results': results}))
 
 
 if __name__ == '__main__':
-    run_screener()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--strategies', default='triple')
+    parser.add_argument('--mode', default='and', choices=['and', 'or'])
+    args = parser.parse_args()
+    run_screener(
+        strategies=[s.strip() for s in args.strategies.split(',')],
+        mode=args.mode,
+    )

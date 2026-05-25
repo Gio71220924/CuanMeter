@@ -563,6 +563,81 @@ function AnalyzerChart({ ticker, mlData, mlLoading }) {
   );
 }
 
+/* ---------- Strategy Picker ---------- */
+const STRATEGY_OPTIONS = [
+  { id: 'triple', label: 'Triple Confirmation', sub: 'RSI + MACD + MA20', enabled: true },
+  { id: 'institutional', label: 'Institutional Trend', sub: 'MA200 + EMA Cross', enabled: false },
+  { id: 'volatility', label: 'Volatility Sniper', sub: 'BB + Stoch', enabled: false },
+];
+
+function StrategyPicker({ strategies, mode, onStrategiesChange, onModeChange }) {
+  const toggle = (id) => {
+    if (!STRATEGY_OPTIONS.find((o) => o.id === id)?.enabled) return;
+    const next = strategies.includes(id)
+      ? strategies.filter((s) => s !== id)
+      : [...strategies, id];
+    if (next.length === 0) return;
+    onStrategiesChange(next);
+  };
+
+  return (
+    <div className="card strategy-picker" style={{ marginBottom: 16, padding: '14px 16px' }}>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-muted)', marginBottom: 10, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            Strategi
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {STRATEGY_OPTIONS.map((opt) => {
+              const checked = strategies.includes(opt.id);
+              return (
+                <label
+                  key={opt.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    cursor: opt.enabled ? 'pointer' : 'not-allowed',
+                    opacity: opt.enabled ? 1 : 0.4,
+                  }}
+                  onClick={() => toggle(opt.id)}
+                >
+                  <span className={`strategy-checkbox${checked && opt.enabled ? ' checked' : ''}`} />
+                  <span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg)' }}>{opt.label}</span>
+                    <span style={{ fontSize: 11, color: 'var(--fg-muted)', marginLeft: 6 }}>({opt.sub})</span>
+                    {!opt.enabled && (
+                      <span style={{ fontSize: 10, color: 'var(--fg-faint)', marginLeft: 6, fontStyle: 'italic' }}>coming soon</span>
+                    )}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            Mode
+          </div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {['and', 'or'].map((m) => (
+              <button
+                key={m}
+                onClick={() => onModeChange(m)}
+                className={`strategy-mode-btn${mode === m ? ' active' : ''}`}
+              >
+                {m.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--fg-faint)', maxWidth: 140, lineHeight: 1.4, marginTop: 2 }}>
+            {mode === 'and' ? 'Semua strategi harus setuju' : 'Minimal satu strategi setuju'}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Screener Panel ---------- */
 function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) {
   const PRED_COLOR_S = { UP: 'var(--primary)', DOWN: 'var(--danger)', NEUTRAL: 'var(--warning)' };
@@ -687,6 +762,28 @@ function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) 
 
                 {!isError && (
                   <>
+                    {row.strategies?.triple && (() => {
+                      const tc = row.strategies.triple;
+                      const sigColor = tc.signal === 'BUY' ? 'var(--primary)' : tc.signal === 'SELL' ? 'var(--danger)' : 'var(--fg-muted)';
+                      const macdLabel = tc.macd_signal === 'bullish_cross' ? '↑ Bullish' : tc.macd_signal === 'bearish_cross' ? '↓ Bearish' : '— No cross';
+                      return (
+                        <div className="screener-strategy-block">
+                          <div className="screener-strategy-head">
+                            <span className="screener-strategy-label">Triple</span>
+                            <span style={{ color: sigColor, fontWeight: 700, fontSize: 12 }}>{tc.signal}</span>
+                            <span className="screener-strategy-score">{tc.score} / 100</span>
+                          </div>
+                          <div className="screener-score-bar-track">
+                            <div className="screener-score-bar-fill" style={{ width: `${tc.score}%`, background: sigColor }} />
+                          </div>
+                          <div className="screener-strategy-breakdown">
+                            <span>RSI <strong style={{ color: tc.rsi < 40 ? 'var(--primary)' : tc.rsi > 60 ? 'var(--danger)' : 'var(--fg)' }}>{tc.rsi}</strong></span>
+                            <span>MACD <strong>{macdLabel}</strong></span>
+                            <span>MA20 <strong style={{ color: tc.ma20_position === 'above' ? 'var(--primary)' : 'var(--danger)' }}>{tc.ma20_position === 'above' ? '↑ Above' : '↓ Below'}</strong></span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <div className="screener-mobile-meta">
                       <span>VSA</span>
                       <strong>{row.swing?.vsa || '-'}</strong>
@@ -721,7 +818,7 @@ function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) 
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                {['Ticker', 'Swing', 'VSA', 'Signal', 'BO Entry', 'PB Entry', 'TP', 'SL', 'Risk', 'Vol', 'RS', 'Harga'].map((h) => (
+                {['Ticker', 'Strategi', 'Skor', 'Swing', 'VSA', 'Signal', 'BO Entry', 'PB Entry', 'TP', 'SL', 'Risk', 'Vol', 'RS', 'Harga'].map((h) => (
                   <th key={h} style={{
                     padding: '8px 12px', textAlign: h === 'Ticker' ? 'left' : 'right',
                     fontSize: 11, fontWeight: 800, letterSpacing: '0.06em',
@@ -751,6 +848,19 @@ function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) 
                   >
                     <td style={{ padding: '10px 12px', fontWeight: 800, fontFamily: 'JetBrains Mono, monospace', color: 'var(--fg)' }}>
                       {row.ticker}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: isError || !row.strategies?.triple ? 'var(--fg-faint)' : row.strategies.triple.signal === 'BUY' ? 'var(--primary)' : row.strategies.triple.signal === 'SELL' ? 'var(--danger)' : 'var(--fg-muted)' }}>
+                      {isError || !row.strategies?.triple ? '—' : row.strategies.triple.signal}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                      {isError || !row.strategies?.triple ? '—' : (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+                          <span style={{ fontWeight: 700, fontSize: 12, color: 'var(--fg)' }}>{row.strategies.triple.score}</span>
+                          <div style={{ width: 48, height: 4, borderRadius: 2, background: 'var(--border)', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${row.strategies.triple.score}%`, background: row.strategies.triple.signal === 'BUY' ? 'var(--primary)' : row.strategies.triple.signal === 'SELL' ? 'var(--danger)' : 'var(--fg-muted)', borderRadius: 2 }} />
+                          </div>
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 900, color: isError ? 'var(--fg-faint)' : (row.swing?.score >= 9 ? 'var(--primary)' : row.swing?.score >= 6 ? 'var(--success)' : row.swing?.score >= 4 ? 'var(--warning)' : 'var(--fg-muted)') }}>
                       {isError ? '—' : `${row.swing?.score ?? 0} · ${row.swing?.setup ?? '-'}`}
@@ -809,6 +919,8 @@ function Analyzer() {
   const [scanError, setScanError] = useStateZ(null);
   const [lastScan, setLastScan]   = useStateZ(null);
   const hasScannedRef = useRefZ(false);
+  const [strategies, setStrategies] = useStateZ(['triple']);
+  const [mode, setMode] = useStateZ('and');
 
   const fetchTVPrice = (code) => {
     activePrice.current = code;
@@ -864,14 +976,16 @@ function Analyzer() {
     fetchBandarmology(code, bandFrom, bandTo);
   };
 
-  const runScreener = () => {
+  const runScreener = (overrideStrategies, overrideMode) => {
     if (scanLoading) return;
+    const strats = overrideStrategies || strategies;
+    const m = overrideMode || mode;
     setScanLoading(true);
     setScanError(null);
-    fetch('/screener')
+    fetch(`/screener?strategies=${strats.join(',')}&mode=${m}`)
       .then((r) => r.json())
       .then((d) => {
-        if (d.status === 'success') {
+        if (d.status === 'ok') {
           setScanData(d.results);
           setLastScan(new Date());
         } else {
@@ -1375,14 +1489,22 @@ function Analyzer() {
       </>)}
 
       {activeTab === 'screener' && (
-        <ScreenerPanel
-          data={scanData}
-          loading={scanLoading}
-          error={scanError}
-          lastScan={lastScan}
-          onRefresh={runScreener}
-          onSelect={(t) => { setActiveTab('analisis'); run(t); }}
-        />
+        <>
+          <StrategyPicker
+            strategies={strategies}
+            mode={mode}
+            onStrategiesChange={(s) => setStrategies(s)}
+            onModeChange={(m) => setMode(m)}
+          />
+          <ScreenerPanel
+            data={scanData}
+            loading={scanLoading}
+            error={scanError}
+            lastScan={lastScan}
+            onRefresh={runScreener}
+            onSelect={(t) => { setActiveTab('analisis'); run(t); }}
+          />
+        </>
       )}
     </CalcScreen>
   );
