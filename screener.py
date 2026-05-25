@@ -9,9 +9,9 @@ import yfinance as yf
 warnings.filterwarnings("ignore")
 
 from ta.volatility import BollingerBands, AverageTrueRange
-from ta.momentum import StochasticOscillator
+from ta.momentum import StochasticOscillator, RSIIndicator
 from ta.volume import OnBalanceVolumeIndicator, ChaikinMoneyFlowIndicator, MFIIndicator
-from ta.trend import ADXIndicator
+from ta.trend import ADXIndicator, MACD, EMAIndicator
 
 TICKERS = [
     'ADRO', 'AKRA', 'BUMI', 'BYAN', 'DEWA', 'DSSA',
@@ -80,6 +80,19 @@ def calculate_indicators(df):
     df['RET_5D'] = close.pct_change(5)
     df['MA20']    = close.rolling(20).mean()
     df['MA50']    = close.rolling(50).mean()
+
+    # RSI
+    df['RSI'] = RSIIndicator(close=close, window=14).rsi()
+
+    # MACD
+    macd_obj = MACD(close=close, window_slow=26, window_fast=12, window_sign=9)
+    df['MACD']        = macd_obj.macd()
+    df['MACD_SIGNAL'] = macd_obj.macd_signal()
+    df['MACD_DIFF']   = macd_obj.macd_diff()
+
+    # EMA (untuk Institutional Trend)
+    df['EMA20'] = EMAIndicator(close=close, window=20).ema_indicator()
+    df['EMA50'] = EMAIndicator(close=close, window=50).ema_indicator()
     df['MA20_SLOPE'] = df['MA20'].pct_change(5)
     df['MA20_DISTANCE'] = close / df['MA20'].replace(0, np.nan) - 1
     df['MA50_DISTANCE'] = close / df['MA50'].replace(0, np.nan) - 1
@@ -504,11 +517,11 @@ def run_screener():
     tickers_jk = [t + '.JK' for t in TICKERS]
     try:
         df_all = yf.download(
-            tickers_jk, period='100d', interval='1d',
+            tickers_jk, period='250d', interval='1d',
             progress=False, auto_adjust=False, group_by='ticker'
         )
         market_df = yf.download(
-            '^JKSE', period='140d', interval='1d',
+            '^JKSE', period='260d', interval='1d',
             progress=False, auto_adjust=False
         )
         if isinstance(market_df.columns, pd.MultiIndex):
