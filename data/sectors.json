@@ -1,0 +1,13 @@
+[
+  { "name": "Energy",            "code": "IDXENERGY",  "tickers": ["BYAN","ADRO","PTBA","ITMG","MEDC","PGAS"] },
+  { "name": "Basic Materials",   "code": "IDXBASIC",   "tickers": ["BRPT","TPIA","ANTM","INCO","MDKA","INKP"] },
+  { "name": "Industrials",       "code": "IDXINDUST",  "tickers": ["ASII","UNTR","ARNA","JECC","KRAS","MARK"] },
+  { "name": "Consumer Non-Cyc",  "code": "IDXNONCYC",  "tickers": ["UNVR","ICBP","INDF","AMRT","CPIN","GGRM"] },
+  { "name": "Consumer Cyclical", "code": "IDXCYCLIC",  "tickers": ["MAPI","ACES","ERAA","MNCN","SCMA","LPPF"] },
+  { "name": "Healthcare",        "code": "IDXHEALTH",  "tickers": ["KLBF","SIDO","MIKA","SILO","HEAL","PRDA"] },
+  { "name": "Financials",        "code": "IDXFINANCE", "tickers": ["BBCA","BBRI","BMRI","BBNI","BRIS","ARTO"] },
+  { "name": "Properties",        "code": "IDXPROPERT", "tickers": ["PANI","BSDE","CTRA","PWON","SMRA","DMAS"] },
+  { "name": "Technology",        "code": "IDXTECHNO",  "tickers": ["GOTO","DCII","BUKA","EMTK","MTDL","WIFI"] },
+  { "name": "Infrastructure",    "code": "IDXINFRA",   "tickers": ["TLKM","TOWR","JSMR","MTEL","ISAT","EXCL"] },
+  { "name": "Transportation",    "code": "IDXTRANS",   "tickers": ["ASSA","BIRD","SMDR","TMAS","WEHA","HATM"] }
+]
