@@ -118,7 +118,7 @@ function Tile({ stock, x, y, w, h, onSelect }) {
   const sign = stock.pct >= 0 ? '+' : '';
   const slug = TICKER_LOGO[stock.ticker];
   const showLogo = slug && w >= 52 && h >= 48;
-  const logoSize = Math.min(28, Math.floor(Math.min(w, h) * 0.34));
+  const logoSize = Math.min(64, Math.max(22, Math.round(Math.min(w, h) * 0.42)));
   return (
     <button
       type="button"
