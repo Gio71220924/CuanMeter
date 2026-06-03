@@ -1084,6 +1084,14 @@ function handleScreener(req, res) {
 }
 
 // ─── /heatmap  →  Sector treemap data (cache 10 menit) ───────────────────────
+function storeHeatmapResult(output) {
+    const result = JSON.parse(output.trim());
+    if (result.status !== 'ok') throw new Error(result.message || 'status bukan ok');
+    heatmapCache = { data: result, cachedAt: Date.now() };
+    try { fs.writeFileSync(HEATMAP_CACHE_FILE, JSON.stringify(result)); } catch (e) {}
+    return result;
+}
+
 function handleHeatmap(req, res) {
     if (heatmapCache && Date.now() - heatmapCache.cachedAt < HEATMAP_TTL_MS) {
         return sendJSON(res, 200, heatmapCache.data);
@@ -1106,14 +1114,28 @@ function handleHeatmap(req, res) {
         if (timedOut) return;
         clearTimeout(timer);
         try {
-            const result = JSON.parse(output.trim());
-            if (result.status !== 'ok') throw new Error(result.message || 'status bukan ok');
-            heatmapCache = { data: result, cachedAt: Date.now() };
-            try { fs.writeFileSync(HEATMAP_CACHE_FILE, JSON.stringify(result)); } catch (e) {}
-            sendJSON(res, 200, result);
+            sendJSON(res, 200, storeHeatmapResult(output));
         } catch (e) {
             console.error(`[Heatmap Parse Error] ${e.message}`);
             serveHeatmapFallback(res);
+        }
+    });
+}
+
+// Pre-warm cache saat server boot supaya user pertama tidak menunggu spawn Python.
+function warmHeatmapCache() {
+    console.log('[Heatmap] Pre-warming cache...');
+    const python = spawn('python', [path.join(ROOT, 'heatmap.py')]);
+    let output = '';
+    python.stdout.on('data', (data) => { output += data.toString(); });
+    python.stderr.on('data', (data) => { console.error(`[Heatmap Warm] ${data}`); });
+    python.on('close', () => {
+        try {
+            const r = storeHeatmapResult(output);
+            const total = r.sectors.reduce((s, sec) => s + sec.stocks.length, 0);
+            console.log(`[Heatmap] Cache warm: ${r.sectors.length} sektor, ${total} saham.`);
+        } catch (e) {
+            console.error(`[Heatmap Warm Error] ${e.message}`);
         }
     });
 }
@@ -1318,6 +1340,14 @@ server.listen(PORT, () => {
     console.log('  Tekan Ctrl+C untuk berhenti.');
     console.log('');
     scheduleDailyCalendarRefresh();
+
+    // Pre-warm heatmap: load disk cache instantly (serve selama warm jalan), lalu refresh live.
+    try {
+        if (fs.existsSync(HEATMAP_CACHE_FILE)) {
+            heatmapCache = { data: JSON.parse(fs.readFileSync(HEATMAP_CACHE_FILE, 'utf8')), cachedAt: Date.now() };
+        }
+    } catch (e) {}
+    warmHeatmapCache();
 });
 
 server.on('error', (err) => {
