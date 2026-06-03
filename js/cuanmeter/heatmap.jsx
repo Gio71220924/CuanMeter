@@ -283,6 +283,11 @@ function HeatmapPage({ onNavigate }) {
       <div className="heatmap-toolbar">
         <HeatmapLegend />
         <div className="heatmap-toolbar-right">
+          {data && data.total != null && (
+            <span className="heatmap-ts" style={{ color: data.shown < data.total ? 'var(--warning)' : 'var(--fg-muted)' }}>
+              {data.shown}/{data.total} saham
+            </span>
+          )}
           {ts && <span className="heatmap-ts">data per {ts}</span>}
           <button onClick={load} disabled={loading} className="btn btn-secondary" style={{ fontSize: 12, padding: '6px 14px', opacity: loading ? 0.5 : 1 }}>
             {loading ? 'Memuat...' : '↻ Refresh'}

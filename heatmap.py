@@ -114,9 +114,13 @@ def build_heatmap():
         if stocks:
             result_sectors.append({'name': s['name'], 'code': s['code'], 'stocks': stocks})
 
+    shown = sum(len(s['stocks']) for s in result_sectors)
+
     return {
         'status': 'ok',
         'generated_at': datetime.now(timezone.utc).isoformat(),
+        'total': len(tickers),
+        'shown': shown,
         'sectors': result_sectors,
     }
 
