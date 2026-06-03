@@ -123,6 +123,11 @@ function textOn(rgbStr) {
   const lum = (0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2]) / 255;
   return lum > 0.6 ? '#0b0b0c' : '#ffffff';
 }
+function fmtMcap(v) {
+  if (v >= 1e12) return (v / 1e12).toFixed(1).replace('.', ',') + ' T';
+  if (v >= 1e9) return (v / 1e9).toFixed(1).replace('.', ',') + ' M';
+  return v.toLocaleString('id-ID');
+}
 
 /* ---------- One stock tile ---------- */
 function Tile({ stock, x, y, w, h, onSelect, range }) {
@@ -138,7 +143,7 @@ function Tile({ stock, x, y, w, h, onSelect, range }) {
       type="button"
       className="heatmap-tile"
       style={{ left: x, top: y, width: w, height: h, background: bg, color: textOn(bg) }}
-      onClick={() => onSelect(stock.ticker)}
+      onClick={() => onSelect(stock)}
       title={`${stock.ticker} · ${sign}${stock.pct}% · Rp ${stock.price.toLocaleString('id-ID')}`}
     >
       {!small && (
@@ -189,7 +194,7 @@ function SectorBlock({ sector, x, y, w, h, onSelect, range }) {
       </div>
       <div className="heatmap-sector-inner" style={{ top: HEADER, left: PAD, width: innerW, height: innerH }}>
         {tiles.map(({ data, x: sx, y: sy, w: sw, h: sh }) => (
-          <Tile key={data.stock.ticker} stock={data.stock} x={sx} y={sy} w={sw} h={sh} onSelect={onSelect} range={range} />
+          <Tile key={data.stock.ticker} stock={data.stock} x={sx} y={sy} w={sw} h={sh} onSelect={(stk) => onSelect(stk, sector.name)} range={range} />
         ))}
       </div>
     </div>
@@ -251,6 +256,7 @@ function HeatmapPage({ onNavigate }) {
   const [loading, setLoading] = useStateH(true);
   const [error, setError] = useStateH(null);
   const [adaptive, setAdaptive] = useStateH(false);
+  const [picked, setPicked] = useStateH(null);
 
   const load = () => {
     setLoading(true);
@@ -278,7 +284,7 @@ function HeatmapPage({ onNavigate }) {
     : 0;
   const range = adaptive ? Math.max(2, Math.ceil(maxAbs)) : 4;
 
-  const select = (ticker) => onNavigate && onNavigate('analyzer', ticker);
+  const pick = (stock, sectorName) => setPicked({ stock, sectorName });
 
   return (
     <CalcScreen
@@ -315,7 +321,40 @@ function HeatmapPage({ onNavigate }) {
         <div className="heatmap-canvas heatmap-skeleton" />
       )}
 
-      {data && <Treemap sectors={data.sectors} onSelect={select} range={range} />}
+      {data && <Treemap sectors={data.sectors} onSelect={pick} range={range} />}
+
+      {picked && (() => {
+        const st = picked.stock;
+        const sign = st.pct >= 0 ? '+' : '';
+        const c = st.pct > 0.05 ? 'var(--primary)' : st.pct < -0.05 ? 'var(--danger)' : 'var(--fg-muted)';
+        const slug = TICKER_LOGO[st.ticker];
+        const logoSrc = slug ? `https://s3-symbol-logo.tradingview.com/${slug}.svg` : TICKER_BADGE[st.ticker];
+        return (
+          <div className="heatmap-detail">
+            <div className="heatmap-detail-main">
+              {logoSrc && (
+                <img className="heatmap-detail-logo" src={logoSrc} alt="" width={36} height={36} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+              )}
+              <div>
+                <div className="heatmap-detail-ticker">
+                  {st.ticker} <span className="heatmap-detail-sector">{picked.sectorName}</span>
+                </div>
+                <div className="heatmap-detail-stats">
+                  <strong style={{ color: c }}>{sign}{st.pct}%</strong>
+                  <span>Rp {st.price.toLocaleString('id-ID')}</span>
+                  <span>Cap {fmtMcap(st.mcap)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="heatmap-detail-actions">
+              <button type="button" className="btn btn-primary" onClick={() => onNavigate && onNavigate('analyzer', st.ticker)}>
+                Buka Analyzer →
+              </button>
+              <button type="button" className="heatmap-detail-close" onClick={() => setPicked(null)} aria-label="Tutup">×</button>
+            </div>
+          </div>
+        );
+      })()}
     </CalcScreen>
   );
 }
