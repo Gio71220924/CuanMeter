@@ -162,4 +162,79 @@ function Treemap({ sectors, onSelect }) {
   );
 }
 
-Object.assign(window, { Treemap, colorFor, squarify });
+/* ---------- Color legend ---------- */
+function HeatmapLegend() {
+  const stops = [-4, -2, 0, 2, 4];
+  return (
+    <div className="heatmap-legend">
+      <span className="heatmap-legend-cap">-4%</span>
+      <div className="heatmap-legend-bar">
+        {stops.map((p) => (
+          <span key={p} style={{ background: colorFor(p) }} />
+        ))}
+      </div>
+      <span className="heatmap-legend-cap">+4%</span>
+    </div>
+  );
+}
+
+/* ---------- Page ---------- */
+function HeatmapPage({ onNavigate }) {
+  const [data, setData] = useStateH(null);
+  const [loading, setLoading] = useStateH(true);
+  const [error, setError] = useStateH(null);
+
+  const load = () => {
+    setLoading(true);
+    setError(null);
+    fetch('/heatmap')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.status === 'ok') setData(d);
+        else setError(d.message || 'Gagal memuat heatmap');
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('Gagal menghubungi server');
+        setLoading(false);
+      });
+  };
+  useEffectH(() => { load(); }, []);
+
+  const ts = data
+    ? new Date(data.generated_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    : null;
+
+  const select = (ticker) => onNavigate && onNavigate('analyzer', ticker);
+
+  return (
+    <CalcScreen
+      icon="fire"
+      tag="MARKET · HEATMAP"
+      title={<>Heatmap <span style={{ color: 'var(--primary)' }}>sektor</span> IDX.</>}
+      subtitle="Sektor & saham mana yang panas hari ini. Ukuran kotak = market cap, warna = perubahan harga harian. Klik saham buat buka analisisnya."
+    >
+      <div className="heatmap-toolbar">
+        <HeatmapLegend />
+        <div className="heatmap-toolbar-right">
+          {ts && <span className="heatmap-ts">data per {ts}</span>}
+          <button onClick={load} disabled={loading} className="btn btn-secondary" style={{ fontSize: 12, padding: '6px 14px', opacity: loading ? 0.5 : 1 }}>
+            {loading ? 'Memuat...' : '↻ Refresh'}
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="heatmap-error">{error} — coba klik Refresh.</div>
+      )}
+
+      {loading && !data && (
+        <div className="heatmap-canvas heatmap-skeleton" />
+      )}
+
+      {data && <Treemap sectors={data.sectors} onSelect={select} />}
+    </CalcScreen>
+  );
+}
+
+Object.assign(window, { Treemap, colorFor, squarify, HeatmapPage });
