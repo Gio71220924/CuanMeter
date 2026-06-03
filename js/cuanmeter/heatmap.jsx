@@ -130,10 +130,13 @@ function fmtMcap(v) {
 }
 
 /* ---------- One stock tile ---------- */
-function Tile({ stock, x, y, w, h, onSelect, range }) {
-  const bg = colorFor(stock.pct, range);
+function Tile({ stock, x, y, w, h, onSelect, range, tf }) {
+  const pv = stock[tf];
+  const pct = pv == null ? 0 : pv;
+  const bg = colorFor(pct, range);
   const small = w < 46 || h < 30;
-  const sign = stock.pct >= 0 ? '+' : '';
+  const sign = pv != null && pv >= 0 ? '+' : '';
+  const pctText = pv == null ? '—' : `${sign}${pv}%`;
   const slug = TICKER_LOGO[stock.ticker];
   const logoSrc = slug ? `https://s3-symbol-logo.tradingview.com/${slug}.svg` : TICKER_BADGE[stock.ticker];
   const showLogo = logoSrc && w >= 52 && h >= 48;
@@ -144,7 +147,7 @@ function Tile({ stock, x, y, w, h, onSelect, range }) {
       className="heatmap-tile"
       style={{ left: x, top: y, width: w, height: h, background: bg, color: textOn(bg) }}
       onClick={() => onSelect(stock)}
-      title={`${stock.ticker} · ${sign}${stock.pct}% · Rp ${stock.price.toLocaleString('id-ID')}`}
+      title={`${stock.ticker} · ${pctText} · Rp ${stock.price.toLocaleString('id-ID')}`}
     >
       {!small && (
         <span className="heatmap-tile-label">
@@ -160,7 +163,7 @@ function Tile({ stock, x, y, w, h, onSelect, range }) {
             />
           )}
           <strong>{stock.ticker}</strong>
-          <span>{sign}{stock.pct}%</span>
+          <span>{pctText}</span>
         </span>
       )}
     </button>
@@ -168,7 +171,7 @@ function Tile({ stock, x, y, w, h, onSelect, range }) {
 }
 
 /* ---------- One sector block (header + nested stock tiles) ---------- */
-function SectorBlock({ sector, x, y, w, h, onSelect, range }) {
+function SectorBlock({ sector, x, y, w, h, onSelect, range, tf }) {
   const HEADER = 18;
   const PAD = 2;
   const innerH = Math.max(0, h - HEADER - PAD);
@@ -177,10 +180,13 @@ function SectorBlock({ sector, x, y, w, h, onSelect, range }) {
     () => squarify(sector.stocks.map((st) => ({ stock: st, value: st.mcap })), 0, 0, innerW, innerH),
     [sector, innerW, innerH]
   );
-  const totalMcap = sector.stocks.reduce((s, st) => s + st.mcap, 0);
-  const sectorPct = totalMcap > 0
-    ? sector.stocks.reduce((s, st) => s + st.pct * st.mcap, 0) / totalMcap
-    : 0;
+  let wSum = 0, mSum = 0;
+  for (const st of sector.stocks) {
+    if (st[tf] == null) continue;
+    wSum += st[tf] * st.mcap;
+    mSum += st.mcap;
+  }
+  const sectorPct = mSum > 0 ? wSum / mSum : 0;
   const pctColor = sectorPct > 0.05 ? '#7CFFB2' : sectorPct < -0.05 ? '#FF9A9A' : 'var(--fg-faint)';
   return (
     <div className="heatmap-sector" style={{ left: x, top: y, width: w, height: h }}>
@@ -194,7 +200,7 @@ function SectorBlock({ sector, x, y, w, h, onSelect, range }) {
       </div>
       <div className="heatmap-sector-inner" style={{ top: HEADER, left: PAD, width: innerW, height: innerH }}>
         {tiles.map(({ data, x: sx, y: sy, w: sw, h: sh }) => (
-          <Tile key={data.stock.ticker} stock={data.stock} x={sx} y={sy} w={sw} h={sh} onSelect={(stk) => onSelect(stk, sector.name)} range={range} />
+          <Tile key={data.stock.ticker} stock={data.stock} x={sx} y={sy} w={sw} h={sh} onSelect={(stk) => onSelect(stk, sector.name)} range={range} tf={tf} />
         ))}
       </div>
     </div>
@@ -202,7 +208,7 @@ function SectorBlock({ sector, x, y, w, h, onSelect, range }) {
 }
 
 /* ---------- Treemap canvas (measures itself, lays out sectors) ---------- */
-function Treemap({ sectors, onSelect, range }) {
+function Treemap({ sectors, onSelect, range, tf }) {
   const ref = useRefH(null);
   const [size, setSize] = useStateH({ w: 0, h: 0 });
 
@@ -228,7 +234,7 @@ function Treemap({ sectors, onSelect, range }) {
   return (
     <div ref={ref} className="heatmap-canvas">
       {rects.map(({ data, x, y, w, h }) => (
-        <SectorBlock key={data.sector.code} sector={data.sector} x={x} y={y} w={w} h={h} onSelect={onSelect} range={range} />
+        <SectorBlock key={data.sector.code} sector={data.sector} x={x} y={y} w={w} h={h} onSelect={onSelect} range={range} tf={tf} />
       ))}
     </div>
   );
@@ -251,12 +257,15 @@ function HeatmapLegend({ range = 4 }) {
 }
 
 /* ---------- Page ---------- */
+const TIMEFRAMES = [['1D', 'd1'], ['1W', 'w1'], ['1M', 'm1'], ['YTD', 'ytd']];
+
 function HeatmapPage({ onNavigate }) {
   const [data, setData] = useStateH(null);
   const [loading, setLoading] = useStateH(true);
   const [error, setError] = useStateH(null);
   const [adaptive, setAdaptive] = useStateH(false);
   const [picked, setPicked] = useStateH(null);
+  const [tf, setTf] = useStateH('d1');
 
   const load = () => {
     setLoading(true);
@@ -280,7 +289,7 @@ function HeatmapPage({ onNavigate }) {
     : null;
 
   const maxAbs = data
-    ? data.sectors.reduce((m, s) => s.stocks.reduce((mm, st) => Math.max(mm, Math.abs(st.pct)), m), 0)
+    ? data.sectors.reduce((m, s) => s.stocks.reduce((mm, st) => (st[tf] == null ? mm : Math.max(mm, Math.abs(st[tf]))), m), 0)
     : 0;
   const range = adaptive ? Math.max(2, Math.ceil(maxAbs)) : 4;
 
@@ -291,10 +300,17 @@ function HeatmapPage({ onNavigate }) {
       icon="fire"
       tag="MARKET · HEATMAP"
       title={<>Heatmap <span style={{ color: 'var(--primary)' }}>sektor</span> IDX.</>}
-      subtitle="Sektor & saham mana yang panas hari ini. Ukuran kotak = market cap, warna = perubahan harga harian. Klik saham buat buka analisisnya."
+      subtitle="Sektor & saham mana yang panas. Ukuran kotak = market cap, warna = perubahan harga (pilih timeframe). Tap saham buat lihat detail."
     >
       <div className="heatmap-toolbar">
-        <HeatmapLegend range={range} />
+        <div className="heatmap-toolbar-left">
+          <div className="heatmap-tf-toggle">
+            {TIMEFRAMES.map(([label, key]) => (
+              <button type="button" key={key} className={`strategy-mode-btn${tf === key ? ' active' : ''}`} onClick={() => setTf(key)}>{label}</button>
+            ))}
+          </div>
+          <HeatmapLegend range={range} />
+        </div>
         <div className="heatmap-toolbar-right">
           <div className="heatmap-scale-toggle">
             <span className="heatmap-scale-label">Skala</span>
@@ -321,14 +337,14 @@ function HeatmapPage({ onNavigate }) {
         <div className="heatmap-canvas heatmap-skeleton" />
       )}
 
-      {data && <Treemap sectors={data.sectors} onSelect={pick} range={range} />}
+      {data && <Treemap sectors={data.sectors} onSelect={pick} range={range} tf={tf} />}
 
       {picked && (() => {
         const st = picked.stock;
-        const sign = st.pct >= 0 ? '+' : '';
-        const c = st.pct > 0.05 ? 'var(--primary)' : st.pct < -0.05 ? 'var(--danger)' : 'var(--fg-muted)';
         const slug = TICKER_LOGO[st.ticker];
         const logoSrc = slug ? `https://s3-symbol-logo.tradingview.com/${slug}.svg` : TICKER_BADGE[st.ticker];
+        const tfColor = (v) => v == null ? 'var(--fg-faint)' : v > 0.05 ? 'var(--primary)' : v < -0.05 ? 'var(--danger)' : 'var(--fg-muted)';
+        const fmtPct = (v) => v == null ? '—' : `${v >= 0 ? '+' : ''}${v}%`;
         return (
           <div className="heatmap-detail">
             <div className="heatmap-detail-main">
@@ -340,9 +356,16 @@ function HeatmapPage({ onNavigate }) {
                   {st.ticker} <span className="heatmap-detail-sector">{picked.sectorName}</span>
                 </div>
                 <div className="heatmap-detail-stats">
-                  <strong style={{ color: c }}>{sign}{st.pct}%</strong>
                   <span>Rp {st.price.toLocaleString('id-ID')}</span>
                   <span>Cap {fmtMcap(st.mcap)}</span>
+                </div>
+                <div className="heatmap-detail-tfs">
+                  {TIMEFRAMES.map(([label, key]) => (
+                    <span key={key} className={`heatmap-detail-tf${tf === key ? ' active' : ''}`}>
+                      <span className="heatmap-detail-tf-label">{label}</span>
+                      <strong style={{ color: tfColor(st[key]) }}>{fmtPct(st[key])}</strong>
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>

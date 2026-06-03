@@ -70,23 +70,48 @@ def get_shares(tickers):
     return cached
 
 
-def fetch_prices(tickers):
-    """Return {ticker: (last_close, pct_change)} via one batch download."""
+def fetch_metrics(tickers):
+    """Return {ticker: {price, d1, w1, m1, ytd}} via one batch download (1 tahun)."""
     jk = [t + '.JK' for t in tickers]
     df = yf.download(
-        jk, period='5d', interval='1d',
+        jk, period='1y', interval='1d',
         progress=False, auto_adjust=False, group_by='ticker'
     )
     out = {}
+    year = datetime.now(timezone.utc).year
     for t in tickers:
         try:
             sub = df[t + '.JK'] if isinstance(df.columns, pd.MultiIndex) else df
             closes = sub['Close'].dropna()
-            if len(closes) >= 2:
-                last = float(closes.iloc[-1])
-                prev = float(closes.iloc[-2])
-                if prev > 0:
-                    out[t] = (last, (last / prev - 1) * 100)
+            if len(closes) < 2:
+                continue
+            last = float(closes.iloc[-1])
+
+            def pct_back(offset):
+                if len(closes) > offset:
+                    base = float(closes.iloc[-1 - offset])
+                    return (last / base - 1) * 100 if base > 0 else None
+                return None
+
+            # YTD: baseline = close terakhir tahun lalu; fallback = close pertama tahun ini
+            ytd = None
+            prev_year = closes[closes.index.year < year]
+            if len(prev_year) > 0:
+                base = float(prev_year.iloc[-1])
+                ytd = (last / base - 1) * 100 if base > 0 else None
+            else:
+                this_year = closes[closes.index.year >= year]
+                if len(this_year) > 1:
+                    base = float(this_year.iloc[0])
+                    ytd = (last / base - 1) * 100 if base > 0 else None
+
+            out[t] = {
+                'price': last,
+                'd1': pct_back(1),
+                'w1': pct_back(5),
+                'm1': pct_back(21),
+                'ytd': ytd,
+            }
         except Exception:
             pass
     return out
@@ -96,20 +121,28 @@ def build_heatmap():
     sectors = load_sectors()
     tickers = all_tickers(sectors)
     shares = get_shares(tickers)
-    prices = fetch_prices(tickers)
+    metrics = fetch_metrics(tickers)
+
+    def r2(v):
+        return round(v, 2) if v is not None else None
 
     result_sectors = []
     for s in sectors:
         stocks = []
         for t in s['tickers']:
-            if t not in prices or t not in shares:
+            if t not in metrics or t not in shares:
                 continue
-            price, pct = prices[t]
+            m = metrics[t]
+            if m['d1'] is None:  # minimal punya data harian
+                continue
             stocks.append({
                 'ticker': t,
-                'price': round(price, 2),
-                'pct': round(pct, 2),
-                'mcap': round(shares[t] * price),
+                'price': round(m['price'], 2),
+                'mcap': round(shares[t] * m['price']),
+                'd1': r2(m['d1']),
+                'w1': r2(m['w1']),
+                'm1': r2(m['m1']),
+                'ytd': r2(m['ytd']),
             })
         if stocks:
             result_sectors.append({'name': s['name'], 'code': s['code'], 'stocks': stocks})
