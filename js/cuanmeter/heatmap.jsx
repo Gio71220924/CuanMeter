@@ -4,6 +4,33 @@
 
 const { useState: useStateH, useEffect: useEffectH, useRef: useRefH, useMemo: useMemoH } = React;
 
+/* ---------- Ticker → TradingView logo slug (verified against CDN) ----------
+   Missing tickers (GOTO, TLKM, JECC) gracefully fall back to text-only. */
+const TICKER_LOGO = {
+  BYAN: 'bayan-resources-tbk', ADRO: 'adaro-energy-tbk', PTBA: 'bukit-asam-tbk',
+  ITMG: 'indo-tambangraya-megah', MEDC: 'medco-energi', PGAS: 'perusahaan-gas-negara',
+  BRPT: 'barito-pacific', TPIA: 'chandra-asri', ANTM: 'antam', INCO: 'vale',
+  MDKA: 'merdeka-copper-gold', INKP: 'indah-kiat-pulp-and-paper',
+  ASII: 'astra-international', UNTR: 'united-tractors', ARNA: 'arwana-citramulia-tbk',
+  KRAS: 'krakatau-steel-persero', MARK: 'mark-dynamics-indonesia',
+  UNVR: 'unilever', ICBP: 'indofood-cbp', INDF: 'indofood', AMRT: 'sumber-alfaria-trijaya',
+  CPIN: 'charoen-pokphand-indonesia', GGRM: 'gudang-garam-tbk',
+  MAPI: 'mitra-adiperkasa', ACES: 'ace-hardware', ERAA: 'erajaya-swasembada',
+  MNCN: 'media-nusantara-citra-tbk', SCMA: 'surya-citra-media', LPPF: 'matahari-department-store-tbk',
+  KLBF: 'kalbe-farma', SIDO: 'sido-muncul', MIKA: 'mitra-keluarga-karyasehat',
+  SILO: 'siloam-international-hospitals-tbk', HEAL: 'medikaloka-hermina-tbk', PRDA: 'prodia-widyahusada',
+  BBCA: 'bank-central-asia', BBRI: 'bank-rakyat-indonesia', BMRI: 'bank-mandiri',
+  BBNI: 'bank-negara-indonesia-persero-tbk', BRIS: 'bank-syariah-indonesia', ARTO: 'bank-jago-tbk',
+  PANI: 'pantai-indah-kapuk-dua-tbk', BSDE: 'bumi-serpong-damai', CTRA: 'ciputra-development',
+  PWON: 'pakuwon-jati', SMRA: 'summarecon-agung', DMAS: 'puradelta-lestari',
+  DCII: 'dci-indonesia-tbk', BUKA: 'bukalapak', EMTK: 'elang-mahkota-teknologi-tbk',
+  MTDL: 'metrodata-electronics', WIFI: 'solusi-sinergi-digital-tbk',
+  TOWR: 'sarana-menara-nusantara', JSMR: 'jasa-marga-persero', MTEL: 'dayamitra-telekomunikasi',
+  ISAT: 'indosat', EXCL: 'xl-axiata-tbk',
+  ASSA: 'adi-sarana-armada-tbk', BIRD: 'blue-bird', SMDR: 'samudera-indonesia',
+  TMAS: 'temas', WEHA: 'weha-transportasi-indonesia-tbk', HATM: 'habco-trans-maritima-tbk',
+};
+
 /* ---------- Squarified treemap layout ----------
    data: [{ value, ... }]  → returns [{ data, x, y, w, h }] in pixels. */
 function squarify(data, x, y, w, h) {
@@ -89,6 +116,9 @@ function Tile({ stock, x, y, w, h, onSelect }) {
   const bg = colorFor(stock.pct);
   const small = w < 46 || h < 30;
   const sign = stock.pct >= 0 ? '+' : '';
+  const slug = TICKER_LOGO[stock.ticker];
+  const showLogo = slug && w >= 52 && h >= 48;
+  const logoSize = Math.min(28, Math.floor(Math.min(w, h) * 0.34));
   return (
     <button
       type="button"
@@ -99,6 +129,17 @@ function Tile({ stock, x, y, w, h, onSelect }) {
     >
       {!small && (
         <span className="heatmap-tile-label">
+          {showLogo && (
+            <img
+              className="heatmap-tile-logo"
+              src={`https://s3-symbol-logo.tradingview.com/${slug}.svg`}
+              alt=""
+              width={logoSize}
+              height={logoSize}
+              loading="lazy"
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          )}
           <strong>{stock.ticker}</strong>
           <span>{sign}{stock.pct}%</span>
         </span>

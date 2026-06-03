@@ -59,16 +59,22 @@ const MIME = {
 
 // ─── Helper: HTTPS request to TradingView ────────────────────────────────────
 function tvRequest(opts, body, callback) {
+    let done = false;
+    const cb = (err, data, status) => {
+        if (done) return;       // guard: callback hanya boleh dipanggil sekali
+        done = true;
+        callback(err, data, status);
+    };
     const req = https.request(opts, (res) => {
         let data = '';
         res.on('data', c => data += c);
         res.on('end', () => {
-            try { callback(null, JSON.parse(data), res.statusCode); }
-            catch (e) { callback(new Error('Parse error: ' + e.message)); }
+            try { cb(null, JSON.parse(data), res.statusCode); }
+            catch (e) { cb(new Error('Parse error: ' + e.message)); }
         });
     });
-    req.on('error', callback);
-    req.setTimeout(8000, () => { req.destroy(); callback(new Error('Timeout')); });
+    req.on('error', cb);
+    req.setTimeout(8000, () => { req.destroy(); cb(new Error('Timeout')); });
     if (body) req.write(body);
     req.end();
 }
@@ -1126,6 +1132,7 @@ function serveHeatmapFallback(res) {
 
 // ─── Helper: send JSON with CORS ─────────────────────────────────────────────
 function sendJSON(res, status, obj) {
+    if (res.headersSent || res.writableEnded) return; // jangan crash kalau response sudah dikirim
     res.writeHead(status, {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
