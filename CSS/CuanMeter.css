@@ -707,7 +707,7 @@ body[data-theme="dark"] .cta-terminal {
 .heatmap-canvas {
   position: relative;
   width: 100%;
-  height: min(72vh, 660px);
+  height: min(84vh, 840px);
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--surface-2);
