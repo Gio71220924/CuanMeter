@@ -31,6 +31,18 @@ const TICKER_LOGO = {
   TMAS: 'temas', WEHA: 'weha-transportasi-indonesia-tbk', HATM: 'habco-trans-maritima-tbk',
 };
 
+/* ---------- Brand-colored initial badges for tickers absent from TradingView CDN ---------- */
+function makeBadge(text, bg) {
+  return `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="${bg}"/><text x="10" y="14" text-anchor="middle" font-size="7.5" font-weight="800" font-family="sans-serif" fill="#fff">${text}</text></svg>`
+  )}`;
+}
+const TICKER_BADGE = {
+  GOTO: makeBadge('GT', '#00AA13'),
+  TLKM: makeBadge('TL', '#CC0000'),
+  JECC: makeBadge('JC', '#0B6E4F'),
+};
+
 /* ---------- Squarified treemap layout ----------
    data: [{ value, ... }]  → returns [{ data, x, y, w, h }] in pixels. */
 function squarify(data, x, y, w, h) {
@@ -117,7 +129,8 @@ function Tile({ stock, x, y, w, h, onSelect }) {
   const small = w < 46 || h < 30;
   const sign = stock.pct >= 0 ? '+' : '';
   const slug = TICKER_LOGO[stock.ticker];
-  const showLogo = slug && w >= 52 && h >= 48;
+  const logoSrc = slug ? `https://s3-symbol-logo.tradingview.com/${slug}.svg` : TICKER_BADGE[stock.ticker];
+  const showLogo = logoSrc && w >= 52 && h >= 48;
   const logoSize = Math.min(64, Math.max(22, Math.round(Math.min(w, h) * 0.42)));
   return (
     <button
@@ -132,7 +145,7 @@ function Tile({ stock, x, y, w, h, onSelect }) {
           {showLogo && (
             <img
               className="heatmap-tile-logo"
-              src={`https://s3-symbol-logo.tradingview.com/${slug}.svg`}
+              src={logoSrc}
               alt=""
               width={logoSize}
               height={logoSize}
