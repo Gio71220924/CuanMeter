@@ -158,9 +158,21 @@ function SectorBlock({ sector, x, y, w, h, onSelect }) {
     () => squarify(sector.stocks.map((st) => ({ stock: st, value: st.mcap })), 0, 0, innerW, innerH),
     [sector, innerW, innerH]
   );
+  const totalMcap = sector.stocks.reduce((s, st) => s + st.mcap, 0);
+  const sectorPct = totalMcap > 0
+    ? sector.stocks.reduce((s, st) => s + st.pct * st.mcap, 0) / totalMcap
+    : 0;
+  const pctColor = sectorPct > 0.05 ? '#7CFFB2' : sectorPct < -0.05 ? '#FF9A9A' : 'var(--fg-faint)';
   return (
     <div className="heatmap-sector" style={{ left: x, top: y, width: w, height: h }}>
-      <div className="heatmap-sector-label">{sector.name}</div>
+      <div className="heatmap-sector-label">
+        <span className="heatmap-sector-name">{sector.name}</span>
+        {w >= 90 && (
+          <span className="heatmap-sector-pct" style={{ color: pctColor }}>
+            {sectorPct >= 0 ? '+' : ''}{sectorPct.toFixed(2)}%
+          </span>
+        )}
+      </div>
       <div className="heatmap-sector-inner" style={{ top: HEADER, left: PAD, width: innerW, height: innerH }}>
         {tiles.map(({ data, x: sx, y: sy, w: sw, h: sh }) => (
           <Tile key={data.stock.ticker} stock={data.stock} x={sx} y={sy} w={sw} h={sh} onSelect={onSelect} />

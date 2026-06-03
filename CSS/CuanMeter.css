@@ -734,9 +734,20 @@ body[data-theme="dark"] .cta-terminal {
   text-transform: uppercase;
   color: var(--fg-muted);
   background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  overflow: hidden;
+}
+.heatmap-sector-name {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.heatmap-sector-pct {
+  flex-shrink: 0;
+  font-weight: 800;
 }
 .heatmap-sector-inner {
   position: absolute;
