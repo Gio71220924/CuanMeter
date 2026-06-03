@@ -136,6 +136,7 @@ const HEADER_LINKS = [
   { id: 'amunisi',  label: 'Amunisi' },
   { id: 'dividen',  label: 'Dividen' },
   { id: 'analyzer', label: 'Analyzer' },
+  { id: 'heatmap',  label: 'Heatmap' },
   { id: 'guides',   label: 'Panduan' },
 ];
 

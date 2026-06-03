@@ -895,7 +895,7 @@ function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) 
 }
 
 /* ---------- Analyzer screen ---------- */
-function Analyzer() {
+function Analyzer({ initialTicker }) {
   const [ticker, setTicker] = useStateZ('BBRI');
   const [active, setActive] = useStateZ('BBRI');
   const [loading, setLoading] = useStateZ(false);
@@ -975,6 +975,10 @@ function Analyzer() {
       .catch(() => { setMlData({ status: 'offline' }); setMlLoading(false); });
     fetchBandarmology(code, bandFrom, bandTo);
   };
+
+  useEffectZ(() => {
+    if (initialTicker) run(initialTicker);
+  }, [initialTicker]);
 
   const runScreener = (overrideStrategies, overrideMode) => {
     if (scanLoading) return;

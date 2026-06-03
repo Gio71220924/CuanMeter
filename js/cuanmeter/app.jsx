@@ -6,7 +6,7 @@
 
 const { useState: useStateA, useEffect: useEffectA, useRef: useRefA } = React;
 
-const ROUTES = ['home', 'average', 'araarb', 'profit', 'amunisi', 'dividen', 'analyzer', 'guides'];
+const ROUTES = ['home', 'average', 'araarb', 'profit', 'amunisi', 'dividen', 'analyzer', 'heatmap', 'guides'];
 
 /* ---------- Floating IHSG ticker ---------- */
 function IHSGFloater() {
@@ -78,6 +78,7 @@ function readRouteFromHash() {
 function App() {
   const [route, setRoute] = useStateA(readRouteFromHash);
   const [theme, setTheme] = useStateA('fintech');
+  const [pendingTicker, setPendingTicker] = useStateA(null);
 
   // Sync theme to <body data-theme="...">
   useEffectA(() => {
@@ -94,7 +95,8 @@ function App() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
-  const navigate = (r) => {
+  const navigate = (r, ticker) => {
+    setPendingTicker(ticker || null);
     window.location.hash = r;
     setRoute(r);
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -107,7 +109,8 @@ function App() {
       case 'profit':   return <ProfitCalc />;
       case 'amunisi':  return <Amunisi />;
       case 'dividen':  return <Dividen />;
-      case 'analyzer': return <Analyzer />;
+      case 'analyzer': return <Analyzer initialTicker={pendingTicker} />;
+      case 'heatmap':  return <HeatmapPage onNavigate={navigate} />;
       case 'guides':   return <GuidesPage />;
       default:         return <LandingPage onNavigate={navigate} />;
     }
