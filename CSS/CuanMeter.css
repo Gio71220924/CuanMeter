@@ -655,6 +655,125 @@ body[data-theme="dark"] .cta-terminal {
   color: var(--fg-muted);
 }
 
+/* ===== Sector Heatmap ===== */
+.heatmap-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.heatmap-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.heatmap-ts {
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.heatmap-legend-cap {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--fg-muted);
+}
+.heatmap-legend-bar {
+  display: flex;
+  width: 160px;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.heatmap-legend-bar > span {
+  flex: 1;
+}
+.heatmap-error {
+  padding: 16px;
+  border-radius: var(--radius);
+  background: rgba(220, 50, 50, 0.08);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 14px;
+}
+.heatmap-canvas {
+  position: relative;
+  width: 100%;
+  height: min(72vh, 660px);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.heatmap-skeleton {
+  animation: pulse 1.5s infinite;
+}
+.heatmap-sector {
+  position: absolute;
+  overflow: hidden;
+}
+.heatmap-sector-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 18px;
+  line-height: 18px;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  background: var(--surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.heatmap-sector-inner {
+  position: absolute;
+}
+.heatmap-tile {
+  position: absolute;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: filter 0.12s;
+}
+.heatmap-tile:hover {
+  filter: brightness(1.12);
+  z-index: 2;
+}
+.heatmap-tile-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+  pointer-events: none;
+}
+.heatmap-tile-label strong {
+  font-size: 12px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+}
+.heatmap-tile-label span {
+  font-size: 10px;
+  font-weight: 600;
+}
+
 /* Calendar — single breakpoint for all mobile overrides (no conflict) */
 @media (max-width: 640px) {
   .calc-grid {
@@ -917,6 +1036,14 @@ body[data-theme="dark"] .cta-terminal {
   .screener-strategy-breakdown {
     gap: 8px;
     font-size: 10px;
+  }
+
+  /* Sector heatmap: taller on mobile, slimmer legend */
+  .heatmap-canvas {
+    height: min(80vh, 560px);
+  }
+  .heatmap-legend-bar {
+    width: 110px;
   }
 
   /* Broker flow cards: compact readable table on phones. */
