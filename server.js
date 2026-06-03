@@ -24,6 +24,9 @@ const DEFAULT = '/index.html';   // halaman yang dibuka otomatis
 const DATA_DIR = path.join(ROOT, 'data');
 const CALENDAR_CACHE_FILE = path.join(DATA_DIR, 'calendar-cache.json');
 const CALENDAR_CACHE_VERSION = 10;
+const HEATMAP_CACHE_FILE = path.join(DATA_DIR, 'heatmap-cache.json');
+const HEATMAP_TTL_MS = 10 * 60 * 1000;
+let heatmapCache = null; // { data, cachedAt }
 const KSEI_DETAIL_PAGE_LIMIT = 80;
 const KSEI_EVENT_LIMIT = 160;
 const KSEI_RETRY_COUNT = 2;
@@ -1074,6 +1077,53 @@ function handleScreener(req, res) {
     });
 }
 
+// ─── /heatmap  →  Sector treemap data (cache 10 menit) ───────────────────────
+function handleHeatmap(req, res) {
+    if (heatmapCache && Date.now() - heatmapCache.cachedAt < HEATMAP_TTL_MS) {
+        return sendJSON(res, 200, heatmapCache.data);
+    }
+
+    console.log('[Heatmap] Refresh data sektor...');
+    const python = spawn('python', [path.join(ROOT, 'heatmap.py')]);
+    let output = '';
+    let timedOut = false;
+    const timer = setTimeout(() => {
+        timedOut = true;
+        python.kill();
+        serveHeatmapFallback(res);
+    }, 30000);
+
+    python.stdout.on('data', (data) => { output += data.toString(); });
+    python.stderr.on('data', (data) => { console.error(`[Heatmap Error] ${data}`); });
+
+    python.on('close', () => {
+        if (timedOut) return;
+        clearTimeout(timer);
+        try {
+            const result = JSON.parse(output.trim());
+            if (result.status !== 'ok') throw new Error(result.message || 'status bukan ok');
+            heatmapCache = { data: result, cachedAt: Date.now() };
+            try { fs.writeFileSync(HEATMAP_CACHE_FILE, JSON.stringify(result)); } catch (e) {}
+            sendJSON(res, 200, result);
+        } catch (e) {
+            console.error(`[Heatmap Parse Error] ${e.message}`);
+            serveHeatmapFallback(res);
+        }
+    });
+}
+
+function serveHeatmapFallback(res) {
+    if (heatmapCache) return sendJSON(res, 200, heatmapCache.data);
+    try {
+        if (fs.existsSync(HEATMAP_CACHE_FILE)) {
+            const disk = JSON.parse(fs.readFileSync(HEATMAP_CACHE_FILE, 'utf8'));
+            heatmapCache = { data: disk, cachedAt: 0 }; // serve now, refresh on next hit
+            return sendJSON(res, 200, disk);
+        }
+    } catch (e) {}
+    sendJSON(res, 503, { status: 'error', message: 'Heatmap belum siap, coba lagi sebentar.' });
+}
+
 // ─── Helper: send JSON with CORS ─────────────────────────────────────────────
 function sendJSON(res, status, obj) {
     res.writeHead(status, {
@@ -1184,6 +1234,13 @@ const server = http.createServer((req, res) => {
         const ip = req.socket.remoteAddress;
         if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
         return handleScreener(req, res);
+    }
+
+    // API: /heatmap
+    if (req.method === 'GET' && pathname === '/heatmap') {
+        const ip = req.socket.remoteAddress;
+        if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
+        return handleHeatmap(req, res);
     }
 
     // API: /calendar
