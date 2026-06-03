@@ -1,0 +1,165 @@
+/* ============================================================
+   heatmap.jsx — Sector treemap (squarified, no dependency).
+   ============================================================ */
+
+const { useState: useStateH, useEffect: useEffectH, useRef: useRefH, useMemo: useMemoH } = React;
+
+/* ---------- Squarified treemap layout ----------
+   data: [{ value, ... }]  → returns [{ data, x, y, w, h }] in pixels. */
+function squarify(data, x, y, w, h) {
+  const items = data.filter((d) => d.value > 0).slice().sort((a, b) => b.value - a.value);
+  const result = [];
+  if (!items.length || w <= 0 || h <= 0) return result;
+
+  const worstRatio = (row, length, scale) => {
+    const areas = row.map((r) => r.value * scale);
+    const sum = areas.reduce((s, a) => s + a, 0);
+    const maxA = Math.max(...areas);
+    const minA = Math.min(...areas);
+    const sum2 = sum * sum;
+    const len2 = length * length;
+    return Math.max((len2 * maxA) / sum2, sum2 / (len2 * minA));
+  };
+
+  let rect = { x, y, w, h };
+  let i = 0;
+  while (i < items.length) {
+    const remaining = items.slice(i);
+    const remTotal = remaining.reduce((s, d) => s + d.value, 0);
+    const scale = (rect.w * rect.h) / remTotal; // px per value unit
+    const length = Math.min(rect.w, rect.h);    // tile along shorter side
+
+    let row = [items[i]];
+    let j = i + 1;
+    while (j < items.length) {
+      const next = row.concat(items[j]);
+      if (worstRatio(next, length, scale) > worstRatio(row, length, scale)) break;
+      row = next;
+      j++;
+    }
+
+    const rowValue = row.reduce((s, d) => s + d.value, 0);
+    const thickness = (rowValue * scale) / length; // band depth
+    let offset = 0;
+
+    if (rect.w >= rect.h) {
+      // vertical column of width `thickness` on the left
+      for (const d of row) {
+        const cellH = (d.value * scale) / thickness;
+        result.push({ data: d, x: rect.x, y: rect.y + offset, w: thickness, h: cellH });
+        offset += cellH;
+      }
+      rect = { x: rect.x + thickness, y: rect.y, w: rect.w - thickness, h: rect.h };
+    } else {
+      // horizontal band of height `thickness` on top
+      for (const d of row) {
+        const cellW = (d.value * scale) / thickness;
+        result.push({ data: d, x: rect.x + offset, y: rect.y, w: cellW, h: thickness });
+        offset += cellW;
+      }
+      rect = { x: rect.x, y: rect.y + thickness, w: rect.w, h: rect.h - thickness };
+    }
+    i = j;
+  }
+  return result;
+}
+
+/* ---------- Color scale: red ↔ gray ↔ green, clamp ±4% ---------- */
+function mixRGB(a, b, t) {
+  const r = Math.round(a[0] + (b[0] - a[0]) * t);
+  const g = Math.round(a[1] + (b[1] - a[1]) * t);
+  const bl = Math.round(a[2] + (b[2] - a[2]) * t);
+  return `rgb(${r},${g},${bl})`;
+}
+function colorFor(pct) {
+  const GRAY = [120, 120, 128];
+  const GREEN = [0, 168, 107];
+  const RED = [220, 52, 52];
+  const t = Math.max(-4, Math.min(4, pct)) / 4; // -1..1
+  return t >= 0 ? mixRGB(GRAY, GREEN, t) : mixRGB(GRAY, RED, -t);
+}
+function textOn(rgbStr) {
+  const m = rgbStr.match(/\d+/g).map(Number);
+  const lum = (0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2]) / 255;
+  return lum > 0.6 ? '#0b0b0c' : '#ffffff';
+}
+
+/* ---------- One stock tile ---------- */
+function Tile({ stock, x, y, w, h, onSelect }) {
+  const bg = colorFor(stock.pct);
+  const small = w < 46 || h < 30;
+  const sign = stock.pct >= 0 ? '+' : '';
+  return (
+    <button
+      type="button"
+      className="heatmap-tile"
+      style={{ left: x, top: y, width: w, height: h, background: bg, color: textOn(bg) }}
+      onClick={() => onSelect(stock.ticker)}
+      title={`${stock.ticker} · ${sign}${stock.pct}% · Rp ${stock.price.toLocaleString('id-ID')}`}
+    >
+      {!small && (
+        <span className="heatmap-tile-label">
+          <strong>{stock.ticker}</strong>
+          <span>{sign}{stock.pct}%</span>
+        </span>
+      )}
+    </button>
+  );
+}
+
+/* ---------- One sector block (header + nested stock tiles) ---------- */
+function SectorBlock({ sector, x, y, w, h, onSelect }) {
+  const HEADER = 18;
+  const PAD = 2;
+  const innerH = Math.max(0, h - HEADER - PAD);
+  const innerW = Math.max(0, w - PAD * 2);
+  const tiles = useMemoH(
+    () => squarify(sector.stocks.map((st) => ({ stock: st, value: st.mcap })), 0, 0, innerW, innerH),
+    [sector, innerW, innerH]
+  );
+  return (
+    <div className="heatmap-sector" style={{ left: x, top: y, width: w, height: h }}>
+      <div className="heatmap-sector-label">{sector.name}</div>
+      <div className="heatmap-sector-inner" style={{ top: HEADER, left: PAD, width: innerW, height: innerH }}>
+        {tiles.map(({ data, x: sx, y: sy, w: sw, h: sh }) => (
+          <Tile key={data.stock.ticker} stock={data.stock} x={sx} y={sy} w={sw} h={sh} onSelect={onSelect} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Treemap canvas (measures itself, lays out sectors) ---------- */
+function Treemap({ sectors, onSelect }) {
+  const ref = useRefH(null);
+  const [size, setSize] = useStateH({ w: 0, h: 0 });
+
+  useEffectH(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setSize({ w: el.clientWidth, h: el.clientHeight });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const rects = useMemoH(() => {
+    if (!size.w || !size.h) return [];
+    const items = sectors.map((s) => ({
+      sector: s,
+      value: s.stocks.reduce((sum, st) => sum + st.mcap, 0),
+    }));
+    return squarify(items, 0, 0, size.w, size.h);
+  }, [sectors, size]);
+
+  return (
+    <div ref={ref} className="heatmap-canvas">
+      {rects.map(({ data, x, y, w, h }) => (
+        <SectorBlock key={data.sector.code} sector={data.sector} x={x} y={y} w={w} h={h} onSelect={onSelect} />
+      ))}
+    </div>
+  );
+}
+
+Object.assign(window, { Treemap, colorFor, squarify });
