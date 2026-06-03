@@ -110,11 +110,12 @@ function mixRGB(a, b, t) {
   const bl = Math.round(a[2] + (b[2] - a[2]) * t);
   return `rgb(${r},${g},${bl})`;
 }
-function colorFor(pct) {
+function colorFor(pct, range = 4) {
   const GRAY = [120, 120, 128];
   const GREEN = [0, 168, 107];
   const RED = [220, 52, 52];
-  const t = Math.max(-4, Math.min(4, pct)) / 4; // -1..1
+  const r = range > 0 ? range : 4;
+  const t = Math.max(-r, Math.min(r, pct)) / r; // -1..1; 0 selalu abu (sign terjaga)
   return t >= 0 ? mixRGB(GRAY, GREEN, t) : mixRGB(GRAY, RED, -t);
 }
 function textOn(rgbStr) {
@@ -124,8 +125,8 @@ function textOn(rgbStr) {
 }
 
 /* ---------- One stock tile ---------- */
-function Tile({ stock, x, y, w, h, onSelect }) {
-  const bg = colorFor(stock.pct);
+function Tile({ stock, x, y, w, h, onSelect, range }) {
+  const bg = colorFor(stock.pct, range);
   const small = w < 46 || h < 30;
   const sign = stock.pct >= 0 ? '+' : '';
   const slug = TICKER_LOGO[stock.ticker];
@@ -162,7 +163,7 @@ function Tile({ stock, x, y, w, h, onSelect }) {
 }
 
 /* ---------- One sector block (header + nested stock tiles) ---------- */
-function SectorBlock({ sector, x, y, w, h, onSelect }) {
+function SectorBlock({ sector, x, y, w, h, onSelect, range }) {
   const HEADER = 18;
   const PAD = 2;
   const innerH = Math.max(0, h - HEADER - PAD);
@@ -188,7 +189,7 @@ function SectorBlock({ sector, x, y, w, h, onSelect }) {
       </div>
       <div className="heatmap-sector-inner" style={{ top: HEADER, left: PAD, width: innerW, height: innerH }}>
         {tiles.map(({ data, x: sx, y: sy, w: sw, h: sh }) => (
-          <Tile key={data.stock.ticker} stock={data.stock} x={sx} y={sy} w={sw} h={sh} onSelect={onSelect} />
+          <Tile key={data.stock.ticker} stock={data.stock} x={sx} y={sy} w={sw} h={sh} onSelect={onSelect} range={range} />
         ))}
       </div>
     </div>
@@ -196,7 +197,7 @@ function SectorBlock({ sector, x, y, w, h, onSelect }) {
 }
 
 /* ---------- Treemap canvas (measures itself, lays out sectors) ---------- */
-function Treemap({ sectors, onSelect }) {
+function Treemap({ sectors, onSelect, range }) {
   const ref = useRefH(null);
   const [size, setSize] = useStateH({ w: 0, h: 0 });
 
@@ -222,24 +223,24 @@ function Treemap({ sectors, onSelect }) {
   return (
     <div ref={ref} className="heatmap-canvas">
       {rects.map(({ data, x, y, w, h }) => (
-        <SectorBlock key={data.sector.code} sector={data.sector} x={x} y={y} w={w} h={h} onSelect={onSelect} />
+        <SectorBlock key={data.sector.code} sector={data.sector} x={x} y={y} w={w} h={h} onSelect={onSelect} range={range} />
       ))}
     </div>
   );
 }
 
 /* ---------- Color legend ---------- */
-function HeatmapLegend() {
-  const stops = [-4, -2, 0, 2, 4];
+function HeatmapLegend({ range = 4 }) {
+  const stops = [-range, -range / 2, 0, range / 2, range];
   return (
     <div className="heatmap-legend">
-      <span className="heatmap-legend-cap">-4%</span>
+      <span className="heatmap-legend-cap">-{range}%</span>
       <div className="heatmap-legend-bar">
-        {stops.map((p) => (
-          <span key={p} style={{ background: colorFor(p) }} />
+        {stops.map((p, i) => (
+          <span key={i} style={{ background: colorFor(p, range) }} />
         ))}
       </div>
-      <span className="heatmap-legend-cap">+4%</span>
+      <span className="heatmap-legend-cap">+{range}%</span>
     </div>
   );
 }
@@ -249,6 +250,7 @@ function HeatmapPage({ onNavigate }) {
   const [data, setData] = useStateH(null);
   const [loading, setLoading] = useStateH(true);
   const [error, setError] = useStateH(null);
+  const [adaptive, setAdaptive] = useStateH(false);
 
   const load = () => {
     setLoading(true);
@@ -271,6 +273,11 @@ function HeatmapPage({ onNavigate }) {
     ? new Date(data.generated_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
     : null;
 
+  const maxAbs = data
+    ? data.sectors.reduce((m, s) => s.stocks.reduce((mm, st) => Math.max(mm, Math.abs(st.pct)), m), 0)
+    : 0;
+  const range = adaptive ? Math.max(2, Math.ceil(maxAbs)) : 4;
+
   const select = (ticker) => onNavigate && onNavigate('analyzer', ticker);
 
   return (
@@ -281,8 +288,13 @@ function HeatmapPage({ onNavigate }) {
       subtitle="Sektor & saham mana yang panas hari ini. Ukuran kotak = market cap, warna = perubahan harga harian. Klik saham buat buka analisisnya."
     >
       <div className="heatmap-toolbar">
-        <HeatmapLegend />
+        <HeatmapLegend range={range} />
         <div className="heatmap-toolbar-right">
+          <div className="heatmap-scale-toggle">
+            <span className="heatmap-scale-label">Skala</span>
+            <button className={`strategy-mode-btn${!adaptive ? ' active' : ''}`} onClick={() => setAdaptive(false)}>Tetap</button>
+            <button className={`strategy-mode-btn${adaptive ? ' active' : ''}`} onClick={() => setAdaptive(true)}>Adaptif</button>
+          </div>
           {data && data.total != null && (
             <span className="heatmap-ts" style={{ color: data.shown < data.total ? 'var(--warning)' : 'var(--fg-muted)' }}>
               {data.shown}/{data.total} saham
@@ -303,7 +315,7 @@ function HeatmapPage({ onNavigate }) {
         <div className="heatmap-canvas heatmap-skeleton" />
       )}
 
-      {data && <Treemap sectors={data.sectors} onSelect={select} />}
+      {data && <Treemap sectors={data.sectors} onSelect={select} range={range} />}
     </CalcScreen>
   );
 }

@@ -673,6 +673,21 @@ body[data-theme="dark"] .cta-terminal {
   font-size: 12px;
   color: var(--fg-muted);
 }
+.heatmap-scale-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.heatmap-scale-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--fg-muted);
+  margin-right: 2px;
+}
+.heatmap-scale-toggle .strategy-mode-btn {
+  padding: 3px 10px;
+  font-size: 11px;
+}
 .heatmap-legend {
   display: flex;
   align-items: center;
@@ -762,7 +777,7 @@ body[data-theme="dark"] .cta-terminal {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  transition: filter 0.12s;
+  transition: filter 0.12s, background 0.45s ease;
 }
 .heatmap-tile:hover {
   filter: brightness(1.12);
