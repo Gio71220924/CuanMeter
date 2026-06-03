@@ -423,6 +423,27 @@ function actionLabelFromDetail(html = '') {
     return 'Corp Act';
 }
 
+const INDO_MONTHS = {
+    januari: '01', februari: '02', maret: '03', april: '04', mei: '05', juni: '06',
+    juli: '07', agustus: '08', september: '09', oktober: '10', november: '11', desember: '12',
+};
+
+// "25 Juni 2026" -> "2026-06-25"; null kalau tidak cocok / "-"
+function parseIndoDate(s = '') {
+    const m = s.trim().match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+    if (!m) return null;
+    const mo = INDO_MONTHS[m[2].toLowerCase()];
+    if (!mo) return null;
+    return `${m[3]}-${mo}-${m[1].padStart(2, '0')}`;
+}
+
+// Ambil isi <span> di bawah <b>Label:</b> dari blok detail KSEI.
+function extractKseiBlockField(block = '', label = '') {
+    const re = new RegExp(`<b>\\s*${label}:\\s*</b>[\\s\\S]*?<span>\\s*([^<]+?)\\s*</span>`, 'i');
+    const m = block.match(re);
+    return m ? decodeHtml(m[1]).trim() : '';
+}
+
 function parseKseiDetail(html, eventDate, detailPath) {
     const type = kseiTypeFromPath(detailPath);
     const blocks = html.match(/<section class="accordion accordion--nested accordion--last">[\s\S]*?<\/section>/g) || [];
@@ -441,25 +462,40 @@ function parseKseiDetail(html, eventDate, detailPath) {
         const description = descMatch ? stripHtml(descMatch[1]) : '';
         const label = actionLabelFromDetail(`${block} ${description}`);
         const isRups = label === 'RUPS' || label === 'RUPO';
+
+        // RUPS: tanggal yang relevan = tanggal pelaksanaan (KSEI "Effective Date"),
+        // bukan record/halaman date. Ambil dari blok; fallback ke tanggal halaman.
+        let evDate = eventDate;
+        let evType = type.type;
+        let evLabel = type.label;
+        if (isRups) {
+            const effIso = parseIndoDate(extractKseiBlockField(block, 'Effective Date'));
+            if (effIso) {
+                evDate = effIso;
+                evType = 'rups';
+                evLabel = 'RUPS';
+            }
+        }
+
         const shortDesc = (!isRups && description.length > 110) ? description.slice(0, 107) + '...' : description;
         const summary = summarizeCorporateAction(label, description);
         const detail = isRups
-            ? (formatRupsDetail(description) || shortDesc || `${securityName || ticker} masuk jadwal ${type.label} KSEI.`)
-            : (shortDesc || `${securityName || ticker} masuk jadwal ${type.label} KSEI.`);
+            ? (formatRupsDetail(description) || shortDesc || `${securityName || ticker} masuk jadwal ${evLabel} KSEI.`)
+            : (shortDesc || `${securityName || ticker} masuk jadwal ${evLabel} KSEI.`);
 
         events.push({
-            id: `ksei-${type.type}-${eventDate}-${ticker}`,
-            date: eventDate,
+            id: `ksei-${evType}-${evDate}-${ticker}`,
+            date: evDate,
             category: 'corporate',
             label,
             ticker,
-            title: `${ticker} - ${type.label}`,
+            title: `${ticker} - ${evLabel}`,
             detail,
-            summary: summary || `${ticker} ${type.label}`,
-            impact: type.type === 'cum' ? 'high' : 'medium',
+            summary: summary || `${ticker} ${evLabel}`,
+            impact: evType === 'cum' ? 'high' : 'medium',
             source: 'KSEI',
             url: `https://web.ksei.co.id${detailPath}`,
-            eventType: type.type,
+            eventType: evType,
             securityName,
         });
     }
@@ -517,11 +553,14 @@ async function fetchKseiCalendarEvents() {
         console.warn(`[Calendar] KSEI skipped ${skippedDetails} detail page(s) after retry.`);
     }
 
-    if (countCorporateEvents(events) < KSEI_MIN_CORPORATE_EVENTS) {
-        throw new Error(`KSEI corporate events too low (${countCorporateEvents(events)}), skip cache write`);
+    // Dedup by id: RUPS yang sama bisa muncul dari halaman /rec/ & /eff/ (id-nya kini sama).
+    const deduped = [...new Map(events.map(e => [e.id, e])).values()];
+
+    if (countCorporateEvents(deduped) < KSEI_MIN_CORPORATE_EVENTS) {
+        throw new Error(`KSEI corporate events too low (${countCorporateEvents(deduped)}), skip cache write`);
     }
 
-    return events.slice(0, KSEI_EVENT_LIMIT);
+    return deduped.slice(0, KSEI_EVENT_LIMIT);
 }
 
 async function fetchIdxCorporateActions() {

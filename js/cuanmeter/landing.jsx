@@ -689,6 +689,7 @@ function formatCalendarEventTitle(event) {
     cum: 'CUM DATE',
     rec: 'RECORD DATE',
     eff: 'EFFECTIVE DATE',
+    rups: 'RUPS',
   }[event.eventType] || 'CORP ACT';
 
   return `${event.ticker} ${typeLabel}`;
