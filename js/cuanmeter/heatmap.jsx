@@ -259,6 +259,58 @@ function HeatmapLegend({ range = 4 }) {
 /* ---------- Page ---------- */
 const TIMEFRAMES = [['1D', 'd1'], ['1W', 'w1'], ['1M', 'm1'], ['YTD', 'ytd']];
 
+/* Shared: timeframe pill toggle (used by page + home preview) */
+function TimeframeToggle({ tf, setTf }) {
+  return (
+    <div className="heatmap-tf-toggle">
+      {TIMEFRAMES.map(([label, key]) => (
+        <button type="button" key={key} className={`strategy-mode-btn${tf === key ? ' active' : ''}`} onClick={() => setTf(key)}>{label}</button>
+      ))}
+    </div>
+  );
+}
+
+/* Shared: floating detail card on tile tap (used by page + home preview) */
+function HeatmapDetailCard({ picked, tf, onClose, onNavigate }) {
+  const st = picked.stock;
+  const slug = TICKER_LOGO[st.ticker];
+  const logoSrc = slug ? `https://s3-symbol-logo.tradingview.com/${slug}.svg` : TICKER_BADGE[st.ticker];
+  const tfColor = (v) => v == null ? 'var(--fg-faint)' : v > 0.05 ? 'var(--primary)' : v < -0.05 ? 'var(--danger)' : 'var(--fg-muted)';
+  const fmtPct = (v) => v == null ? '—' : `${v >= 0 ? '+' : ''}${v}%`;
+  return (
+    <div className="heatmap-detail">
+      <div className="heatmap-detail-main">
+        {logoSrc && (
+          <img className="heatmap-detail-logo" src={logoSrc} alt="" width={36} height={36} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        )}
+        <div>
+          <div className="heatmap-detail-ticker">
+            {st.ticker} <span className="heatmap-detail-sector">{picked.sectorName}</span>
+          </div>
+          <div className="heatmap-detail-stats">
+            <span>Rp {st.price.toLocaleString('id-ID')}</span>
+            <span>Cap {fmtMcap(st.mcap)}</span>
+          </div>
+          <div className="heatmap-detail-tfs">
+            {TIMEFRAMES.map(([label, key]) => (
+              <span key={key} className={`heatmap-detail-tf${tf === key ? ' active' : ''}`}>
+                <span className="heatmap-detail-tf-label">{label}</span>
+                <strong style={{ color: tfColor(st[key]) }}>{fmtPct(st[key])}</strong>
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="heatmap-detail-actions">
+        <button type="button" className="btn btn-primary" onClick={() => onNavigate && onNavigate('analyzer', st.ticker)}>
+          Buka Analyzer →
+        </button>
+        <button type="button" className="heatmap-detail-close" onClick={onClose} aria-label="Tutup">×</button>
+      </div>
+    </div>
+  );
+}
+
 function HeatmapPage({ onNavigate }) {
   const [data, setData] = useStateH(null);
   const [loading, setLoading] = useStateH(true);
@@ -304,11 +356,7 @@ function HeatmapPage({ onNavigate }) {
     >
       <div className="heatmap-toolbar">
         <div className="heatmap-toolbar-left">
-          <div className="heatmap-tf-toggle">
-            {TIMEFRAMES.map(([label, key]) => (
-              <button type="button" key={key} className={`strategy-mode-btn${tf === key ? ' active' : ''}`} onClick={() => setTf(key)}>{label}</button>
-            ))}
-          </div>
+          <TimeframeToggle tf={tf} setTf={setTf} />
           <HeatmapLegend range={range} />
         </div>
         <div className="heatmap-toolbar-right">
@@ -339,45 +387,7 @@ function HeatmapPage({ onNavigate }) {
 
       {data && <Treemap sectors={data.sectors} onSelect={pick} range={range} tf={tf} />}
 
-      {picked && (() => {
-        const st = picked.stock;
-        const slug = TICKER_LOGO[st.ticker];
-        const logoSrc = slug ? `https://s3-symbol-logo.tradingview.com/${slug}.svg` : TICKER_BADGE[st.ticker];
-        const tfColor = (v) => v == null ? 'var(--fg-faint)' : v > 0.05 ? 'var(--primary)' : v < -0.05 ? 'var(--danger)' : 'var(--fg-muted)';
-        const fmtPct = (v) => v == null ? '—' : `${v >= 0 ? '+' : ''}${v}%`;
-        return (
-          <div className="heatmap-detail">
-            <div className="heatmap-detail-main">
-              {logoSrc && (
-                <img className="heatmap-detail-logo" src={logoSrc} alt="" width={36} height={36} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-              )}
-              <div>
-                <div className="heatmap-detail-ticker">
-                  {st.ticker} <span className="heatmap-detail-sector">{picked.sectorName}</span>
-                </div>
-                <div className="heatmap-detail-stats">
-                  <span>Rp {st.price.toLocaleString('id-ID')}</span>
-                  <span>Cap {fmtMcap(st.mcap)}</span>
-                </div>
-                <div className="heatmap-detail-tfs">
-                  {TIMEFRAMES.map(([label, key]) => (
-                    <span key={key} className={`heatmap-detail-tf${tf === key ? ' active' : ''}`}>
-                      <span className="heatmap-detail-tf-label">{label}</span>
-                      <strong style={{ color: tfColor(st[key]) }}>{fmtPct(st[key])}</strong>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="heatmap-detail-actions">
-              <button type="button" className="btn btn-primary" onClick={() => onNavigate && onNavigate('analyzer', st.ticker)}>
-                Buka Analyzer →
-              </button>
-              <button type="button" className="heatmap-detail-close" onClick={() => setPicked(null)} aria-label="Tutup">×</button>
-            </div>
-          </div>
-        );
-      })()}
+      {picked && <HeatmapDetailCard picked={picked} tf={tf} onClose={() => setPicked(null)} onNavigate={onNavigate} />}
     </CalcScreen>
   );
 }
