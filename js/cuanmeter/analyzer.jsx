@@ -1169,8 +1169,9 @@ function Analyzer({ initialTicker }) {
         }}
       >
         <div>
-          <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em' }}>
+          <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-0.03em', display: 'flex', alignItems: 'center', gap: 10 }}>
             {active}
+            <WatchlistStar ticker={active} size={26} />
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
             <span className="mono tnum" style={{ fontSize: 28, fontWeight: 800, color: 'var(--fg)' }}>

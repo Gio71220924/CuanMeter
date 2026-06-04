@@ -655,6 +655,19 @@ body[data-theme="dark"] .cta-terminal {
   color: var(--fg-muted);
 }
 
+/* ===== Watchlist ===== */
+.watchlist-star {
+  background: none;
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  color: var(--fg-faint);
+  transition: color 0.15s, transform 0.1s;
+}
+.watchlist-star:hover { transform: scale(1.15); }
+.watchlist-star.active { color: #FFC53D; }
+
 /* ===== Sector Heatmap — home preview ===== */
 .heatmap-preview .heatmap-canvas {
   height: min(46vh, 420px);
