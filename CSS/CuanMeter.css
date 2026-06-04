@@ -668,6 +668,140 @@ body[data-theme="dark"] .cta-terminal {
 .watchlist-star:hover { transform: scale(1.15); }
 .watchlist-star.active { color: #FFC53D; }
 
+/* Widget: search box + autocomplete */
+.watchlist-search {
+  position: relative;
+  margin-bottom: 14px;
+  max-width: 420px;
+}
+.watchlist-search-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 13px;
+}
+.watchlist-search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.watchlist-search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+.watchlist-search-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+.watchlist-search-item:hover { background: var(--surface-2); }
+.watchlist-search-item strong { color: var(--fg); font-family: 'JetBrains Mono', monospace; }
+
+/* Widget: empty state + rows */
+.watchlist-empty {
+  padding: 28px 18px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  color: var(--fg-muted);
+  font-size: 14px;
+}
+.watchlist-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.watchlist-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.watchlist-row:hover {
+  border-color: var(--primary);
+  background: var(--surface-2);
+}
+.watchlist-logo {
+  border-radius: 50%;
+  background: #fff;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.watchlist-logo-fallback {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+.watchlist-tk {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--fg);
+  width: 56px;
+  flex-shrink: 0;
+}
+.watchlist-spark-wrap {
+  flex: 1;
+  min-width: 40px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+}
+.watchlist-spark { width: 100%; height: 24px; }
+.watchlist-px {
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--fg);
+  text-align: right;
+  min-width: 78px;
+}
+.watchlist-up { color: var(--success); font-weight: 700; font-size: 13px; min-width: 56px; text-align: right; }
+.watchlist-dn { color: var(--danger);  font-weight: 700; font-size: 13px; min-width: 56px; text-align: right; }
+.watchlist-remove {
+  border: none;
+  background: none;
+  color: var(--fg-faint);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.watchlist-remove:hover { color: var(--danger); }
+
+@media (max-width: 640px) {
+  .watchlist-spark-wrap { display: none; }
+  .watchlist-tk { width: 48px; }
+  .watchlist-px { min-width: 64px; font-size: 12px; }
+}
+
 /* ===== Sector Heatmap — home preview ===== */
 .heatmap-preview .heatmap-canvas {
   height: min(46vh, 420px);

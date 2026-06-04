@@ -43,6 +43,12 @@ const TICKER_BADGE = {
   JECC: makeBadge('JC', '#0B6E4F'),
 };
 
+/* Logo URL for a ticker (TradingView slug, brand badge, or null) — reused by watchlist. */
+function logoSrcFor(ticker) {
+  const slug = TICKER_LOGO[ticker];
+  return slug ? `https://s3-symbol-logo.tradingview.com/${slug}.svg` : (TICKER_BADGE[ticker] || null);
+}
+
 /* ---------- Squarified treemap layout ----------
    data: [{ value, ... }]  → returns [{ data, x, y, w, h }] in pixels. */
 function squarify(data, x, y, w, h) {
@@ -445,4 +451,4 @@ function HeatmapPreview({ onNavigate }) {
   );
 }
 
-Object.assign(window, { Treemap, colorFor, squarify, HeatmapPage, HeatmapPreview });
+Object.assign(window, { Treemap, colorFor, squarify, HeatmapPage, HeatmapPreview, logoSrcFor });

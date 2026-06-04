@@ -1541,6 +1541,7 @@ function LandingPage({ onNavigate }) {
     <>
       <Hero onNavigate={onNavigate} />
       <StockMarquee />
+      <WatchlistWidget onNavigate={onNavigate} />
       <IHSGChart />
       <HeatmapPreview onNavigate={onNavigate} />
       <MarketCalendarWidget />
