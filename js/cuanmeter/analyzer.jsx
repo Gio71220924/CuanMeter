@@ -895,6 +895,57 @@ function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) 
 }
 
 /* ---------- Analyzer screen ---------- */
+function fmtMcapFull(v) {
+  if (!v) return '—';
+  if (v >= 1e12) return 'Rp ' + (v / 1e12).toFixed(1).replace('.', ',') + ' T';
+  if (v >= 1e9) return 'Rp ' + (v / 1e9).toFixed(1).replace('.', ',') + ' M';
+  return 'Rp ' + v.toLocaleString('id-ID');
+}
+
+function FundamentalCard({ data, loading }) {
+  if (loading && !data) {
+    return <div className="fund-card"><div className="fund-loading">Memuat fundamental…</div></div>;
+  }
+  if (!data) return null;
+  const fmt = (v, suffix = '') => (v == null ? '—' : v + suffix);
+  const metrics = [
+    { label: 'Market Cap', value: fmtMcapFull(data.marketCap), hint: 'kapitalisasi pasar' },
+    { label: 'PER', value: fmt(data.per, '×'), hint: 'harga ÷ laba' },
+    { label: 'PBV', value: fmt(data.pbv, '×'), hint: 'harga ÷ nilai buku' },
+    { label: 'ROE', value: fmt(data.roe, '%'), hint: 'laba ÷ ekuitas' },
+    { label: 'Div Yield', value: fmt(data.divYield, '%'), hint: 'imbal hasil dividen' },
+    { label: 'EPS', value: data.eps == null ? '—' : 'Rp ' + data.eps.toLocaleString('id-ID'), hint: 'laba per saham' },
+    { label: 'Profit Margin', value: fmt(data.profitMargin, '%'), hint: 'margin laba bersih' },
+    { label: 'Beta', value: fmt(data.beta), hint: 'volatilitas vs pasar' },
+  ];
+  return (
+    <div className="fund-card">
+      <div className="fund-head">
+        <div>
+          <div className="fund-name">{data.name || '—'}</div>
+          <div className="fund-sector">{[data.sector, data.industry].filter(Boolean).join(' · ') || '—'}</div>
+        </div>
+        <span className="badge">FUNDAMENTAL</span>
+      </div>
+      <div className="fund-grid">
+        {metrics.map((m) => (
+          <div key={m.label} className="fund-metric">
+            <div className="fund-metric-label">{m.label}</div>
+            <div className="fund-metric-value">{m.value}</div>
+            <div className="fund-metric-hint">{m.hint}</div>
+          </div>
+        ))}
+      </div>
+      {(data.low52 != null && data.high52 != null) && (
+        <div className="fund-52w">
+          52 minggu: <strong>Rp {data.low52.toLocaleString('id-ID')}</strong> — <strong>Rp {data.high52.toLocaleString('id-ID')}</strong>
+        </div>
+      )}
+      <div className="fund-disclaimer">Data fundamental dari yfinance · bukan rekomendasi investasi.</div>
+    </div>
+  );
+}
+
 function Analyzer({ initialTicker }) {
   const [ticker, setTicker] = useStateZ('BBRI');
   const [active, setActive] = useStateZ('BBRI');
@@ -913,6 +964,9 @@ function Analyzer({ initialTicker }) {
   const activeBand = useRefZ('');
   const [tvPrice, setTvPrice] = useStateZ(null);
   const activePrice = useRefZ('');
+  const [fundData, setFundData] = useStateZ(null);
+  const [fundLoading, setFundLoading] = useStateZ(false);
+  const activeFund = useRefZ('');
   const [activeTab, setActiveTab] = useStateZ('analisis');
   const [scanData, setScanData]   = useStateZ(null);
   const [scanLoading, setScanLoading] = useStateZ(false);
@@ -941,9 +995,19 @@ function Analyzer({ initialTicker }) {
       .catch(() => { if (activeBand.current === code) setBandData(null); });
   };
 
+  const fetchFundamentals = (code) => {
+    activeFund.current = code;
+    setFundData(null);
+    setFundLoading(true);
+    fetch('/fundamentals?ticker=' + code)
+      .then((r) => r.json())
+      .then((d) => { if (activeFund.current === code) { setFundData(d.status === 'ok' ? d.data : null); setFundLoading(false); } })
+      .catch(() => { if (activeFund.current === code) { setFundData(null); setFundLoading(false); } });
+  };
+
   const data = useMemoZ(() => generateAnalysis(active), [active]);
 
-  useEffectZ(() => { fetchTVPrice('BBRI'); fetchBandarmology('BBRI', bandFrom, bandTo); }, []);
+  useEffectZ(() => { fetchTVPrice('BBRI'); fetchBandarmology('BBRI', bandFrom, bandTo); fetchFundamentals('BBRI'); }, []);
 
   const onSearchInput = (val) => {
     setTicker(val);
@@ -974,6 +1038,7 @@ function Analyzer({ initialTicker }) {
       .then((d) => { setMlData(d); setMlLoading(false); })
       .catch(() => { setMlData({ status: 'offline' }); setMlLoading(false); });
     fetchBandarmology(code, bandFrom, bandTo);
+    fetchFundamentals(code);
   };
 
   useEffectZ(() => {
@@ -1196,6 +1261,8 @@ function Analyzer({ initialTicker }) {
       <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: 16, height: 420 }}>
         <AnalyzerChart ticker={active} mlData={mlData} mlLoading={mlLoading} />
       </div>
+
+      <FundamentalCard data={fundData} loading={fundLoading} />
 
       <div
         style={{
