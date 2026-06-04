@@ -20,6 +20,18 @@ def num(v, d=2):
     return round(v, d) if isinstance(v, (int, float)) else None
 
 
+def div_yield(info):
+    """Dividend yield (%). yfinance data IDX tidak konsisten:
+    - 'trailingAnnualDividendYield' (rasio) akurat tapi sering 0/kosong;
+    - 'dividendYield' (persen) ada di semua tapi kadang ketinggian (yield indikatif).
+    Pakai trailing kalau valid, kalau tidak fallback ke dividendYield."""
+    tady = info.get('trailingAnnualDividendYield')
+    if isinstance(tady, (int, float)) and tady > 0:
+        return round(tady * 100, 2)
+    dy = info.get('dividendYield')
+    return round(dy, 2) if isinstance(dy, (int, float)) and dy > 0 else None
+
+
 def fetch(ticker):
     info = yf.Ticker(ticker + '.JK').info or {}
     return {
@@ -32,7 +44,7 @@ def fetch(ticker):
         'pbv': num(info.get('priceToBook')),
         'roe': pct(info.get('returnOnEquity')),
         'eps': num(info.get('trailingEps')),
-        'divYield': num(info.get('dividendYield')),     # yfinance versi ini sudah dalam persen
+        'divYield': div_yield(info),
         'profitMargin': pct(info.get('profitMargins')),
         'der': num(info.get('debtToEquity')),
         'beta': num(info.get('beta')),
