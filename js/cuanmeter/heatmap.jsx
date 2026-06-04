@@ -392,4 +392,57 @@ function HeatmapPage({ onNavigate }) {
   );
 }
 
-Object.assign(window, { Treemap, colorFor, squarify, HeatmapPage });
+/* ---------- Home preview: compact, lite-interactive, links to full page ---------- */
+function HeatmapPreview({ onNavigate }) {
+  const [data, setData] = useStateH(null);
+  const [tf, setTf] = useStateH('d1');
+  const [picked, setPicked] = useStateH(null);
+
+  useEffectH(() => {
+    let alive = true;
+    fetch('/heatmap')
+      .then((r) => r.json())
+      .then((d) => { if (alive && d.status === 'ok') setData(d); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  if (!data) return null; // teaser: muncul hanya saat data siap (cache instan)
+
+  const pick = (stock, sectorName) => setPicked({ stock, sectorName });
+  const goFull = () => onNavigate && onNavigate('heatmap');
+
+  return (
+    <section className="heatmap-preview" style={{ padding: '80px 0' }}>
+      <div className="container">
+        <div style={{ marginBottom: 24 }}>
+          <div className="badge" style={{ marginBottom: 12 }}>
+            <Icon name="fire" size={12} />
+            <span>PASAR HARI INI · HEATMAP SEKTOR</span>
+          </div>
+          <h2 style={{ fontSize: 'clamp(28px, 4vw, 40px)', letterSpacing: '-0.025em', marginBottom: 8 }}>
+            Sektor mana yang <span style={{ color: 'var(--primary)' }}>panas</span> hari ini.
+          </h2>
+          <p style={{ fontSize: 15, color: 'var(--fg-muted)', margin: 0 }}>
+            Ukuran kotak = market cap · warna = perubahan harga. Tap saham buat detail.
+          </p>
+        </div>
+
+        <div className="heatmap-preview-toolbar">
+          <TimeframeToggle tf={tf} setTf={setTf} />
+          <HeatmapLegend range={4} />
+        </div>
+
+        <Treemap sectors={data.sectors} onSelect={pick} range={4} tf={tf} />
+
+        <button type="button" className="btn btn-primary heatmap-preview-cta" onClick={goFull}>
+          Lihat Heatmap Lengkap →
+        </button>
+
+        {picked && <HeatmapDetailCard picked={picked} tf={tf} onClose={() => setPicked(null)} onNavigate={onNavigate} />}
+      </div>
+    </section>
+  );
+}
+
+Object.assign(window, { Treemap, colorFor, squarify, HeatmapPage, HeatmapPreview });

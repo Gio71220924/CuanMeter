@@ -655,6 +655,26 @@ body[data-theme="dark"] .cta-terminal {
   color: var(--fg-muted);
 }
 
+/* ===== Sector Heatmap — home preview ===== */
+.heatmap-preview .heatmap-canvas {
+  height: min(46vh, 420px);
+}
+.heatmap-preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.heatmap-preview-cta {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  text-align: center;
+  font-weight: 800;
+}
+
 /* ===== Sector Heatmap ===== */
 .heatmap-toolbar {
   display: flex;

@@ -1542,6 +1542,7 @@ function LandingPage({ onNavigate }) {
       <Hero onNavigate={onNavigate} />
       <StockMarquee />
       <IHSGChart />
+      <HeatmapPreview onNavigate={onNavigate} />
       <MarketCalendarWidget />
       <ToolsGrid onNavigate={onNavigate} />
       <GuidesSection onNavigate={onNavigate} />
