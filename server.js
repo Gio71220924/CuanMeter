@@ -27,6 +27,8 @@ const CALENDAR_CACHE_VERSION = 10;
 const HEATMAP_CACHE_FILE = path.join(DATA_DIR, 'heatmap-cache.json');
 const HEATMAP_TTL_MS = 10 * 60 * 1000;
 let heatmapCache = null; // { data, cachedAt }
+const watchlistCache = new Map(); // ticker -> { data, at }
+const WATCHLIST_TTL_MS = 60 * 1000;
 const KSEI_DETAIL_PAGE_LIMIT = 80;
 const KSEI_EVENT_LIMIT = 160;
 const KSEI_RETRY_COUNT = 2;
@@ -1191,6 +1193,47 @@ function serveHeatmapFallback(res) {
     sendJSON(res, 503, { status: 'error', message: 'Heatmap belum siap, coba lagi sebentar.' });
 }
 
+// ─── /watchlist  →  Batch quotes + 7d sparkline (cache 60 dtk per ticker) ─────
+function handleWatchlist(query, res) {
+    const raw = String(query.tickers || '').toUpperCase();
+    const tickers = [...new Set(raw.split(',').map(t => t.trim()).filter(t => /^[A-Z]{4}$/.test(t)))].slice(0, 50);
+    if (!tickers.length) { return sendJSON(res, 200, { status: 'ok', quotes: {} }); }
+
+    const now = Date.now();
+    const quotes = {};
+    const stale = [];
+    for (const t of tickers) {
+        const c = watchlistCache.get(t);
+        if (c && now - c.at < WATCHLIST_TTL_MS) quotes[t] = c.data;
+        else stale.push(t);
+    }
+    if (!stale.length) { return sendJSON(res, 200, { status: 'ok', quotes }); }
+
+    const python = spawn('python', [path.join(ROOT, 'watchlist.py'), stale.join(',')]);
+    let output = '';
+    let done = false;
+    const finish = () => { if (done) return; done = true; sendJSON(res, 200, { status: 'ok', quotes }); };
+    const timer = setTimeout(() => { python.kill(); finish(); }, 20000);
+
+    python.stdout.on('data', (d) => { output += d.toString(); });
+    python.stderr.on('data', (d) => { console.error(`[Watchlist] ${d}`); });
+    python.on('close', () => {
+        clearTimeout(timer);
+        try {
+            const result = JSON.parse(output.trim());
+            if (result.status === 'ok' && result.quotes) {
+                for (const [t, q] of Object.entries(result.quotes)) {
+                    watchlistCache.set(t, { data: q, at: Date.now() });
+                    quotes[t] = q;
+                }
+            }
+        } catch (e) {
+            console.error(`[Watchlist] Parse error: ${e.message}`);
+        }
+        finish();
+    });
+}
+
 // ─── Helper: send JSON with CORS ─────────────────────────────────────────────
 function sendJSON(res, status, obj) {
     if (res.headersSent || res.writableEnded) return; // jangan crash kalau response sudah dikirim
@@ -1309,6 +1352,13 @@ const server = http.createServer((req, res) => {
         const ip = req.socket.remoteAddress;
         if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
         return handleHeatmap(req, res);
+    }
+
+    // API: /watchlist
+    if (req.method === 'GET' && pathname === '/watchlist') {
+        const ip = req.socket.remoteAddress;
+        if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
+        return handleWatchlist(parsed.query, res);
     }
 
     // API: /calendar
