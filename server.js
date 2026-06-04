@@ -29,6 +29,8 @@ const HEATMAP_TTL_MS = 10 * 60 * 1000;
 let heatmapCache = null; // { data, cachedAt }
 const watchlistCache = new Map(); // ticker -> { data, at }
 const WATCHLIST_TTL_MS = 60 * 1000;
+const fundamentalsCache = new Map(); // ticker -> { data, at }
+const FUNDAMENTALS_TTL_MS = 24 * 60 * 60 * 1000;
 const KSEI_DETAIL_PAGE_LIMIT = 80;
 const KSEI_EVENT_LIMIT = 160;
 const KSEI_RETRY_COUNT = 2;
@@ -1234,6 +1236,40 @@ function handleWatchlist(query, res) {
     });
 }
 
+// ─── /fundamentals  →  Key fundamentals via yfinance .info (cache 24 jam) ─────
+function handleFundamentals(query, res) {
+    const ticker = String(query.ticker || '').toUpperCase().trim();
+    if (!/^[A-Z]{4}$/.test(ticker)) {
+        return sendJSON(res, 400, { status: 'error', message: 'Ticker tidak valid' });
+    }
+    const c = fundamentalsCache.get(ticker);
+    if (c && Date.now() - c.at < FUNDAMENTALS_TTL_MS) { return sendJSON(res, 200, c.data); }
+
+    const python = spawn('python', [path.join(ROOT, 'fundamentals.py'), ticker]);
+    let output = '';
+    let done = false;
+    const timer = setTimeout(() => {
+        python.kill();
+        if (!done) { done = true; sendJSON(res, 504, { status: 'error', message: 'Timeout memuat fundamental' }); }
+    }, 20000);
+
+    python.stdout.on('data', (d) => { output += d.toString(); });
+    python.stderr.on('data', (d) => { console.error(`[Fundamentals] ${d}`); });
+    python.on('close', () => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        try {
+            const result = JSON.parse(output.trim());
+            if (result.status === 'ok') fundamentalsCache.set(ticker, { data: result, at: Date.now() });
+            sendJSON(res, 200, result);
+        } catch (e) {
+            console.error(`[Fundamentals] Parse error: ${e.message}`);
+            sendJSON(res, 502, { status: 'error', message: 'Gagal memuat fundamental' });
+        }
+    });
+}
+
 // ─── Helper: send JSON with CORS ─────────────────────────────────────────────
 function sendJSON(res, status, obj) {
     if (res.headersSent || res.writableEnded) return; // jangan crash kalau response sudah dikirim
@@ -1359,6 +1395,13 @@ const server = http.createServer((req, res) => {
         const ip = req.socket.remoteAddress;
         if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
         return handleWatchlist(parsed.query, res);
+    }
+
+    // API: /fundamentals
+    if (req.method === 'GET' && pathname === '/fundamentals') {
+        const ip = req.socket.remoteAddress;
+        if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
+        return handleFundamentals(parsed.query, res);
     }
 
     // API: /calendar
