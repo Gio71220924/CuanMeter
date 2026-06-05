@@ -100,6 +100,7 @@ function createBook(tick) {
     const map = (arr) => arr.slice(0, n || 7).map((l) => ({
       price: l.price,
       lot: l.orders.reduce((s, o) => s + o.lot, 0),
+      freq: l.orders.length, // number of resting orders at this level
     }));
     return { bids: map(bids), asks: map(asks) };
   }

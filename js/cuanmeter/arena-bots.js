@@ -18,6 +18,26 @@ function createMarket(opts) {
   let recent = [book.last];            // short price window for momentum
   let timer = null;
 
+  // session statistics accumulated from every trade
+  const stats = {
+    vol: 0, val: 0, freq: 0,
+    high: book.last, low: book.last, open: book.last,
+    prevClose: book.last,              // reference for % change & ARA/ARB
+    done: {},                          // { price: cumulative lot traded }
+  };
+  function autoBands(prev) {
+    const pct = prev < 200 ? 0.35 : prev <= 5000 ? 0.25 : 0.20; // IDX tiered (approx)
+    return { ara: roundToTick(prev * (1 + pct), tick), arb: roundToTick(prev * (1 - pct), tick) };
+  }
+  function record(t) {
+    stats.vol += t.lot;
+    stats.val += t.lot * 100 * t.price;
+    stats.freq += 1;
+    if (t.price > stats.high) stats.high = t.price;
+    if (t.price < stats.low) stats.low = t.price;
+    stats.done[t.price] = (stats.done[t.price] || 0) + t.lot;
+  }
+
   // three market makers at increasing spreads → layered depth
   const mms = [{ spread: 1, size: 25 }, { spread: 2, size: 45 }, { spread: 4, size: 75 }]
     .map((c) => ({ ...c, bidId: null, askId: null }));
@@ -42,7 +62,8 @@ function createMarket(opts) {
   }
 
   function emit(trades) {
-    if (trades && trades.length && opts.onTrade) trades.forEach((t) => opts.onTrade(t));
+    if (!trades || !trades.length) return;
+    for (const t of trades) { record(t); if (opts.onTrade) opts.onTrade(t); }
   }
 
   function step() {
@@ -80,7 +101,19 @@ function createMarket(opts) {
   }
 
   function snapshot(n) {
-    return { last: book.last, ref, tick, depth: book.depth(n || 7), bestBid: book.bestBid(), bestAsk: book.bestAsk() };
+    const vwap = stats.vol > 0 ? stats.val / (stats.vol * 100) : book.last;
+    const bands = autoBands(stats.prevClose);
+    return {
+      last: book.last, ref, tick,
+      depth: book.depth(n || 8),
+      bestBid: book.bestBid(), bestAsk: book.bestAsk(),
+      done: stats.done,
+      stats: {
+        vol: stats.vol, val: stats.val, freq: stats.freq,
+        avg: Math.round(vwap), high: stats.high, low: stats.low, open: stats.open,
+        prevClose: stats.prevClose, ara: bands.ara, arb: bands.arb,
+      },
+    };
   }
 
   function start(ms) { stop(); requote(); timer = setInterval(step, ms || 600); }
