@@ -655,6 +655,143 @@ body[data-theme="dark"] .cta-terminal {
   color: var(--fg-muted);
 }
 
+/* ===== Paper Trading ===== */
+.paper-summary { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; margin-bottom: 16px; }
+.paper-sumbox {
+  flex: 1;
+  min-width: 120px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.paper-sumbox span { font-size: 11px; color: var(--fg-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+.paper-sumbox strong { font-size: 20px; font-weight: 800; color: var(--fg); font-variant-numeric: tabular-nums; }
+.paper-sum-actions { display: flex; align-items: center; gap: 10px; }
+.paper-fee-toggle { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--fg-muted); cursor: pointer; }
+.paper-reset { font-size: 12px; padding: 6px 12px; }
+.paper-up { color: var(--success); }
+.paper-dn { color: var(--danger); }
+.paper-buybar { max-width: 480px; margin-bottom: 16px; }
+.paper-empty {
+  padding: 28px 18px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  color: var(--fg-muted);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.paper-holdings { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
+.paper-hrow {
+  display: grid;
+  grid-template-columns: 1.4fr 0.6fr 1fr 1fr 0.9fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.paper-hrow:hover { border-color: var(--primary); }
+.paper-hhead {
+  background: none;
+  border: none;
+  cursor: default;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--fg-faint);
+  padding: 0 14px;
+}
+.paper-tk { font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--fg); }
+.paper-sellbtn {
+  border: 1px solid var(--danger);
+  background: transparent;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.paper-sellbtn:hover { background: var(--danger); color: #fff; }
+.paper-hist { margin-bottom: 16px; }
+.paper-hist-toggle { background: none; border: none; color: var(--fg-muted); font-size: 13px; font-weight: 700; cursor: pointer; padding: 8px 0; }
+.paper-hist-list { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+.paper-hist-row {
+  display: grid;
+  grid-template-columns: 50px 70px 1fr auto;
+  gap: 10px;
+  padding: 7px 12px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.paper-hist-row > span:first-child { font-weight: 800; }
+.btn-sell { background: var(--danger); color: #fff; }
+.btn-sell:hover { filter: brightness(1.08); }
+.paper-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+.paper-modal {
+  width: min(380px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+}
+.paper-modal-head { display: flex; align-items: center; justify-content: space-between; font-size: 16px; color: var(--fg); margin-bottom: 10px; }
+.paper-modal-head strong { font-family: 'JetBrains Mono', monospace; }
+.paper-modal-x { background: none; border: none; color: var(--fg-muted); font-size: 22px; line-height: 1; cursor: pointer; }
+.paper-modal-price { font-size: 13px; color: var(--fg-muted); margin-bottom: 12px; }
+.paper-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.paper-field span { font-size: 12px; color: var(--fg-muted); }
+.paper-field input {
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--fg);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.paper-calc { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.paper-calc > div { display: flex; justify-content: space-between; font-size: 13px; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+.paper-calc-total { padding-top: 6px; border-top: 1px solid var(--border); }
+.paper-calc-total span { color: var(--fg); font-weight: 800; font-size: 15px; }
+.paper-modal-err {
+  background: rgba(220, 50, 50, 0.1);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+.paper-modal-submit { width: 100%; }
+@media (max-width: 640px) {
+  .paper-hrow { grid-template-columns: 1.2fr 0.5fr 1fr 0.8fr auto; font-size: 12px; }
+  .paper-hrow > span:nth-child(3), .paper-hhead > span:nth-child(3) { display: none; }
+}
+
 /* ===== Fundamental card (Analyzer) ===== */
 .fund-card {
   background: var(--surface);

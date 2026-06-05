@@ -4,7 +4,7 @@
    Realistic: lot system (×100), optional broker fees.
    ============================================================ */
 
-const { useState: useStateP, useEffect: useEffectP } = React;
+const { useState: useStateP, useEffect: useEffectP, useRef: useRefP } = React;
 
 const PT_KEY = 'cuanmeter:papertrade';
 const PT_DEFAULT_MODAL = 100000000; // Rp 100 juta
@@ -95,7 +95,199 @@ function usePaper() {
   return state;
 }
 
+/* ---------- UI ---------- */
+function fmtRp(v) {
+  return 'Rp ' + Math.round(v || 0).toLocaleString('id-ID');
+}
+function fmtRpShort(v) {
+  v = v || 0;
+  const a = Math.abs(v);
+  if (a >= 1e12) return 'Rp ' + (v / 1e12).toFixed(2).replace('.', ',') + ' T';
+  if (a >= 1e9) return 'Rp ' + (v / 1e9).toFixed(2).replace('.', ',') + ' M';
+  if (a >= 1e6) return 'Rp ' + (v / 1e6).toFixed(1).replace('.', ',') + ' jt';
+  return 'Rp ' + Math.round(v).toLocaleString('id-ID');
+}
+
+/* Buy/Sell ticket modal. */
+function TradeModal({ ticker, price, mode, held, onClose }) {
+  const s = usePaper();
+  const [lot, setLot] = useStateP(mode === 'sell' ? String(held) : '1');
+  const [err, setErr] = useStateP(null);
+  const n = Math.floor(Number(lot)) || 0;
+  const shares = n * 100;
+  const value = shares * price;
+  const feeRate = mode === 'buy' ? FEE_BUY : FEE_SELL;
+  const fee = s.feeOn ? value * feeRate : 0;
+  const total = mode === 'buy' ? value + fee : value - fee;
+  const maxBuyLot = price > 0 ? Math.floor(s.cash / (price * 100 * (1 + (s.feeOn ? FEE_BUY : 0)))) : 0;
+
+  const submit = () => {
+    const r = mode === 'buy' ? buyPaper(ticker, n, price) : sellPaper(ticker, n, price);
+    if (r.ok) onClose(); else setErr(r.error);
+  };
+
+  return (
+    <div className="paper-modal-overlay" onClick={onClose}>
+      <div className="paper-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="paper-modal-head">
+          <span>{mode === 'buy' ? 'Beli' : 'Jual'} <strong>{ticker}</strong></span>
+          <button type="button" className="paper-modal-x" onClick={onClose} aria-label="Tutup">×</button>
+        </div>
+        <div className="paper-modal-price">Harga pasar: <strong>{fmtRp(price)}</strong></div>
+        <label className="paper-field">
+          <span>Jumlah lot {mode === 'buy' ? `(maks ${maxBuyLot})` : `(punya ${held})`}</span>
+          <input type="number" min="1" value={lot} onChange={(e) => { setLot(e.target.value); setErr(null); }} />
+        </label>
+        <div className="paper-calc">
+          <div><span>Lembar</span><span>{shares.toLocaleString('id-ID')}</span></div>
+          <div><span>Nilai</span><span>{fmtRp(value)}</span></div>
+          {s.feeOn && <div><span>Fee ({(feeRate * 100).toFixed(2)}%)</span><span>{fmtRp(fee)}</span></div>}
+          <div className="paper-calc-total"><span>{mode === 'buy' ? 'Total bayar' : 'Terima bersih'}</span><span>{fmtRp(total)}</span></div>
+        </div>
+        {err && <div className="paper-modal-err">{err}</div>}
+        <button type="button" className={`btn ${mode === 'buy' ? 'btn-primary' : 'btn-sell'} paper-modal-submit`} onClick={submit}>
+          {mode === 'buy' ? 'Konfirmasi Beli' : 'Konfirmasi Jual'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PaperTradePage({ onNavigate }) {
+  const s = usePaper();
+  const [quotes, setQuotes] = useStateP({});
+  const [trade, setTrade] = useStateP(null);
+  const [q, setQ] = useStateP('');
+  const [results, setResults] = useStateP([]);
+  const [showHist, setShowHist] = useStateP(false);
+  const timer = useRefP(null);
+
+  const tickers = Object.keys(s.holdings);
+  const key = tickers.join(',');
+
+  useEffectP(() => {
+    if (!key) { setQuotes({}); return; }
+    let alive = true;
+    fetch('/watchlist?tickers=' + key)
+      .then((r) => r.json())
+      .then((d) => { if (alive) setQuotes(d.quotes || {}); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [key]);
+
+  let holdingsValue = 0;
+  tickers.forEach((t) => {
+    const px = quotes[t] ? quotes[t].price : s.holdings[t].avg;
+    holdingsValue += px * s.holdings[t].lot * 100;
+  });
+  const totalValue = s.cash + holdingsValue;
+  const totalPL = s.initial > 0 ? (totalValue - s.initial) / s.initial * 100 : 0;
+
+  const onSearch = (val) => {
+    setQ(val);
+    clearTimeout(timer.current);
+    if (val.trim().length < 2) { setResults([]); return; }
+    timer.current = setTimeout(() => {
+      fetch('/search?q=' + encodeURIComponent(val.trim()))
+        .then((r) => r.json()).then((d) => setResults((d.results || []).slice(0, 6))).catch(() => setResults([]));
+    }, 250);
+  };
+  const openBuy = (sym) => {
+    setQ(''); setResults([]);
+    fetch('/price?ticker=' + sym).then((r) => r.json()).then((d) => {
+      if (d.price) setTrade({ ticker: String(sym).toUpperCase(), price: d.price, mode: 'buy', held: 0 });
+    }).catch(() => {});
+  };
+  const openSell = (t) => {
+    const px = quotes[t] ? quotes[t].price : s.holdings[t].avg;
+    setTrade({ ticker: t, price: px, mode: 'sell', held: s.holdings[t].lot });
+  };
+  const doReset = () => {
+    const v = window.prompt('Reset portfolio. Modal awal (Rp):', String(s.initial));
+    if (v != null) resetPaper(Number(String(v).replace(/[^\d]/g, '')) || PT_DEFAULT_MODAL);
+  };
+
+  return (
+    <CalcScreen icon="wallet" tag="SIMULASI · PAPER TRADING"
+      title={<>Latihan <span style={{ color: 'var(--primary)' }}>trading</span> tanpa rugi.</>}
+      subtitle="Portfolio virtual pakai harga real. Beli/jual, lihat P&L. Tersimpan di browser ini.">
+
+      <div className="paper-summary">
+        <div className="paper-sumbox"><span>Cash</span><strong>{fmtRpShort(s.cash)}</strong></div>
+        <div className="paper-sumbox"><span>Nilai Portfolio</span><strong>{fmtRpShort(totalValue)}</strong></div>
+        <div className="paper-sumbox"><span>Total P&L</span><strong className={totalPL >= 0 ? 'paper-up' : 'paper-dn'}>{totalPL >= 0 ? '+' : ''}{totalPL.toFixed(2)}%</strong></div>
+        <div className="paper-sum-actions">
+          <label className="paper-fee-toggle"><input type="checkbox" checked={s.feeOn} onChange={(e) => setPaperFee(e.target.checked)} /> Fee</label>
+          <button type="button" className="btn btn-secondary paper-reset" onClick={doReset}>↺ Reset</button>
+        </div>
+      </div>
+
+      <div className="paper-buybar watchlist-search">
+        <input className="watchlist-search-input" placeholder="🔍 Cari saham buat dibeli…" value={q} onChange={(e) => onSearch(e.target.value)} />
+        {results.length > 0 && (
+          <div className="watchlist-search-results">
+            {results.map((r) => (
+              <button type="button" key={r.symbol} className="watchlist-search-item" onClick={() => openBuy(r.symbol)}>
+                <strong>{r.symbol}</strong> <span>{r.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {tickers.length === 0 ? (
+        <div className="paper-empty">Belum ada posisi. Cari saham di atas buat mulai beli (pakai harga real).</div>
+      ) : (
+        <div className="paper-holdings">
+          <div className="paper-hrow paper-hhead">
+            <span>Saham</span><span>Lot</span><span>Avg</span><span>Last</span><span>P&L</span><span></span>
+          </div>
+          {tickers.map((t) => {
+            const h = s.holdings[t];
+            const px = quotes[t] ? quotes[t].price : null;
+            const last = px != null ? px : h.avg;
+            const plPct = h.avg > 0 ? (last - h.avg) / h.avg * 100 : 0;
+            const up = plPct >= 0;
+            return (
+              <div key={t} className="paper-hrow" onClick={() => onNavigate && onNavigate('analyzer', t)}>
+                <span className="paper-tk">{t}</span>
+                <span>{h.lot}</span>
+                <span>{fmtRp(h.avg)}</span>
+                <span>{px != null ? fmtRp(px) : '…'}</span>
+                <span className={up ? 'paper-up' : 'paper-dn'}>{up ? '+' : ''}{plPct.toFixed(2)}%</span>
+                <button type="button" className="paper-sellbtn" onClick={(e) => { e.stopPropagation(); openSell(t); }}>Jual</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {s.history.length > 0 && (
+        <div className="paper-hist">
+          <button type="button" className="paper-hist-toggle" onClick={() => setShowHist(!showHist)}>
+            Riwayat transaksi ({s.history.length}) {showHist ? '▴' : '▾'}
+          </button>
+          {showHist && (
+            <div className="paper-hist-list">
+              {s.history.map((x, i) => (
+                <div key={i} className="paper-hist-row">
+                  <span className={x.type === 'BUY' ? 'paper-up' : 'paper-dn'}>{x.type}</span>
+                  <span className="paper-tk">{x.ticker}</span>
+                  <span>{x.lot} lot @ {fmtRp(x.price)}</span>
+                  <span className={x.realized >= 0 ? 'paper-up' : 'paper-dn'}>{x.type === 'SELL' && x.realized != null ? (x.realized >= 0 ? '+' : '') + fmtRp(x.realized) : ''}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {trade && <TradeModal ticker={trade.ticker} price={trade.price} mode={trade.mode} held={trade.held} onClose={() => setTrade(null)} />}
+    </CalcScreen>
+  );
+}
+
 Object.assign(window, {
   getPaper, resetPaper, setPaperFee, buyPaper, sellPaper, subscribePaper, usePaper,
-  PT_DEFAULT_MODAL, PT_FEE_BUY: FEE_BUY, PT_FEE_SELL: FEE_SELL,
+  PaperTradePage, PT_DEFAULT_MODAL, PT_FEE_BUY: FEE_BUY, PT_FEE_SELL: FEE_SELL,
 });

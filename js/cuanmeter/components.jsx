@@ -137,6 +137,7 @@ const HEADER_LINKS = [
   { id: 'dividen',  label: 'Dividen' },
   { id: 'analyzer', label: 'Analyzer' },
   { id: 'heatmap',  label: 'Heatmap' },
+  { id: 'papertrade', label: 'Simulasi' },
   { id: 'guides',   label: 'Panduan' },
 ];
 
