@@ -665,28 +665,68 @@ body[data-theme="dark"] .cta-terminal {
 .arena-pos { background: var(--surface-2); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--fg-muted); margin-bottom: 14px; }
 .arena-pos strong { color: var(--fg); }
 .arena-main { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 16px; align-items: start; margin-bottom: 16px; }
-.arena-ladder { display: flex; flex-direction: column; gap: 2px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px; }
-.arena-ladder-skel { min-height: 300px; animation: pulse 1.5s infinite; }
-.arena-lr {
-  display: grid;
-  grid-template-columns: 1fr 64px 1fr;
-  align-items: center;
-  gap: 6px;
-  height: 22px;
-  font-size: 12px;
+.arena-book {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
   font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  border-radius: 4px;
 }
-.arena-lr:hover { background: var(--surface-2); }
-.arena-lr-px { text-align: center; font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--fg); }
-.arena-lr-bar { position: relative; display: flex; align-items: center; height: 14px; }
-.arena-lr-bar em { position: relative; z-index: 1; font-style: normal; font-size: 10px; color: var(--fg-muted); padding: 0 4px; }
-.arena-bar-ask { position: absolute; left: 0; height: 100%; background: rgba(207, 91, 84, 0.28); border-radius: 3px; }
-.arena-lr-bar-bid { justify-content: flex-end; }
-.arena-bar-bid { position: absolute; right: 0; height: 100%; background: rgba(76, 181, 133, 0.28); border-radius: 3px; }
-.arena-lr-last { background: var(--primary-soft); }
-.arena-lr-last .arena-lr-px { color: var(--primary); font-weight: 800; }
+.arena-ladder-skel { min-height: 320px; animation: pulse 1.5s infinite; }
+.arena-brow {
+  display: grid;
+  grid-template-columns: 24px 30px 1.25fr 1.7fr 1.25fr 30px 24px 46px;
+  align-items: center;
+  gap: 2px;
+  height: 23px;
+  padding: 0 4px;
+}
+.arena-bhead, .arena-btot {
+  background: var(--surface-2);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--fg-faint);
+  height: 21px;
+}
+.arena-bhead > span, .arena-btot > span { text-align: center; }
+.arena-bbody { max-height: 440px; overflow-y: auto; }
+.arena-brow-last { background: var(--primary-soft); }
+.arena-bbody .arena-brow:hover { background: var(--surface-2); cursor: pointer; }
+.arena-plus { border: none; background: none; cursor: pointer; font-size: 13px; line-height: 1; padding: 0; }
+.arena-plus-buy { color: var(--success); }
+.arena-plus-sell { color: var(--danger); }
+.arena-c-freq { text-align: center; color: var(--fg-faint); font-size: 9px; }
+.arena-c-blot, .arena-c-alot { position: relative; display: flex; align-items: center; height: 17px; overflow: hidden; font-size: 11px; }
+.arena-c-blot { justify-content: flex-end; }
+.arena-c-alot { justify-content: flex-start; }
+.arena-lotbar { position: absolute; top: 1px; height: calc(100% - 2px); border-radius: 2px; }
+.arena-lotbar-bid { right: 0; background: rgba(76, 181, 133, 0.20); }
+.arena-lotbar-ask { left: 0; background: rgba(207, 91, 84, 0.20); }
+.arena-lotn { position: relative; z-index: 1; font-style: normal; padding: 0 5px; color: var(--fg); }
+.arena-lotn.d-up { color: var(--success); }
+.arena-lotn.d-dn { color: var(--danger); }
+.arena-c-px {
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  font-size: 12px;
+  color: var(--fg);
+  line-height: 1.04;
+}
+.arena-c-px small { display: block; font-size: 8px; font-weight: 600; opacity: 0.8; }
+.arena-c-px.paper-up { color: var(--success); }
+.arena-c-px.paper-dn { color: var(--danger); }
+.arena-mk {
+  font-style: normal; font-size: 8px; font-weight: 800;
+  background: var(--fg-faint); color: var(--surface); border-radius: 2px; padding: 0 2px; margin-right: 3px; vertical-align: middle;
+}
+.arena-c-done { text-align: center; color: var(--fg-muted); font-size: 10px; }
+@media (max-width: 640px) {
+  .arena-brow { grid-template-columns: 24px 1.2fr 1.6fr 1.2fr 24px; }
+  .arena-c-freq, .arena-c-done, .arena-bhead > span:nth-child(2), .arena-bhead > span:nth-child(6), .arena-bhead > span:nth-child(8), .arena-btot > span:nth-child(2), .arena-btot > span:nth-child(6), .arena-btot > span:nth-child(8) { display: none; }
+}
 .arena-ticket { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
 .arena-seg { display: flex; gap: 4px; margin-bottom: 12px; }
 .arena-seg button {

@@ -16,32 +16,73 @@ function arShort(v) {
   return 'Rp ' + Math.round(v).toLocaleString('id-ID');
 }
 
-/* Live bid/ask ladder. Click a price → fills the order ticket. */
+/* Stockbit-style depth table: Buy＋·Freq·Lot │ Price%/HOL │ Lot·Freq·Sell＋ · Done.
+   Continuous price ladder; lot numbers flash green/red on change (delta). */
 function ArenaLadder({ snap, onPick }) {
-  if (!snap) return <div className="arena-ladder arena-ladder-skel" />;
+  const prevRef = useRefAA({});
+  useEffectAA(() => {
+    if (!snap) return;
+    const map = {};
+    [...snap.depth.bids, ...snap.depth.asks].forEach((l) => { map[l.price] = l.lot; });
+    prevRef.current = map;
+  }, [snap]);
+
+  if (!snap) return <div className="arena-book arena-ladder-skel" />;
+  const { tick, last } = snap;
+  const st = snap.stats || {};
+  const done = snap.done || {};
+  const prev = prevRef.current;
+  const askMap = {}, bidMap = {};
+  snap.depth.asks.forEach((l) => { askMap[l.price] = l; });
+  snap.depth.bids.forEach((l) => { bidMap[l.price] = l; });
+
+  const topAsk = snap.depth.asks.length ? snap.depth.asks[snap.depth.asks.length - 1].price : last + 5 * tick;
+  const botBid = snap.depth.bids.length ? snap.depth.bids[snap.depth.bids.length - 1].price : last - 5 * tick;
+  const top = Math.min(topAsk, last + 12 * tick);
+  const bot = Math.max(botBid, last - 12 * tick);
+  const n = Math.max(0, Math.round((top - bot) / tick));
+  const rows = [];
+  for (let i = 0; i <= n && i < 30; i++) rows.push(top - i * tick);
+
   const maxLot = Math.max(1, ...snap.depth.bids.map((l) => l.lot), ...snap.depth.asks.map((l) => l.lot));
-  const asks = snap.depth.asks.slice().reverse(); // highest ask on top
+  const pctOf = (p) => (st.prevClose ? (p - st.prevClose) / st.prevClose * 100 : 0);
+  const marker = (p) => (p === st.high ? 'H' : p === st.open ? 'O' : p === st.low ? 'L' : '');
+  const delta = (p, lot) => { const pv = prev[p]; if (pv == null) return ''; return lot > pv ? ' d-up' : lot < pv ? ' d-dn' : ''; };
+
+  const totBidLot = snap.depth.bids.reduce((s, l) => s + l.lot, 0);
+  const totAskLot = snap.depth.asks.reduce((s, l) => s + l.lot, 0);
+  const totBidFreq = snap.depth.bids.reduce((s, l) => s + l.freq, 0);
+  const totAskFreq = snap.depth.asks.reduce((s, l) => s + l.freq, 0);
+
   return (
-    <div className="arena-ladder">
-      {asks.map((l) => (
-        <div key={'a' + l.price} className="arena-lr" onClick={() => onPick(l.price)}>
-          <span className="arena-lr-side" />
-          <span className="arena-lr-px">{l.price.toLocaleString('id-ID')}</span>
-          <span className="arena-lr-bar"><span className="arena-bar-ask" style={{ width: (l.lot / maxLot * 100) + '%' }} /><em>{l.lot}</em></span>
-        </div>
-      ))}
-      <div className="arena-lr arena-lr-last">
-        <span className="arena-lr-side" />
-        <span className="arena-lr-px">{snap.last != null ? snap.last.toLocaleString('id-ID') : '—'}</span>
-        <span className="arena-lr-bar"><em>last</em></span>
+    <div className="arena-book">
+      <div className="arena-brow arena-bhead">
+        <span>Buy</span><span>Freq</span><span>Lot</span><span>Harga</span><span>Lot</span><span>Freq</span><span>Sell</span><span>Done</span>
       </div>
-      {snap.depth.bids.map((l) => (
-        <div key={'b' + l.price} className="arena-lr" onClick={() => onPick(l.price)}>
-          <span className="arena-lr-bar arena-lr-bar-bid"><em>{l.lot}</em><span className="arena-bar-bid" style={{ width: (l.lot / maxLot * 100) + '%' }} /></span>
-          <span className="arena-lr-px">{l.price.toLocaleString('id-ID')}</span>
-          <span className="arena-lr-side" />
-        </div>
-      ))}
+      <div className="arena-bbody">
+        {rows.map((p) => {
+          const a = askMap[p], b = bidMap[p];
+          const pct = pctOf(p);
+          const mk = marker(p);
+          return (
+            <div key={p} className={`arena-brow${p === last ? ' arena-brow-last' : ''}`} onClick={() => onPick(p)}>
+              <button type="button" className="arena-plus arena-plus-buy" onClick={(e) => { e.stopPropagation(); onPick(p); }}>＋</button>
+              <span className="arena-c-freq">{b ? b.freq : ''}</span>
+              <span className="arena-c-blot">{b ? <><span className="arena-lotbar arena-lotbar-bid" style={{ width: (b.lot / maxLot * 100) + '%' }} /><em className={'arena-lotn' + delta(p, b.lot)}>{b.lot.toLocaleString('id-ID')}</em></> : null}</span>
+              <span className={`arena-c-px${pct > 0 ? ' paper-up' : pct < 0 ? ' paper-dn' : ''}`}>
+                {mk && <i className="arena-mk">{mk}</i>}{p.toLocaleString('id-ID')}<small>{pct >= 0 ? '+' : ''}{pct.toFixed(2)}%</small>
+              </span>
+              <span className="arena-c-alot">{a ? <><em className={'arena-lotn' + delta(p, a.lot)}>{a.lot.toLocaleString('id-ID')}</em><span className="arena-lotbar arena-lotbar-ask" style={{ width: (a.lot / maxLot * 100) + '%' }} /></> : null}</span>
+              <span className="arena-c-freq">{a ? a.freq : ''}</span>
+              <button type="button" className="arena-plus arena-plus-sell" onClick={(e) => { e.stopPropagation(); onPick(p); }}>＋</button>
+              <span className="arena-c-done">{done[p] ? done[p].toLocaleString('id-ID') : ''}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="arena-brow arena-btot">
+        <span></span><span>{totBidFreq}</span><span>{totBidLot.toLocaleString('id-ID')}</span><span>Total</span><span>{totAskLot.toLocaleString('id-ID')}</span><span>{totAskFreq}</span><span></span><span></span>
+      </div>
     </div>
   );
 }
