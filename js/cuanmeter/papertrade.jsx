@@ -287,7 +287,31 @@ function PaperTradePage({ onNavigate }) {
   );
 }
 
+/* Standalone "Beli (paper)" button — drop into Analyzer. Opens its own buy modal. */
+function PaperBuyButton({ ticker, price }) {
+  const [open, setOpen] = useStateP(false);
+  const [px, setPx] = useStateP(price || null);
+  useEffectP(() => { setPx(price || null); }, [price]);
+
+  if (!ticker) return null;
+  const code = String(ticker).toUpperCase();
+  const click = () => {
+    if (px) { setOpen(true); return; }
+    fetch('/price?ticker=' + code)
+      .then((r) => r.json())
+      .then((d) => { if (d.price) { setPx(d.price); setOpen(true); } })
+      .catch(() => {});
+  };
+
+  return (
+    <>
+      <button type="button" className="paper-buy-btn" onClick={click}>＋ Beli (paper)</button>
+      {open && px && <TradeModal ticker={code} price={px} mode="buy" held={0} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
 Object.assign(window, {
   getPaper, resetPaper, setPaperFee, buyPaper, sellPaper, subscribePaper, usePaper,
-  PaperTradePage, PT_DEFAULT_MODAL, PT_FEE_BUY: FEE_BUY, PT_FEE_SELL: FEE_SELL,
+  PaperTradePage, PaperBuyButton, PT_DEFAULT_MODAL, PT_FEE_BUY: FEE_BUY, PT_FEE_SELL: FEE_SELL,
 });

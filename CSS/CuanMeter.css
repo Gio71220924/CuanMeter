@@ -676,6 +676,18 @@ body[data-theme="dark"] .cta-terminal {
 .paper-up { color: var(--success); }
 .paper-dn { color: var(--danger); }
 .paper-buybar { max-width: 480px; margin-bottom: 16px; }
+.paper-buy-btn {
+  margin-top: 12px;
+  background: var(--primary);
+  color: var(--primary-fg, #fff);
+  border: none;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.paper-buy-btn:hover { filter: brightness(1.08); }
 .paper-empty {
   padding: 28px 18px;
   border: 1px dashed var(--border);

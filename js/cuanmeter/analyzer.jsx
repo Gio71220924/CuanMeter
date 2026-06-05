@@ -1251,6 +1251,7 @@ function Analyzer({ initialTicker }) {
               {tvPrice ? 'TradingView' : 'memuat...'}
             </span>
           </div>
+          <PaperBuyButton ticker={active} price={tvPrice ? tvPrice.price : null} />
         </div>
         <div className="badge">
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }} />{' '}
