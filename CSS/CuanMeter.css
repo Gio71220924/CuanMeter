@@ -655,6 +655,68 @@ body[data-theme="dark"] .cta-terminal {
   color: var(--fg-muted);
 }
 
+/* ===== Arena FO ===== */
+.arena-pick { max-width: 480px; margin-bottom: 16px; }
+.arena-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.arena-head-tk { display: flex; align-items: baseline; gap: 10px; }
+.arena-head-tk strong { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 900; color: var(--fg); }
+.arena-head-last { font-size: 18px; font-weight: 800; color: var(--fg); font-variant-numeric: tabular-nums; }
+.arena-change { background: none; border: 1px solid var(--border); color: var(--fg-muted); font-size: 12px; padding: 5px 12px; border-radius: 8px; cursor: pointer; }
+.arena-pos { background: var(--surface-2); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--fg-muted); margin-bottom: 14px; }
+.arena-pos strong { color: var(--fg); }
+.arena-main { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 16px; align-items: start; margin-bottom: 16px; }
+.arena-ladder { display: flex; flex-direction: column; gap: 2px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px; }
+.arena-ladder-skel { min-height: 300px; animation: pulse 1.5s infinite; }
+.arena-lr {
+  display: grid;
+  grid-template-columns: 1fr 64px 1fr;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.arena-lr:hover { background: var(--surface-2); }
+.arena-lr-px { text-align: center; font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--fg); }
+.arena-lr-bar { position: relative; display: flex; align-items: center; height: 14px; }
+.arena-lr-bar em { position: relative; z-index: 1; font-style: normal; font-size: 10px; color: var(--fg-muted); padding: 0 4px; }
+.arena-bar-ask { position: absolute; left: 0; height: 100%; background: rgba(207, 91, 84, 0.28); border-radius: 3px; }
+.arena-lr-bar-bid { justify-content: flex-end; }
+.arena-bar-bid { position: absolute; right: 0; height: 100%; background: rgba(76, 181, 133, 0.28); border-radius: 3px; }
+.arena-lr-last { background: var(--primary-soft); }
+.arena-lr-last .arena-lr-px { color: var(--primary); font-weight: 800; }
+.arena-ticket { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+.arena-seg { display: flex; gap: 4px; margin-bottom: 12px; }
+.arena-seg button {
+  flex: 1;
+  padding: 7px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--fg-muted);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.arena-seg button.on { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+.arena-btns { display: flex; gap: 8px; margin-top: 4px; }
+.arena-btns .btn { flex: 1; }
+.arena-msg { margin-top: 10px; font-size: 12px; color: var(--fg-muted); text-align: center; }
+.arena-orders { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
+.arena-orders-h, .arena-hist-h { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; color: var(--fg-faint); margin-bottom: 6px; }
+.arena-order { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 5px 0; font-variant-numeric: tabular-nums; }
+.arena-order > span:first-child { font-weight: 800; width: 36px; }
+.arena-order > span:nth-child(2) { flex: 1; color: var(--fg-muted); }
+.arena-order button { background: none; border: none; color: var(--fg-faint); font-size: 16px; cursor: pointer; }
+.arena-order button:hover { color: var(--danger); }
+.arena-hist { margin-bottom: 16px; }
+.arena-hist .paper-hist-row { grid-template-columns: 50px 1fr auto; }
+@media (max-width: 760px) {
+  .arena-main { grid-template-columns: 1fr; }
+}
+
 /* ===== Paper Trading ===== */
 .paper-summary { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; margin-bottom: 16px; }
 .paper-sumbox {

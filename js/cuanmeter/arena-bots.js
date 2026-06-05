@@ -87,7 +87,11 @@ function createMarket(opts) {
   function stop() { if (timer) { clearInterval(timer); timer = null; } }
 
   requote(); // seed the book immediately
-  return { book, step, submitUser, snapshot, cancel: (id) => book.cancel(id), start, stop, tick };
+  return {
+    book, step, submitUser, snapshot, start, stop, tick,
+    cancel: (id) => book.cancel(id),
+    userOrders: () => book.restingByOwner('user'),
+  };
 }
 
 if (typeof window !== 'undefined') {

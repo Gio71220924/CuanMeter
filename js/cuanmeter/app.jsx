@@ -6,7 +6,7 @@
 
 const { useState: useStateA, useEffect: useEffectA, useRef: useRefA } = React;
 
-const ROUTES = ['home', 'average', 'araarb', 'profit', 'amunisi', 'dividen', 'analyzer', 'heatmap', 'papertrade', 'guides'];
+const ROUTES = ['home', 'average', 'araarb', 'profit', 'amunisi', 'dividen', 'analyzer', 'heatmap', 'papertrade', 'arena', 'guides'];
 
 /* ---------- Floating IHSG ticker ---------- */
 function IHSGFloater() {
@@ -112,6 +112,7 @@ function App() {
       case 'analyzer': return <Analyzer initialTicker={pendingTicker} />;
       case 'heatmap':  return <HeatmapPage onNavigate={navigate} />;
       case 'papertrade': return <PaperTradePage onNavigate={navigate} />;
+      case 'arena':    return <ArenaPage onNavigate={navigate} />;
       case 'guides':   return <GuidesPage />;
       default:         return <LandingPage onNavigate={navigate} />;
     }

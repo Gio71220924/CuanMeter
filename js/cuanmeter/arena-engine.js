@@ -104,10 +104,20 @@ function createBook(tick) {
     return { bids: map(bids), asks: map(asks) };
   }
 
+  function restingByOwner(owner) {
+    const out = [];
+    for (const arr of [bids, asks]) {
+      const side = arr === bids ? 'buy' : 'sell';
+      for (const lvl of arr) for (const o of lvl.orders) if (o.owner === owner) out.push({ id: o.id, side, price: lvl.price, lot: o.lot });
+    }
+    return out;
+  }
+
   return {
     submit,
     cancel,
     depth,
+    restingByOwner,
     bestBid,
     bestAsk,
     tick,

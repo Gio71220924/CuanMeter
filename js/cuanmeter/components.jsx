@@ -138,6 +138,7 @@ const HEADER_LINKS = [
   { id: 'analyzer', label: 'Analyzer' },
   { id: 'heatmap',  label: 'Heatmap' },
   { id: 'papertrade', label: 'Simulasi' },
+  { id: 'arena',    label: 'Arena' },
   { id: 'guides',   label: 'Panduan' },
 ];
 
