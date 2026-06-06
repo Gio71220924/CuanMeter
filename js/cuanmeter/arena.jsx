@@ -19,7 +19,7 @@ function arShort(value) {
   return arRp(amount);
 }
 
-function ArenaLadder({ snap, onPick }) {
+function ArenaLadder({ snap, onPick, onPlace, orders }) {
   const previousDepth = useRefAA({});
 
   useEffectAA(() => {
@@ -48,6 +48,13 @@ function ArenaLadder({ snap, onPick }) {
 
   snap.depth.asks.forEach((level) => { askMap[level.price] = level; });
   snap.depth.bids.forEach((level) => { bidMap[level.price] = level; });
+
+  const myBuy = {};
+  const mySell = {};
+  (orders || []).forEach((order) => {
+    const target = order.side === 'buy' ? myBuy : mySell;
+    target[order.price] = (target[order.price] || 0) + order.lot;
+  });
 
   const span = 13; // fixed window: show ±13 price levels around last (empty rows included)
   const topAsk = snap.depth.asks.length
@@ -125,13 +132,13 @@ function ArenaLadder({ snap, onPick }) {
               <button
                 type="button"
                 className="arena-plus arena-plus-buy"
-                onClick={(event) => { event.stopPropagation(); onPick(price); }}
-                aria-label={`Pilih harga beli ${price.toLocaleString('id-ID')}`}
+                onClick={(event) => { event.stopPropagation(); onPlace('buy', price); }}
+                aria-label={`Pasang beli di ${price.toLocaleString('id-ID')}`}
               >
                 +
               </button>
               <span className="arena-c-freq">{bid ? bid.freq : ''}</span>
-              <span className="arena-c-blot">
+              <span className={`arena-c-blot${myBuy[price] ? ' arena-c-mine' : ''}`}>
                 {bid && (
                   <>
                     <span
@@ -143,6 +150,7 @@ function ArenaLadder({ snap, onPick }) {
                     </em>
                   </>
                 )}
+                {myBuy[price] ? <i className="arena-mine" title={`Order belimu: ${myBuy[price]} lot`}>{myBuy[price]}</i> : null}
               </span>
               <span className={`arena-c-px${priceState}`}>
                 <span className="arena-price-main">
@@ -151,7 +159,8 @@ function ArenaLadder({ snap, onPick }) {
                 </span>
                 <small>{percent >= 0 ? '+' : ''}{percent.toFixed(2)}%</small>
               </span>
-              <span className="arena-c-alot">
+              <span className={`arena-c-alot${mySell[price] ? ' arena-c-mine' : ''}`}>
+                {mySell[price] ? <i className="arena-mine" title={`Order jualmu: ${mySell[price]} lot`}>{mySell[price]}</i> : null}
                 {ask && (
                   <>
                     <em className={`arena-lotn${deltaClass(price, ask.lot)}`}>
@@ -168,8 +177,8 @@ function ArenaLadder({ snap, onPick }) {
               <button
                 type="button"
                 className="arena-plus arena-plus-sell"
-                onClick={(event) => { event.stopPropagation(); onPick(price); }}
-                aria-label={`Pilih harga jual ${price.toLocaleString('id-ID')}`}
+                onClick={(event) => { event.stopPropagation(); onPlace('sell', price); }}
+                aria-label={`Pasang jual di ${price.toLocaleString('id-ID')}`}
               >
                 +
               </button>
@@ -280,38 +289,22 @@ function ArenaPage() {
     messageTimer.current = setTimeout(() => setMessage(null), 4500);
   };
 
-  const placeOrder = (side) => {
+  // Core: place an order. orderPrice === null → market; otherwise limit at that price.
+  const executeOrder = (side, orderPrice) => {
     const market = marketRef.current;
     if (!market) return;
 
     const orderLot = Math.floor(Number(lot)) || 0;
-    if (orderLot <= 0) {
-      showMessage('Lot tidak valid');
-      return;
-    }
-
-    const orderPrice = mode === 'market' ? null : roundToTick(Number(price), market.tick);
-    if (mode === 'limit' && !(orderPrice > 0)) {
-      showMessage('Harga tidak valid');
-      return;
-    }
-    if (side === 'sell' && orderLot > position.lot) {
-      showMessage('Lot melebihi posisi');
-      return;
-    }
+    if (orderLot <= 0) { showMessage('Lot tidak valid'); return; }
+    if (orderPrice != null && !(orderPrice > 0)) { showMessage('Harga tidak valid'); return; }
+    if (side === 'sell' && orderLot > position.lot) { showMessage('Lot melebihi posisi'); return; }
 
     if (side === 'buy') {
       const reference = orderPrice || snap.bestAsk || last;
       const estimate = calculateArenaEstimate({
-        side: 'buy',
-        lot: orderLot,
-        price: reference,
-        feeRate: account.feeOn ? AR_FEE_BUY : 0,
+        side: 'buy', lot: orderLot, price: reference, feeRate: account.feeOn ? AR_FEE_BUY : 0,
       });
-      if (estimate.total > account.cash) {
-        showMessage('Buying power tidak cukup');
-        return;
-      }
+      if (estimate.total > account.cash) { showMessage('Buying power tidak cukup'); return; }
     }
 
     const result = market.submitUser({ side, price: orderPrice, lot: orderLot });
@@ -320,15 +313,28 @@ function ArenaPage() {
 
     const filled = result.trades.reduce((sum, trade) => sum + trade.lot, 0);
     const action = side === 'buy' ? 'Beli' : 'Jual';
-    if (filled && result.restingLot) {
-      showMessage(`${action}: fill ${filled} lot, ${result.restingLot} lot mengantre`);
-    } else if (filled) {
-      showMessage(`${action}: fill ${filled} lot`);
-    } else if (result.restingLot) {
-      showMessage(`${action} ${result.restingLot} lot masuk antrean`);
-    } else {
-      showMessage('Belum ada order yang match');
-    }
+    const at = orderPrice != null ? ` @ ${orderPrice.toLocaleString('id-ID')}` : '';
+    if (filled && result.restingLot) showMessage(`${action}: fill ${filled} lot, ${result.restingLot} lot mengantre${at}`);
+    else if (filled) showMessage(`${action}: fill ${filled} lot`);
+    else if (result.restingLot) showMessage(`${action} ${result.restingLot} lot mengantre${at}`);
+    else showMessage('Belum ada order yang match');
+  };
+
+  // Ticket button: resolve price from limit/market mode.
+  const placeOrder = (side) => {
+    const market = marketRef.current;
+    if (!market) return;
+    executeOrder(side, mode === 'market' ? null : roundToTick(Number(price), market.tick));
+  };
+
+  // Ladder + button: place a limit order directly at the clicked price.
+  const placeAt = (side, atPrice) => {
+    const market = marketRef.current;
+    if (!market) return;
+    const p = roundToTick(atPrice, market.tick);
+    setMode('limit');
+    setPrice(String(p));
+    executeOrder(side, p);
   };
 
   const cancelOrder = (id) => {
@@ -546,6 +552,8 @@ function ArenaPage() {
           <div className="arena-main">
             <ArenaLadder
               snap={snap}
+              orders={orders}
+              onPlace={placeAt}
               onPick={(selectedPrice) => {
                 setMode('limit');
                 setPrice(String(selectedPrice));
