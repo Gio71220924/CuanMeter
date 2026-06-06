@@ -979,7 +979,7 @@ body[data-theme="dark"] .cta-terminal {
 .arena-btot > span { text-align: center; }
 
 .arena-bbody {
-  max-height: 610px;
+  max-height: min(82vh, 780px);
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
@@ -1620,7 +1620,7 @@ body[data-theme="dark"] .arena-ticket {
   }
   .arena-c-px { font-size: 11px; }
   .arena-c-px small { font-size: 7px; }
-  .arena-bbody { max-height: 430px; }
+  .arena-bbody { max-height: 70vh; }
   .arena-ticket { padding: 12px; }
   .arena-ticket-heading { margin-bottom: 12px; }
   .arena-ticket-heading strong { font-size: 13px; }

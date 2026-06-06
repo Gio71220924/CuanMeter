@@ -49,18 +49,19 @@ function ArenaLadder({ snap, onPick }) {
   snap.depth.asks.forEach((level) => { askMap[level.price] = level; });
   snap.depth.bids.forEach((level) => { bidMap[level.price] = level; });
 
+  const span = 13; // fixed window: show ±13 price levels around last (empty rows included)
   const topAsk = snap.depth.asks.length
     ? snap.depth.asks[snap.depth.asks.length - 1].price
-    : last + 5 * tick;
+    : last;
   const bottomBid = snap.depth.bids.length
     ? snap.depth.bids[snap.depth.bids.length - 1].price
-    : last - 5 * tick;
-  const top = Math.min(topAsk, last + 12 * tick);
-  const bottom = Math.max(bottomBid, last - 12 * tick);
+    : last;
+  const top = Math.max(last + span * tick, topAsk);
+  const bottom = Math.min(last - span * tick, bottomBid);
   const levelCount = Math.max(0, Math.round((top - bottom) / tick));
   const rows = [];
 
-  for (let index = 0; index <= levelCount && index < 30; index += 1) {
+  for (let index = 0; index <= levelCount && index < 50; index += 1) {
     rows.push(top - index * tick);
   }
 
