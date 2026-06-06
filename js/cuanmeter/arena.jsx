@@ -292,6 +292,12 @@ function ArenaPage() {
     : 0;
   const changeAmount = seedPrice ? last - seedPrice : 0;
   const changePercent = seedPrice ? (changeAmount / seedPrice) * 100 : 0;
+  const buyFeeRate = account.feeOn ? AR_FEE_BUY : 0;
+  const reservedBuyCash = calculateArenaReservedCash({
+    orders,
+    feeRate: buyFeeRate,
+  });
+  const availableBuyingPower = Math.max(0, account.cash - reservedBuyCash);
 
   const showMessage = (text) => {
     clearTimeout(messageTimer.current);
@@ -312,9 +318,15 @@ function ArenaPage() {
     if (side === 'buy') {
       const reference = orderPrice || snap.bestAsk || last;
       const estimate = calculateArenaEstimate({
-        side: 'buy', lot: orderLot, price: reference, feeRate: account.feeOn ? AR_FEE_BUY : 0,
+        side: 'buy',
+        lot: orderLot,
+        price: reference,
+        feeRate: buyFeeRate,
       });
-      if (estimate.total > account.cash) { showMessage('Buying power tidak cukup'); return; }
+      if (estimate.total > availableBuyingPower) {
+        showMessage('Buying power tidak cukup. Batalkan open buy order atau kurangi lot.');
+        return;
+      }
     }
 
     const result = market.submitUser({ side, price: orderPrice, lot: orderLot });
@@ -394,16 +406,16 @@ function ArenaPage() {
     : (priceNumber || last);
   const allocationPrice = buyReference || last || 0;
   const maxBuy = calculateArenaAllocation({
-    cash: account.cash,
+    cash: availableBuyingPower,
     price: allocationPrice,
-    feeRate: account.feeOn ? AR_FEE_BUY : 0,
+    feeRate: buyFeeRate,
     fraction: 1,
   });
   const buyEstimate = calculateArenaEstimate({
     side: 'buy',
     lot: lotNumber,
     price: buyReference,
-    feeRate: account.feeOn ? AR_FEE_BUY : 0,
+    feeRate: buyFeeRate,
   });
   const sellEstimate = calculateArenaEstimate({
     side: 'sell',
@@ -419,9 +431,9 @@ function ArenaPage() {
   };
   const setAllocation = (fraction) => {
     const allocatedLot = calculateArenaAllocation({
-      cash: account.cash,
+      cash: availableBuyingPower,
       price: allocationPrice,
-      feeRate: account.feeOn ? AR_FEE_BUY : 0,
+      feeRate: buyFeeRate,
       fraction,
     });
     if (allocatedLot > 0) setLot(String(allocatedLot));
@@ -447,8 +459,12 @@ function ArenaPage() {
       <div className="arena-account-summary">
         <div className="arena-account-card">
           <span>Buying Power</span>
-          <strong>{arShort(account.cash)}</strong>
-          <small>Cash tersedia</small>
+          <strong>{arShort(availableBuyingPower)}</strong>
+          <small>
+            {reservedBuyCash > 0
+              ? `${arShort(reservedBuyCash)} dicadangkan untuk open buy`
+              : 'Cash tersedia'}
+          </small>
         </div>
         <div className="arena-account-card">
           <span>Portfolio Value</span>

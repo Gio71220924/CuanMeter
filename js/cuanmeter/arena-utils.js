@@ -29,9 +29,27 @@
     return { gross, fee, total };
   }
 
-  const api = { calculateArenaAllocation, calculateArenaEstimate };
+  function calculateArenaReservedCash({ orders = [], feeRate = 0 }) {
+    if (!Array.isArray(orders)) return 0;
+
+    return orders.reduce((reserved, order) => {
+      if (!order || order.side !== 'buy') return reserved;
+      const estimate = calculateArenaEstimate({
+        side: 'buy',
+        lot: order.lot,
+        price: order.price,
+        feeRate,
+      });
+      return reserved + estimate.total;
+    }, 0);
+  }
+
+  const api = {
+    calculateArenaAllocation,
+    calculateArenaEstimate,
+    calculateArenaReservedCash,
+  };
 
   if (root) Object.assign(root, api);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 }(typeof window !== 'undefined' ? window : null));
-

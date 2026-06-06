@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   calculateArenaAllocation,
   calculateArenaEstimate,
+  calculateArenaReservedCash,
 } = require('../js/cuanmeter/arena-utils.js');
 
 test('calculateArenaAllocation uses the requested share of buying power', () => {
@@ -79,4 +80,31 @@ test('calculateArenaEstimate subtracts fee from sell proceeds', () => {
     fee: 1_250,
     total: 498_750,
   });
+});
+
+test('calculateArenaReservedCash sums every resting buy order including fee', () => {
+  const reserved = calculateArenaReservedCash({
+    orders: [
+      { side: 'buy', lot: 100, price: 1_000 },
+      { side: 'sell', lot: 20, price: 1_100 },
+      { side: 'buy', lot: 50, price: 900 },
+    ],
+    feeRate: 0.0015,
+  });
+
+  assert.equal(reserved, 14_521_750);
+});
+
+test('calculateArenaReservedCash ignores malformed and non-buy orders', () => {
+  const reserved = calculateArenaReservedCash({
+    orders: [
+      { side: 'sell', lot: 100, price: 1_000 },
+      { side: 'buy', lot: 0, price: 1_000 },
+      { side: 'buy', lot: 10, price: 0 },
+      null,
+    ],
+    feeRate: 0.0015,
+  });
+
+  assert.equal(reserved, 0);
 });

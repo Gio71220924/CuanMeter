@@ -120,8 +120,22 @@ function TradeModal({ ticker, price, mode, held, onClose }) {
   const fee = s.feeOn ? value * feeRate : 0;
   const total = mode === 'buy' ? value + fee : value - fee;
   const maxBuyLot = price > 0 ? Math.floor(s.cash / (price * 100 * (1 + (s.feeOn ? FEE_BUY : 0)))) : 0;
+  const buyLimitExceeded = mode === 'buy' && total > s.cash;
+  const sellLimitExceeded = mode === 'sell' && n > held;
+  const invalidLot = n <= 0;
+  const limitError = buyLimitExceeded
+    ? `Total pembelian melebihi cash tersedia (${fmtRp(s.cash)})`
+    : sellLimitExceeded
+      ? `Maksimal penjualan ${held} lot`
+      : invalidLot
+        ? 'Jumlah lot minimal 1'
+        : null;
 
   const submit = () => {
+    if (limitError) {
+      setErr(limitError);
+      return;
+    }
     const r = mode === 'buy' ? buyPaper(ticker, n, price) : sellPaper(ticker, n, price);
     if (r.ok) onClose(); else setErr(r.error);
   };
@@ -136,7 +150,13 @@ function TradeModal({ ticker, price, mode, held, onClose }) {
         <div className="paper-modal-price">Harga pasar: <strong>{fmtRp(price)}</strong></div>
         <label className="paper-field">
           <span>Jumlah lot {mode === 'buy' ? `(maks ${maxBuyLot})` : `(punya ${held})`}</span>
-          <input type="number" min="1" value={lot} onChange={(e) => { setLot(e.target.value); setErr(null); }} />
+          <input
+            type="number"
+            min="1"
+            max={mode === 'buy' ? maxBuyLot : held}
+            value={lot}
+            onChange={(e) => { setLot(e.target.value); setErr(null); }}
+          />
         </label>
         <div className="paper-calc">
           <div><span>Lembar</span><span>{shares.toLocaleString('id-ID')}</span></div>
@@ -144,8 +164,13 @@ function TradeModal({ ticker, price, mode, held, onClose }) {
           {s.feeOn && <div><span>Fee ({(feeRate * 100).toFixed(2)}%)</span><span>{fmtRp(fee)}</span></div>}
           <div className="paper-calc-total"><span>{mode === 'buy' ? 'Total bayar' : 'Terima bersih'}</span><span>{fmtRp(total)}</span></div>
         </div>
-        {err && <div className="paper-modal-err">{err}</div>}
-        <button type="button" className={`btn ${mode === 'buy' ? 'btn-primary' : 'btn-sell'} paper-modal-submit`} onClick={submit}>
+        {(err || limitError) && <div className="paper-modal-err">{err || limitError}</div>}
+        <button
+          type="button"
+          className={`btn ${mode === 'buy' ? 'btn-primary' : 'btn-sell'} paper-modal-submit`}
+          onClick={submit}
+          disabled={Boolean(limitError)}
+        >
           {mode === 'buy' ? 'Konfirmasi Beli' : 'Konfirmasi Jual'}
         </button>
       </div>

@@ -1807,6 +1807,13 @@ body[data-theme="dark"] .arena-ticket {
   text-align: center;
 }
 .paper-modal-submit { width: 100%; }
+.paper-modal-submit:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.35);
+  opacity: 0.48;
+  box-shadow: none;
+  transform: none;
+}
 @media (max-width: 640px) {
   .paper-hrow { grid-template-columns: 1.2fr 0.5fr 1fr 0.8fr auto; font-size: 12px; }
   .paper-hrow > span:nth-child(3), .paper-hhead > span:nth-child(3) { display: none; }
