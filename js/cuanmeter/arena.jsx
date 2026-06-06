@@ -19,8 +19,11 @@ function arShort(value) {
   return arRp(amount);
 }
 
-function ArenaLadder({ snap, onPick, onPlace, orders }) {
+function ArenaLadder({ snap, onPick, onPlace, orders, ticker }) {
   const previousDepth = useRefAA({});
+  const bodyRef = useRefAA(null);
+  const lastRowRef = useRefAA(null);
+  const centeredFor = useRefAA(null);
 
   useEffectAA(() => {
     if (!snap) return;
@@ -30,6 +33,17 @@ function ArenaLadder({ snap, onPick, onPlace, orders }) {
     });
     previousDepth.current = next;
   }, [snap]);
+
+  // center the current price once per session (then let the user scroll freely)
+  useEffectAA(() => {
+    if (!snap || centeredFor.current === ticker) return;
+    const body = bodyRef.current;
+    const row = lastRowRef.current;
+    if (body && row) {
+      body.scrollTop = row.offsetTop - body.clientHeight / 2 + row.clientHeight / 2;
+      centeredFor.current = ticker;
+    }
+  }, [snap, ticker]);
 
   if (!snap) {
     return (
@@ -56,19 +70,14 @@ function ArenaLadder({ snap, onPick, onPlace, orders }) {
     target[order.price] = (target[order.price] || 0) + order.lot;
   });
 
-  const span = 13; // fixed window: show ±13 price levels around last (empty rows included)
-  const topAsk = snap.depth.asks.length
-    ? snap.depth.asks[snap.depth.asks.length - 1].price
-    : last;
-  const bottomBid = snap.depth.bids.length
-    ? snap.depth.bids[snap.depth.bids.length - 1].price
-    : last;
-  const top = Math.max(last + span * tick, topAsk);
-  const bottom = Math.min(last - span * tick, bottomBid);
+  // Fixed range from ARA (top) down to ARB (bottom) — constant for the session, so
+  // scroll position stays put and Done/lot update in place instead of shifting on ticks.
+  const top = roundToTick(stats.ara || (last + 15 * tick), tick);
+  const bottom = roundToTick(stats.arb || (last - 15 * tick), tick);
   const levelCount = Math.max(0, Math.round((top - bottom) / tick));
   const rows = [];
 
-  for (let index = 0; index <= levelCount && index < 50; index += 1) {
+  for (let index = 0; index <= levelCount && index < 240; index += 1) {
     rows.push(top - index * tick);
   }
 
@@ -115,7 +124,7 @@ function ArenaLadder({ snap, onPick, onPlace, orders }) {
         <span>Done</span>
       </div>
 
-      <div className="arena-bbody">
+      <div className="arena-bbody" ref={bodyRef}>
         {rows.map((price) => {
           const ask = askMap[price];
           const bid = bidMap[price];
@@ -126,6 +135,7 @@ function ArenaLadder({ snap, onPick, onPlace, orders }) {
           return (
             <div
               key={price}
+              ref={price === last ? lastRowRef : null}
               className={`arena-brow arena-price-row${price === last ? ' arena-brow-last' : ''}`}
               onClick={() => onPick(price)}
             >
@@ -552,6 +562,7 @@ function ArenaPage() {
           <div className="arena-main">
             <ArenaLadder
               snap={snap}
+              ticker={ticker}
               orders={orders}
               onPlace={placeAt}
               onPick={(selectedPrice) => {

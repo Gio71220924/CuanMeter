@@ -979,7 +979,7 @@ body[data-theme="dark"] .cta-terminal {
 .arena-btot > span { text-align: center; }
 
 .arena-bbody {
-  max-height: min(82vh, 780px);
+  max-height: 520px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
