@@ -29,11 +29,17 @@
     return { gross, fee, total };
   }
 
-  function calculateArenaReservedCash({ orders = [], feeRate = 0 }) {
+  function calculateArenaReservedCash({ orders = [], feeRate = 0, excludeOrderId = null }) {
     if (!Array.isArray(orders)) return 0;
 
     return orders.reduce((reserved, order) => {
-      if (!order || order.side !== 'buy') return reserved;
+      if (
+        !order ||
+        order.side !== 'buy' ||
+        (excludeOrderId != null && order.id === excludeOrderId)
+      ) {
+        return reserved;
+      }
       const estimate = calculateArenaEstimate({
         side: 'buy',
         lot: order.lot,

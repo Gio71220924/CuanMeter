@@ -19,11 +19,13 @@ function arShort(value) {
   return arRp(amount);
 }
 
-function ArenaLadder({ snap, onPick, onPlace, orders, ticker }) {
+function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
   const previousDepth = useRefAA({});
   const bodyRef = useRefAA(null);
   const lastRowRef = useRefAA(null);
   const centeredFor = useRefAA(null);
+  const [draggedOrderId, setDraggedOrderId] = useStateAA(null);
+  const [dropPrice, setDropPrice] = useStateAA(null);
 
   useEffectAA(() => {
     if (!snap) return;
@@ -67,8 +69,32 @@ function ArenaLadder({ snap, onPick, onPlace, orders, ticker }) {
   const mySell = {};
   (orders || []).forEach((order) => {
     const target = order.side === 'buy' ? myBuy : mySell;
-    target[order.price] = (target[order.price] || 0) + order.lot;
+    if (!target[order.price]) target[order.price] = [];
+    target[order.price].push(order);
   });
+
+  const renderOrderChip = (order) => (
+    <i
+      key={order.id}
+      className={`arena-mine${draggedOrderId === order.id ? ' arena-mine-dragging' : ''}`}
+      title={`Drag untuk memindahkan order ${order.side}: ${order.lot} lot @ ${order.price}`}
+      draggable={true}
+      data-order-id={order.id}
+      onClick={(event) => event.stopPropagation()}
+      onDragStart={(event) => {
+        event.stopPropagation();
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', String(order.id));
+        setDraggedOrderId(order.id);
+      }}
+      onDragEnd={() => {
+        setDraggedOrderId(null);
+        setDropPrice(null);
+      }}
+    >
+      {order.lot}
+    </i>
+  );
 
   // Fixed range from ARA (top) down to ARB (bottom) — constant for the session, so
   // scroll position stays put and Done/lot update in place instead of shifting on ticks.
@@ -136,8 +162,25 @@ function ArenaLadder({ snap, onPick, onPlace, orders, ticker }) {
             <div
               key={price}
               ref={price === last ? lastRowRef : null}
-              className={`arena-brow arena-price-row${price === last ? ' arena-brow-last' : ''}`}
+              className={`arena-brow arena-price-row${price === last ? ' arena-brow-last' : ''}${dropPrice === price ? ' arena-row-drop-target' : ''}`}
               onClick={() => onPick(price)}
+              data-price={price}
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                if (dropPrice !== price) setDropPrice(price);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const transferredId = Number(event.dataTransfer.getData('text/plain'));
+                const orderId = Number.isFinite(transferredId) && transferredId > 0
+                  ? transferredId
+                  : draggedOrderId;
+                if (orderId != null) onMove(orderId, price);
+                setDraggedOrderId(null);
+                setDropPrice(null);
+              }}
             >
               <button
                 type="button"
@@ -160,7 +203,7 @@ function ArenaLadder({ snap, onPick, onPlace, orders, ticker }) {
                     </em>
                   </>
                 )}
-                {myBuy[price] ? <i className="arena-mine" title={`Order belimu: ${myBuy[price]} lot`}>{myBuy[price]}</i> : null}
+                {(myBuy[price] || []).map(renderOrderChip)}
               </span>
               <span className={`arena-c-px${priceState}`}>
                 <span className="arena-price-main">
@@ -170,7 +213,7 @@ function ArenaLadder({ snap, onPick, onPlace, orders, ticker }) {
                 <small>{percent >= 0 ? '+' : ''}{percent.toFixed(2)}%</small>
               </span>
               <span className={`arena-c-alot${mySell[price] ? ' arena-c-mine' : ''}`}>
-                {mySell[price] ? <i className="arena-mine" title={`Order jualmu: ${mySell[price]} lot`}>{mySell[price]}</i> : null}
+                {(mySell[price] || []).map(renderOrderChip)}
                 {ask && (
                   <>
                     <em className={`arena-lotn${deltaClass(price, ask.lot)}`}>
@@ -357,6 +400,68 @@ function ArenaPage() {
     setMode('limit');
     setPrice(String(p));
     executeOrder(side, p);
+  };
+
+  const moveOrder = (orderId, targetPrice) => {
+    const market = marketRef.current;
+    if (!market) return;
+
+    const activeOrders = market.userOrders();
+    const order = activeOrders.find((item) => item.id === orderId);
+    if (!order) {
+      showMessage('Order sudah tidak aktif');
+      return;
+    }
+
+    const nextPrice = roundToTick(Number(targetPrice), market.tick);
+    if (!(nextPrice > 0) || nextPrice === order.price) {
+      if (nextPrice === order.price) showMessage('Order tetap di harga yang sama');
+      return;
+    }
+
+    if (order.side === 'buy') {
+      const reservedOtherOrders = calculateArenaReservedCash({
+        orders: activeOrders,
+        feeRate: buyFeeRate,
+        excludeOrderId: order.id,
+      });
+      const buyingPowerForMove = Math.max(0, account.cash - reservedOtherOrders);
+      const movedEstimate = calculateArenaEstimate({
+        side: 'buy',
+        lot: order.lot,
+        price: nextPrice,
+        feeRate: buyFeeRate,
+      });
+
+      if (movedEstimate.total > buyingPowerForMove) {
+        showMessage('Harga tujuan melebihi buying power. Order lama tetap aktif.');
+        return;
+      }
+    }
+
+    if (!market.cancel(order.id)) {
+      showMessage('Order gagal dipindahkan karena sudah tidak aktif');
+      return;
+    }
+
+    const result = market.submitUser({
+      side: order.side,
+      price: nextPrice,
+      lot: order.lot,
+    });
+    setSnap(market.snapshot());
+    setOrders(market.userOrders());
+
+    const filled = result.trades.reduce((sum, trade) => sum + trade.lot, 0);
+    const sideLabel = order.side === 'buy' ? 'BUY' : 'SELL';
+    const moveLabel = `${sideLabel} ${order.lot} lot ${order.price.toLocaleString('id-ID')} -> ${nextPrice.toLocaleString('id-ID')}`;
+    if (filled && result.restingLot) {
+      showMessage(`${moveLabel}: fill ${filled}, ${result.restingLot} lot mengantre`);
+    } else if (filled) {
+      showMessage(`${moveLabel}: seluruhnya terisi`);
+    } else {
+      showMessage(`${moveLabel}: order dipindahkan`);
+    }
   };
 
   const cancelOrder = (id) => {
@@ -581,6 +686,7 @@ function ArenaPage() {
               ticker={ticker}
               orders={orders}
               onPlace={placeAt}
+              onMove={moveOrder}
               onPick={(selectedPrice) => {
                 setMode('limit');
                 setPrice(String(selectedPrice));

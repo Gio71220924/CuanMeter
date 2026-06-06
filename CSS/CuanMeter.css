@@ -1078,6 +1078,9 @@ body[data-theme="dark"] .cta-terminal {
 .arena-mine {
   position: relative;
   z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-style: normal;
   font-weight: 800;
   font-size: 9px;
@@ -1086,10 +1089,49 @@ body[data-theme="dark"] .cta-terminal {
   background: var(--primary);
   border-radius: 4px;
   padding: 2px 5px;
-  margin: 0 4px;
+  margin: 0 2px;
   flex-shrink: 0;
+  border: 1px solid color-mix(in oklab, var(--primary) 70%, var(--surface));
+  box-shadow: 0 2px 6px color-mix(in oklab, var(--primary) 18%, transparent);
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: opacity 120ms ease, transform 120ms ease, box-shadow 120ms ease;
 }
-.arena-c-mine { box-shadow: inset 0 0 0 1.5px var(--primary); border-radius: 5px; }
+.arena-mine:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 9px color-mix(in oklab, var(--primary) 25%, transparent);
+}
+.arena-mine:active { cursor: grabbing; }
+.arena-mine-dragging {
+  opacity: 0.34;
+  cursor: grabbing;
+}
+.arena-c-mine {
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--primary) 72%, transparent);
+  border-radius: 5px;
+}
+
+.arena-row-drop-target {
+  background: color-mix(in oklab, var(--primary-soft) 78%, var(--surface)) !important;
+  box-shadow:
+    inset 3px 0 0 var(--primary),
+    inset 0 0 0 2px color-mix(in oklab, var(--primary) 64%, transparent) !important;
+}
+
+.arena-row-drop-target .arena-c-px::after {
+  content: 'DROP';
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 48px);
+  transform: translateY(-50%);
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: var(--primary);
+  color: var(--primary-fg);
+  font-size: 7px;
+  letter-spacing: 0.05em;
+}
 
 .arena-c-px {
   position: relative;

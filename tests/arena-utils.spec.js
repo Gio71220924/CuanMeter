@@ -108,3 +108,16 @@ test('calculateArenaReservedCash ignores malformed and non-buy orders', () => {
 
   assert.equal(reserved, 0);
 });
+
+test('calculateArenaReservedCash excludes the order being moved', () => {
+  const reserved = calculateArenaReservedCash({
+    orders: [
+      { id: 11, side: 'buy', lot: 100, price: 1_000 },
+      { id: 12, side: 'buy', lot: 50, price: 900 },
+    ],
+    feeRate: 0.0015,
+    excludeOrderId: 11,
+  });
+
+  assert.equal(reserved, 4_506_750);
+});
