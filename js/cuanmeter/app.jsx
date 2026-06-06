@@ -9,7 +9,7 @@ const { useState: useStateA, useEffect: useEffectA, useRef: useRefA } = React;
 const ROUTES = ['home', 'average', 'araarb', 'profit', 'amunisi', 'dividen', 'analyzer', 'heatmap', 'papertrade', 'arena', 'guides'];
 
 /* ---------- Floating IHSG ticker ---------- */
-function IHSGFloater() {
+function IHSGFloater({ compact = false }) {
   const [data, setDataA] = useStateA(null);
   const esRef = useRefA(null);
 
@@ -31,6 +31,7 @@ function IHSGFloater() {
 
   return (
     <div
+      className={compact ? 'ihsg-floater ihsg-floater-arena' : 'ihsg-floater'}
       style={{
         position: 'fixed', bottom: 20, right: 20, zIndex: 900,
         background: 'var(--surface)', border: '1px solid var(--border)',
@@ -130,7 +131,7 @@ function App() {
         {screen}
       </div>
       <Footer onNavigate={navigate} />
-      <IHSGFloater />
+      <IHSGFloater compact={route === 'arena'} />
     </div>
   );
 }

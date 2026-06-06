@@ -1,203 +1,487 @@
 /* ============================================================
-   arena.jsx — Arena FO page: live ladder + fast order entry.
-   Wires the synthetic market (createMarket) to the account store.
-   The market runs on a timer while this page is mounted; the
-   account (cash/position) persists, the market re-seeds each visit.
+   arena.jsx - Arena FO: synthetic order book + fast order entry.
+   Market/account behavior lives in the existing engine and store;
+   this file owns the Hybrid Pro trading interface.
    ============================================================ */
 
 const { useState: useStateAA, useEffect: useEffectAA, useRef: useRefAA } = React;
 
-function arRp(v) { return 'Rp ' + Math.round(v || 0).toLocaleString('id-ID'); }
-function arShort(v) {
-  v = v || 0; const a = Math.abs(v);
-  if (a >= 1e12) return 'Rp ' + (v / 1e12).toFixed(2).replace('.', ',') + ' T';
-  if (a >= 1e9) return 'Rp ' + (v / 1e9).toFixed(2).replace('.', ',') + ' M';
-  if (a >= 1e6) return 'Rp ' + (v / 1e6).toFixed(1).replace('.', ',') + ' jt';
-  return 'Rp ' + Math.round(v).toLocaleString('id-ID');
+function arRp(value) {
+  return 'Rp ' + Math.round(value || 0).toLocaleString('id-ID');
 }
 
-/* Stockbit-style depth table: Buy＋·Freq·Lot │ Price%/HOL │ Lot·Freq·Sell＋ · Done.
-   Continuous price ladder; lot numbers flash green/red on change (delta). */
+function arShort(value) {
+  const amount = Number(value) || 0;
+  const absolute = Math.abs(amount);
+  if (absolute >= 1e12) return 'Rp ' + (amount / 1e12).toFixed(2).replace('.', ',') + ' T';
+  if (absolute >= 1e9) return 'Rp ' + (amount / 1e9).toFixed(2).replace('.', ',') + ' M';
+  if (absolute >= 1e6) return 'Rp ' + (amount / 1e6).toFixed(1).replace('.', ',') + ' jt';
+  return arRp(amount);
+}
+
 function ArenaLadder({ snap, onPick }) {
-  const prevRef = useRefAA({});
+  const previousDepth = useRefAA({});
+
   useEffectAA(() => {
     if (!snap) return;
-    const map = {};
-    [...snap.depth.bids, ...snap.depth.asks].forEach((l) => { map[l.price] = l.lot; });
-    prevRef.current = map;
+    const next = {};
+    [...snap.depth.bids, ...snap.depth.asks].forEach((level) => {
+      next[level.price] = level.lot;
+    });
+    previousDepth.current = next;
   }, [snap]);
 
-  if (!snap) return <div className="arena-book arena-ladder-skel" />;
+  if (!snap) {
+    return (
+      <div className="arena-book arena-ladder-skel" aria-label="Memuat order book">
+        <div className="arena-book-loading">Menyiapkan market simulator...</div>
+      </div>
+    );
+  }
+
   const { tick, last } = snap;
-  const st = snap.stats || {};
+  const stats = snap.stats || {};
   const done = snap.done || {};
-  const prev = prevRef.current;
-  const askMap = {}, bidMap = {};
-  snap.depth.asks.forEach((l) => { askMap[l.price] = l; });
-  snap.depth.bids.forEach((l) => { bidMap[l.price] = l; });
+  const previous = previousDepth.current;
+  const askMap = {};
+  const bidMap = {};
 
-  const topAsk = snap.depth.asks.length ? snap.depth.asks[snap.depth.asks.length - 1].price : last + 5 * tick;
-  const botBid = snap.depth.bids.length ? snap.depth.bids[snap.depth.bids.length - 1].price : last - 5 * tick;
+  snap.depth.asks.forEach((level) => { askMap[level.price] = level; });
+  snap.depth.bids.forEach((level) => { bidMap[level.price] = level; });
+
+  const topAsk = snap.depth.asks.length
+    ? snap.depth.asks[snap.depth.asks.length - 1].price
+    : last + 5 * tick;
+  const bottomBid = snap.depth.bids.length
+    ? snap.depth.bids[snap.depth.bids.length - 1].price
+    : last - 5 * tick;
   const top = Math.min(topAsk, last + 12 * tick);
-  const bot = Math.max(botBid, last - 12 * tick);
-  const n = Math.max(0, Math.round((top - bot) / tick));
+  const bottom = Math.max(bottomBid, last - 12 * tick);
+  const levelCount = Math.max(0, Math.round((top - bottom) / tick));
   const rows = [];
-  for (let i = 0; i <= n && i < 30; i++) rows.push(top - i * tick);
 
-  const maxLot = Math.max(1, ...snap.depth.bids.map((l) => l.lot), ...snap.depth.asks.map((l) => l.lot));
-  const pctOf = (p) => (st.prevClose ? (p - st.prevClose) / st.prevClose * 100 : 0);
-  const marker = (p) => (p === st.high ? 'H' : p === st.open ? 'O' : p === st.low ? 'L' : '');
-  const delta = (p, lot) => { const pv = prev[p]; if (pv == null) return ''; return lot > pv ? ' d-up' : lot < pv ? ' d-dn' : ''; };
+  for (let index = 0; index <= levelCount && index < 30; index += 1) {
+    rows.push(top - index * tick);
+  }
 
-  const totBidLot = snap.depth.bids.reduce((s, l) => s + l.lot, 0);
-  const totAskLot = snap.depth.asks.reduce((s, l) => s + l.lot, 0);
-  const totBidFreq = snap.depth.bids.reduce((s, l) => s + l.freq, 0);
-  const totAskFreq = snap.depth.asks.reduce((s, l) => s + l.freq, 0);
+  const maxLot = Math.max(
+    1,
+    ...snap.depth.bids.map((level) => level.lot),
+    ...snap.depth.asks.map((level) => level.lot),
+  );
+  const percentOf = (price) => (
+    stats.prevClose ? ((price - stats.prevClose) / stats.prevClose) * 100 : 0
+  );
+  const marker = (price) => (
+    price === stats.high ? 'H' : price === stats.open ? 'O' : price === stats.low ? 'L' : ''
+  );
+  const deltaClass = (price, lot) => {
+    const previousLot = previous[price];
+    if (previousLot == null) return '';
+    return lot > previousLot ? ' d-up' : lot < previousLot ? ' d-dn' : '';
+  };
+
+  const totalBidLot = snap.depth.bids.reduce((sum, level) => sum + level.lot, 0);
+  const totalAskLot = snap.depth.asks.reduce((sum, level) => sum + level.lot, 0);
+  const totalBidFreq = snap.depth.bids.reduce((sum, level) => sum + level.freq, 0);
+  const totalAskFreq = snap.depth.asks.reduce((sum, level) => sum + level.freq, 0);
 
   return (
-    <div className="arena-book">
-      <div className="arena-brow arena-bhead">
-        <span>Buy</span><span>Freq</span><span>Lot</span><span>Harga</span><span>Lot</span><span>Freq</span><span>Sell</span><span>Done</span>
+    <section className="arena-book" aria-label="Order book simulator">
+      <div className="arena-book-titlebar">
+        <div>
+          <strong>Order Book</strong>
+          <span>Depth sintetis dari aktivitas bot</span>
+        </div>
+        <span className="arena-live-dot">SIM LIVE</span>
       </div>
+
+      <div className="arena-brow arena-bhead">
+        <span>Buy</span>
+        <span>Freq</span>
+        <span>Bid Lot</span>
+        <span>Price / Change</span>
+        <span>Ask Lot</span>
+        <span>Freq</span>
+        <span>Sell</span>
+        <span>Done</span>
+      </div>
+
       <div className="arena-bbody">
-        {rows.map((p) => {
-          const a = askMap[p], b = bidMap[p];
-          const pct = pctOf(p);
-          const mk = marker(p);
+        {rows.map((price) => {
+          const ask = askMap[price];
+          const bid = bidMap[price];
+          const percent = percentOf(price);
+          const priceMarker = marker(price);
+          const priceState = percent > 0 ? ' paper-up' : percent < 0 ? ' paper-dn' : '';
+
           return (
-            <div key={p} className={`arena-brow${p === last ? ' arena-brow-last' : ''}`} onClick={() => onPick(p)}>
-              <button type="button" className="arena-plus arena-plus-buy" onClick={(e) => { e.stopPropagation(); onPick(p); }}>＋</button>
-              <span className="arena-c-freq">{b ? b.freq : ''}</span>
-              <span className="arena-c-blot">{b ? <><span className="arena-lotbar arena-lotbar-bid" style={{ width: (b.lot / maxLot * 100) + '%' }} /><em className={'arena-lotn' + delta(p, b.lot)}>{b.lot.toLocaleString('id-ID')}</em></> : null}</span>
-              <span className={`arena-c-px${pct > 0 ? ' paper-up' : pct < 0 ? ' paper-dn' : ''}`}>
-                {mk && <i className="arena-mk">{mk}</i>}{p.toLocaleString('id-ID')}<small>{pct >= 0 ? '+' : ''}{pct.toFixed(2)}%</small>
+            <div
+              key={price}
+              className={`arena-brow arena-price-row${price === last ? ' arena-brow-last' : ''}`}
+              onClick={() => onPick(price)}
+            >
+              <button
+                type="button"
+                className="arena-plus arena-plus-buy"
+                onClick={(event) => { event.stopPropagation(); onPick(price); }}
+                aria-label={`Pilih harga beli ${price.toLocaleString('id-ID')}`}
+              >
+                +
+              </button>
+              <span className="arena-c-freq">{bid ? bid.freq : ''}</span>
+              <span className="arena-c-blot">
+                {bid && (
+                  <>
+                    <span
+                      className="arena-lotbar arena-lotbar-bid"
+                      style={{ width: `${(bid.lot / maxLot) * 100}%` }}
+                    />
+                    <em className={`arena-lotn${deltaClass(price, bid.lot)}`}>
+                      {bid.lot.toLocaleString('id-ID')}
+                    </em>
+                  </>
+                )}
               </span>
-              <span className="arena-c-alot">{a ? <><em className={'arena-lotn' + delta(p, a.lot)}>{a.lot.toLocaleString('id-ID')}</em><span className="arena-lotbar arena-lotbar-ask" style={{ width: (a.lot / maxLot * 100) + '%' }} /></> : null}</span>
-              <span className="arena-c-freq">{a ? a.freq : ''}</span>
-              <button type="button" className="arena-plus arena-plus-sell" onClick={(e) => { e.stopPropagation(); onPick(p); }}>＋</button>
-              <span className="arena-c-done">{done[p] ? done[p].toLocaleString('id-ID') : ''}</span>
+              <span className={`arena-c-px${priceState}`}>
+                <span className="arena-price-main">
+                  {priceMarker && <i className="arena-mk">{priceMarker}</i>}
+                  {price.toLocaleString('id-ID')}
+                </span>
+                <small>{percent >= 0 ? '+' : ''}{percent.toFixed(2)}%</small>
+              </span>
+              <span className="arena-c-alot">
+                {ask && (
+                  <>
+                    <em className={`arena-lotn${deltaClass(price, ask.lot)}`}>
+                      {ask.lot.toLocaleString('id-ID')}
+                    </em>
+                    <span
+                      className="arena-lotbar arena-lotbar-ask"
+                      style={{ width: `${(ask.lot / maxLot) * 100}%` }}
+                    />
+                  </>
+                )}
+              </span>
+              <span className="arena-c-freq">{ask ? ask.freq : ''}</span>
+              <button
+                type="button"
+                className="arena-plus arena-plus-sell"
+                onClick={(event) => { event.stopPropagation(); onPick(price); }}
+                aria-label={`Pilih harga jual ${price.toLocaleString('id-ID')}`}
+              >
+                +
+              </button>
+              <span className="arena-c-done">
+                {done[price] ? done[price].toLocaleString('id-ID') : ''}
+              </span>
             </div>
           );
         })}
       </div>
+
       <div className="arena-brow arena-btot">
-        <span></span><span>{totBidFreq}</span><span>{totBidLot.toLocaleString('id-ID')}</span><span>Total</span><span>{totAskLot.toLocaleString('id-ID')}</span><span>{totAskFreq}</span><span></span><span></span>
+        <span />
+        <span>{totalBidFreq}</span>
+        <span>{totalBidLot.toLocaleString('id-ID')}</span>
+        <span>Total</span>
+        <span>{totalAskLot.toLocaleString('id-ID')}</span>
+        <span>{totalAskFreq}</span>
+        <span />
+        <span />
       </div>
-    </div>
+    </section>
   );
 }
 
-function ArenaPage({ onNavigate }) {
-  const acct = useArena();
+function ArenaPage() {
+  const account = useArena();
   const marketRef = useRefAA(null);
+  const messageTimer = useRefAA(null);
+  const searchTimer = useRefAA(null);
   const [snap, setSnap] = useStateAA(null);
   const [seedPrice, setSeedPrice] = useStateAA(null);
   const [mode, setMode] = useStateAA('limit');
   const [lot, setLot] = useStateAA('5');
   const [price, setPrice] = useStateAA('');
-  const [orders, setOrders] = useStateAA([]); // resting user orders
-  const [msg, setMsg] = useStateAA(null);
-  const [q, setQ] = useStateAA('');
+  const [orders, setOrders] = useStateAA([]);
+  const [message, setMessage] = useStateAA(null);
+  const [query, setQuery] = useStateAA('');
   const [results, setResults] = useStateAA([]);
-  const searchTimer = useRefAA(null);
 
-  const ticker = acct.ticker;
+  const ticker = account.ticker;
 
-  // build & run the market when a ticker is active
   useEffectAA(() => {
-    if (!ticker) { setSnap(null); return; }
-    let dead = false;
+    if (!ticker) {
+      setSnap(null);
+      return undefined;
+    }
+
+    let disposed = false;
+
     fetch('/price?ticker=' + ticker)
-      .then((r) => r.json())
-      .then((d) => {
-        if (dead) return;
-        const sp = d.price || 1000;
-        setSeedPrice(sp);
+      .then((response) => response.json())
+      .then((data) => {
+        if (disposed) return;
+        const startingPrice = data.price || 1000;
+        setSeedPrice(startingPrice);
+
         const market = createMarket({
-          seedPrice: sp,
+          seedPrice: startingPrice,
           onUpdate: () => {
-            if (dead) return;
+            if (disposed) return;
             setSnap(market.snapshot());
             setOrders(market.userOrders());
           },
-          onTrade: (t) => { if (t.buyOwner === 'user' || t.sellOwner === 'user') applyUserFills([t]); },
+          onTrade: (trade) => {
+            if (trade.buyOwner === 'user' || trade.sellOwner === 'user') {
+              applyUserFills([trade]);
+            }
+          },
         });
+
         marketRef.current = market;
-        setSnap(market.snapshot());
-        setPrice(String(market.snapshot().last));
+        const firstSnapshot = market.snapshot();
+        setSnap(firstSnapshot);
+        setPrice(String(firstSnapshot.last));
         market.start(700);
       })
-      .catch(() => {});
-    return () => { dead = true; if (marketRef.current) marketRef.current.stop(); marketRef.current = null; };
+      .catch(() => {
+        if (!disposed) setMessage('Harga awal gagal dimuat. Coba pilih saham lagi.');
+      });
+
+    return () => {
+      disposed = true;
+      if (marketRef.current) marketRef.current.stop();
+      marketRef.current = null;
+    };
   }, [ticker]);
 
-  const pos = acct.position || { lot: 0, avg: 0 };
+  useEffectAA(() => () => {
+    clearTimeout(messageTimer.current);
+    clearTimeout(searchTimer.current);
+  }, []);
+
+  const position = account.position || { lot: 0, avg: 0 };
   const last = snap ? snap.last : (seedPrice || 0);
-  const posPL = pos.lot > 0 && pos.avg > 0 ? (last - pos.avg) / pos.avg * 100 : 0;
-  const equity = acct.cash + pos.lot * 100 * last;
-  const totalPL = acct.initial > 0 ? (equity - acct.initial) / acct.initial * 100 : 0;
-  const chgSeed = seedPrice ? (last - seedPrice) / seedPrice * 100 : 0;
+  const portfolioValue = position.lot * 100 * last;
+  const equity = account.cash + portfolioValue;
+  const unrealized = position.lot > 0 ? (last - position.avg) * position.lot * 100 : 0;
+  const unrealizedPercent = position.lot > 0 && position.avg > 0
+    ? ((last - position.avg) / position.avg) * 100
+    : 0;
+  const changeAmount = seedPrice ? last - seedPrice : 0;
+  const changePercent = seedPrice ? (changeAmount / seedPrice) * 100 : 0;
 
-  const flash = (m) => { setMsg(m); setTimeout(() => setSnap((s) => s), 0); };
-
-  const place = (side) => {
-    const m = marketRef.current; if (!m) return;
-    const n = Math.floor(Number(lot)) || 0;
-    if (n <= 0) { flash('Lot tidak valid'); return; }
-    const px = mode === 'market' ? null : roundToTick(Number(price), m.tick);
-    if (mode === 'limit' && !(px > 0)) { flash('Harga tidak valid'); return; }
-    if (side === 'sell' && n > pos.lot) { flash('Lot melebihi posisi'); return; }
-    if (side === 'buy') {
-      const ref = px || m.snapshot().bestAsk || last;
-      const est = n * 100 * ref * (1 + (acct.feeOn ? AR_FEE_BUY : 0));
-      if (est > acct.cash) { flash('Cash tidak cukup'); return; }
-    }
-    const res = m.submitUser({ side, price: px, lot: n }); // account updates via onTrade
-    setSnap(m.snapshot());
-    setOrders(m.userOrders());
-    const filled = res.trades.reduce((s, t) => s + t.lot, 0);
-    if (filled && res.restingLot) flash(`${side === 'buy' ? 'Beli' : 'Jual'}: fill ${filled} lot, ${res.restingLot} antri`);
-    else if (filled) flash(`${side === 'buy' ? 'Beli' : 'Jual'}: fill ${filled} lot`);
-    else if (res.restingLot) flash(`Order ${side === 'buy' ? 'beli' : 'jual'} ${res.restingLot} lot masuk antrian`);
-    else flash('Belum ada yang match');
+  const showMessage = (text) => {
+    clearTimeout(messageTimer.current);
+    setMessage(text);
+    messageTimer.current = setTimeout(() => setMessage(null), 4500);
   };
 
-  const cancelOrder = (id) => { const m = marketRef.current; if (m) { m.cancel(id); setOrders(m.userOrders()); } };
+  const placeOrder = (side) => {
+    const market = marketRef.current;
+    if (!market) return;
 
-  const onSearch = (val) => {
-    setQ(val);
+    const orderLot = Math.floor(Number(lot)) || 0;
+    if (orderLot <= 0) {
+      showMessage('Lot tidak valid');
+      return;
+    }
+
+    const orderPrice = mode === 'market' ? null : roundToTick(Number(price), market.tick);
+    if (mode === 'limit' && !(orderPrice > 0)) {
+      showMessage('Harga tidak valid');
+      return;
+    }
+    if (side === 'sell' && orderLot > position.lot) {
+      showMessage('Lot melebihi posisi');
+      return;
+    }
+
+    if (side === 'buy') {
+      const reference = orderPrice || snap.bestAsk || last;
+      const estimate = calculateArenaEstimate({
+        side: 'buy',
+        lot: orderLot,
+        price: reference,
+        feeRate: account.feeOn ? AR_FEE_BUY : 0,
+      });
+      if (estimate.total > account.cash) {
+        showMessage('Buying power tidak cukup');
+        return;
+      }
+    }
+
+    const result = market.submitUser({ side, price: orderPrice, lot: orderLot });
+    setSnap(market.snapshot());
+    setOrders(market.userOrders());
+
+    const filled = result.trades.reduce((sum, trade) => sum + trade.lot, 0);
+    const action = side === 'buy' ? 'Beli' : 'Jual';
+    if (filled && result.restingLot) {
+      showMessage(`${action}: fill ${filled} lot, ${result.restingLot} lot mengantre`);
+    } else if (filled) {
+      showMessage(`${action}: fill ${filled} lot`);
+    } else if (result.restingLot) {
+      showMessage(`${action} ${result.restingLot} lot masuk antrean`);
+    } else {
+      showMessage('Belum ada order yang match');
+    }
+  };
+
+  const cancelOrder = (id) => {
+    const market = marketRef.current;
+    if (!market) return;
+    market.cancel(id);
+    setOrders(market.userOrders());
+  };
+
+  const onSearch = (value) => {
+    setQuery(value);
     clearTimeout(searchTimer.current);
-    if (val.trim().length < 2) { setResults([]); return; }
+    if (value.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+
     searchTimer.current = setTimeout(() => {
-      fetch('/search?q=' + encodeURIComponent(val.trim())).then((r) => r.json()).then((d) => setResults((d.results || []).slice(0, 6))).catch(() => setResults([]));
+      fetch('/search?q=' + encodeURIComponent(value.trim()))
+        .then((response) => response.json())
+        .then((data) => setResults((data.results || []).slice(0, 6)))
+        .catch(() => setResults([]));
     }, 250);
   };
-  const pickTicker = (sym) => { setQ(''); setResults([]); setArenaTicker(String(sym).toUpperCase()); };
-  const doReset = () => { const v = window.prompt('Reset Arena. Modal awal (Rp):', String(acct.initial)); if (v != null) resetArena(Number(String(v).replace(/[^\d]/g, '')) || AR_DEFAULT_MODAL, ticker); };
+
+  const pickTicker = (symbol) => {
+    setQuery('');
+    setResults([]);
+    setArenaTicker(String(symbol).toUpperCase());
+  };
+
+  const resetAccount = () => {
+    const value = window.prompt('Reset Arena. Modal awal (Rp):', String(account.initial));
+    if (value == null) return;
+    const modal = Number(String(value).replace(/[^\d]/g, '')) || AR_DEFAULT_MODAL;
+    resetArena(modal, ticker);
+  };
+
+  const tick = snap ? snap.tick : 1;
+  const lotNumber = Math.max(0, Math.floor(Number(lot)) || 0);
+  const priceNumber = Math.max(0, Number(price) || 0);
+  const buyReference = mode === 'market'
+    ? ((snap && snap.bestAsk) || last)
+    : (priceNumber || last);
+  const sellReference = mode === 'market'
+    ? ((snap && snap.bestBid) || last)
+    : (priceNumber || last);
+  const allocationPrice = buyReference || last || 0;
+  const maxBuy = calculateArenaAllocation({
+    cash: account.cash,
+    price: allocationPrice,
+    feeRate: account.feeOn ? AR_FEE_BUY : 0,
+    fraction: 1,
+  });
+  const buyEstimate = calculateArenaEstimate({
+    side: 'buy',
+    lot: lotNumber,
+    price: buyReference,
+    feeRate: account.feeOn ? AR_FEE_BUY : 0,
+  });
+  const sellEstimate = calculateArenaEstimate({
+    side: 'sell',
+    lot: lotNumber,
+    price: sellReference,
+    feeRate: account.feeOn ? AR_FEE_SELL : 0,
+  });
+
+  const stepLot = (delta) => setLot(String(Math.max(1, lotNumber + delta)));
+  const stepPrice = (delta) => {
+    const nextPrice = Math.max(tick, roundToTick(priceNumber + delta * tick, tick));
+    setPrice(String(nextPrice));
+  };
+  const setAllocation = (fraction) => {
+    const allocatedLot = calculateArenaAllocation({
+      cash: account.cash,
+      price: allocationPrice,
+      feeRate: account.feeOn ? AR_FEE_BUY : 0,
+      fraction,
+    });
+    if (allocatedLot > 0) setLot(String(allocatedLot));
+    else showMessage('Buying power belum cukup untuk 1 lot');
+  };
+  const withdrawAll = (side) => {
+    const market = marketRef.current;
+    if (!market) return;
+    market.userOrders().forEach((order) => {
+      if (!side || order.side === side) market.cancel(order.id);
+    });
+    setOrders(market.userOrders());
+  };
 
   return (
-    <CalcScreen icon="fire" tag="ARENA · MARKET SIMULATOR"
-      title={<>Arena <span style={{ color: 'var(--primary)' }}>FO</span> — lawan bot.</>}
-      subtitle="Order book sintetik + bot trader. Harga digerakin bot (bukan harga real). Latihan fast order: limit & market.">
-
-      <div className="paper-summary">
-        <div className="paper-sumbox"><span>Cash</span><strong>{arShort(acct.cash)}</strong></div>
-        <div className="paper-sumbox"><span>Equity</span><strong>{arShort(equity)}</strong></div>
-        <div className="paper-sumbox"><span>Total P&L</span><strong className={totalPL >= 0 ? 'paper-up' : 'paper-dn'}>{totalPL >= 0 ? '+' : ''}{totalPL.toFixed(2)}%</strong></div>
-        <div className="paper-sum-actions">
-          <label className="paper-fee-toggle"><input type="checkbox" checked={acct.feeOn} onChange={(e) => setArenaFee(e.target.checked)} /> Fee</label>
-          <button type="button" className="btn btn-secondary paper-reset" onClick={doReset}>↺ Reset</button>
+    <CalcScreen
+      className="arena-screen"
+      icon="fire"
+      tag="ARENA - MARKET SIMULATOR"
+      title={<>Arena <span style={{ color: 'var(--primary)' }}>FO</span> melawan bot.</>}
+      subtitle="Latihan membaca order book dan mengeksekusi limit atau market order. Harga setelah market dimulai bersifat sintetis, bukan transaksi bursa nyata."
+    >
+      <div className="arena-account-summary">
+        <div className="arena-account-card">
+          <span>Buying Power</span>
+          <strong>{arShort(account.cash)}</strong>
+          <small>Cash tersedia</small>
+        </div>
+        <div className="arena-account-card">
+          <span>Portfolio Value</span>
+          <strong>{arShort(portfolioValue)}</strong>
+          <small>Equity {arShort(equity)}</small>
+        </div>
+        <div className="arena-account-card">
+          <span>Unrealized P&amp;L</span>
+          <strong className={unrealized >= 0 ? 'paper-up' : 'paper-dn'}>
+            {unrealized >= 0 ? '+' : ''}{arShort(unrealized)}
+          </strong>
+          <small className={unrealizedPercent >= 0 ? 'paper-up' : 'paper-dn'}>
+            {unrealizedPercent >= 0 ? '+' : ''}{unrealizedPercent.toFixed(2)}%
+          </small>
+        </div>
+        <div className="arena-account-actions">
+          <label className="paper-fee-toggle">
+            <input
+              type="checkbox"
+              checked={account.feeOn}
+              onChange={(event) => setArenaFee(event.target.checked)}
+            />
+            <span>Fee broker</span>
+          </label>
+          <button type="button" className="btn btn-secondary paper-reset" onClick={resetAccount}>
+            Reset
+          </button>
         </div>
       </div>
 
       {!ticker ? (
         <div className="watchlist-search arena-pick">
-          <input className="watchlist-search-input" placeholder="🔍 Pilih saham buat masuk arena…" value={q} onChange={(e) => onSearch(e.target.value)} />
+          <input
+            className="watchlist-search-input"
+            placeholder="Cari saham untuk masuk Arena..."
+            value={query}
+            onChange={(event) => onSearch(event.target.value)}
+            aria-label="Cari saham Arena"
+          />
           {results.length > 0 && (
             <div className="watchlist-search-results">
-              {results.map((r) => (
-                <button type="button" key={r.symbol} className="watchlist-search-item" onClick={() => pickTicker(r.symbol)}>
-                  <strong>{r.symbol}</strong> <span>{r.name}</span>
+              {results.map((result) => (
+                <button
+                  type="button"
+                  key={result.symbol}
+                  className="watchlist-search-item"
+                  onClick={() => pickTicker(result.symbol)}
+                >
+                  <strong>{result.symbol}</strong>
+                  <span>{result.name}</span>
                 </button>
               ))}
             </div>
@@ -205,67 +489,250 @@ function ArenaPage({ onNavigate }) {
         </div>
       ) : (
         <>
-          <div className="arena-head">
-            <div className="arena-head-tk">
-              <strong>{ticker}</strong>
-              <span className="arena-head-last">{last ? last.toLocaleString('id-ID') : '…'}</span>
-              <span className={chgSeed >= 0 ? 'paper-up' : 'paper-dn'}>{chgSeed >= 0 ? '+' : ''}{chgSeed.toFixed(2)}%</span>
+          <section className="arena-market-shell">
+            <div className="arena-head">
+              <div className="arena-head-main">
+                <div className="arena-symbol-lockup">
+                  <span className="arena-symbol-logo">{ticker.slice(0, 2)}</span>
+                  <div>
+                    <div className="arena-head-tk">
+                      <strong>{ticker}</strong>
+                      <span className="arena-sim-badge">MARKET SIM</span>
+                    </div>
+                    <span className="arena-head-caption">Synthetic order book</span>
+                  </div>
+                </div>
+                <div className="arena-quote">
+                  <span className="arena-head-last">
+                    {last ? last.toLocaleString('id-ID') : '...'}
+                  </span>
+                  <span className={changePercent >= 0 ? 'paper-up' : 'paper-dn'}>
+                    {changeAmount >= 0 ? '+' : ''}{changeAmount.toLocaleString('id-ID')}
+                    {' '}({changePercent >= 0 ? '+' : ''}{changePercent.toFixed(2)}%)
+                  </span>
+                </div>
+              </div>
+              <button type="button" className="arena-change" onClick={() => setArenaTicker(null)}>
+                Ganti saham
+              </button>
             </div>
-            <button type="button" className="arena-change" onClick={() => setArenaTicker(null)}>ganti saham</button>
-          </div>
 
-          {pos.lot > 0 && (
-            <div className="arena-pos">
-              Posisi: <strong>{pos.lot} lot</strong> @ {arRp(pos.avg)} · <span className={posPL >= 0 ? 'paper-up' : 'paper-dn'}>{posPL >= 0 ? '+' : ''}{posPL.toFixed(2)}%</span> ({arRp((last - pos.avg) * pos.lot * 100)})
-            </div>
-          )}
+            {snap && snap.stats && (
+              <div className="arena-stats">
+                <div><span>Volume</span><b>{snap.stats.vol.toLocaleString('id-ID')} lot</b></div>
+                <div><span>Value</span><b>{arShort(snap.stats.val)}</b></div>
+                <div><span>Frequency</span><b>{snap.stats.freq.toLocaleString('id-ID')}</b></div>
+                <div><span>Average</span><b>{snap.stats.avg.toLocaleString('id-ID')}</b></div>
+                <div><span>ARA</span><b className="paper-up">{snap.stats.ara.toLocaleString('id-ID')}</b></div>
+                <div><span>ARB</span><b className="paper-dn">{snap.stats.arb.toLocaleString('id-ID')}</b></div>
+              </div>
+            )}
+
+            {position.lot > 0 && (
+              <div className="arena-pos">
+                <div>
+                  <span>Posisi aktif</span>
+                  <strong>{position.lot} lot @ {arRp(position.avg)}</strong>
+                </div>
+                <div className={unrealized >= 0 ? 'paper-up' : 'paper-dn'}>
+                  <strong>{unrealized >= 0 ? '+' : ''}{arRp(unrealized)}</strong>
+                  <span>{unrealizedPercent >= 0 ? '+' : ''}{unrealizedPercent.toFixed(2)}%</span>
+                </div>
+              </div>
+            )}
+          </section>
 
           <div className="arena-main">
-            <ArenaLadder snap={snap} onPick={(p) => { setMode('limit'); setPrice(String(p)); }} />
+            <ArenaLadder
+              snap={snap}
+              onPick={(selectedPrice) => {
+                setMode('limit');
+                setPrice(String(selectedPrice));
+              }}
+            />
 
-            <div className="arena-ticket">
-              <div className="arena-seg">
-                <button type="button" className={mode === 'limit' ? 'on' : ''} onClick={() => setMode('limit')}>Limit</button>
-                <button type="button" className={mode === 'market' ? 'on' : ''} onClick={() => setMode('market')}>Market</button>
-              </div>
-              {mode === 'limit' && (
-                <label className="paper-field"><span>Harga (klik ladder)</span>
-                  <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} /></label>
-              )}
-              <label className="paper-field"><span>Lot</span>
-                <input type="number" min="1" value={lot} onChange={(e) => setLot(e.target.value)} /></label>
-              <div className="arena-btns">
-                <button type="button" className="btn btn-primary" onClick={() => place('buy')}>BELI</button>
-                <button type="button" className="btn btn-sell" onClick={() => place('sell')}>JUAL</button>
-              </div>
-              {msg && <div className="arena-msg">{msg}</div>}
+            <aside className="arena-ticket-wrap">
+              <div className="arena-ticket">
+                <div className="arena-ticket-heading">
+                  <div>
+                    <strong>Order Ticket</strong>
+                    <span>{ticker} - {mode === 'limit' ? 'Limit order' : 'Market order'}</span>
+                  </div>
+                  <span className="arena-ticket-status">SIMULASI</span>
+                </div>
 
-              {orders.length > 0 && (
-                <div className="arena-orders">
-                  <div className="arena-orders-h">Order aktif</div>
-                  {orders.map((o) => (
-                    <div key={o.id} className="arena-order">
-                      <span className={o.side === 'buy' ? 'paper-up' : 'paper-dn'}>{o.side === 'buy' ? 'BUY' : 'SELL'}</span>
-                      <span>{o.lot} @ {o.price.toLocaleString('id-ID')}</span>
-                      <button type="button" onClick={() => cancelOrder(o.id)} aria-label="Batal">×</button>
-                    </div>
+                <div className="arena-seg" role="tablist" aria-label="Jenis order">
+                  <button
+                    type="button"
+                    className={mode === 'limit' ? 'on' : ''}
+                    onClick={() => setMode('limit')}
+                    role="tab"
+                    aria-selected={mode === 'limit'}
+                  >
+                    Limit
+                  </button>
+                  <button
+                    type="button"
+                    className={mode === 'market' ? 'on' : ''}
+                    onClick={() => setMode('market')}
+                    role="tab"
+                    aria-selected={mode === 'market'}
+                  >
+                    Market
+                  </button>
+                </div>
+
+                {mode === 'limit' && (
+                  <div className="arena-step">
+                    <span className="arena-step-lbl">Price</span>
+                    <button type="button" onClick={() => stepPrice(-1)} aria-label="Kurangi harga">-</button>
+                    <input
+                      type="number"
+                      aria-label="Harga order"
+                      value={price}
+                      onChange={(event) => setPrice(event.target.value)}
+                    />
+                    <button type="button" onClick={() => stepPrice(1)} aria-label="Tambah harga">+</button>
+                  </div>
+                )}
+
+                <div className="arena-step">
+                  <span className="arena-step-lbl">Lot</span>
+                  <button type="button" onClick={() => stepLot(-1)} aria-label="Kurangi lot">-</button>
+                  <input
+                    type="number"
+                    min="1"
+                    aria-label="Jumlah lot"
+                    value={lot}
+                    onChange={(event) => setLot(event.target.value)}
+                  />
+                  <button type="button" onClick={() => stepLot(1)} aria-label="Tambah lot">+</button>
+                </div>
+
+                <div className="arena-allocation-label">
+                  <span>Alokasi buying power</span>
+                  <strong>Max {maxBuy.toLocaleString('id-ID')} lot</strong>
+                </div>
+                <div className="arena-presets">
+                  {[
+                    { label: '25%', value: 0.25 },
+                    { label: '50%', value: 0.5 },
+                    { label: '75%', value: 0.75 },
+                    { label: 'MAX', value: 1 },
+                  ].map((preset) => (
+                    <button
+                      type="button"
+                      key={preset.label}
+                      onClick={() => setAllocation(preset.value)}
+                    >
+                      {preset.label}
+                    </button>
                   ))}
                 </div>
-              )}
-            </div>
+
+                <div className="arena-estimate">
+                  <div>
+                    <span>Nilai transaksi</span>
+                    <strong>{arRp(buyEstimate.gross)}</strong>
+                  </div>
+                  <div>
+                    <span>Estimasi fee beli</span>
+                    <b>{arRp(buyEstimate.fee)}</b>
+                  </div>
+                  <div>
+                    <span>Estimasi fee jual</span>
+                    <b>{arRp(sellEstimate.fee)}</b>
+                  </div>
+                </div>
+
+                <div className="arena-maxrow">
+                  <button
+                    type="button"
+                    className="arena-max"
+                    onClick={() => maxBuy > 0 && setLot(String(maxBuy))}
+                  >
+                    Max Buy ({maxBuy.toLocaleString('id-ID')})
+                  </button>
+                  <button
+                    type="button"
+                    className="arena-max"
+                    onClick={() => position.lot > 0 && setLot(String(position.lot))}
+                  >
+                    Max Sell ({position.lot.toLocaleString('id-ID')})
+                  </button>
+                </div>
+
+                <div className="arena-btns">
+                  <button type="button" className="btn btn-primary" onClick={() => placeOrder('buy')}>
+                    BELI
+                    <small>{arRp(buyEstimate.total)}</small>
+                  </button>
+                  <button type="button" className="btn btn-sell" onClick={() => placeOrder('sell')}>
+                    JUAL
+                    <small>{arRp(sellEstimate.total)}</small>
+                  </button>
+                </div>
+
+                {message && <div className="arena-msg" role="status">{message}</div>}
+
+                {orders.length > 0 && (
+                  <div className="arena-orders">
+                    <div className="arena-orders-h">
+                      <span>Open orders ({orders.length})</span>
+                      <div className="arena-wd">
+                        <button type="button" onClick={() => withdrawAll('buy')}>Buy</button>
+                        <button type="button" onClick={() => withdrawAll()}>All</button>
+                        <button type="button" onClick={() => withdrawAll('sell')}>Sell</button>
+                      </div>
+                    </div>
+                    {orders.map((order) => (
+                      <div key={order.id} className="arena-order">
+                        <span className={order.side === 'buy' ? 'paper-up' : 'paper-dn'}>
+                          {order.side === 'buy' ? 'BUY' : 'SELL'}
+                        </span>
+                        <span>{order.lot} lot @ {order.price.toLocaleString('id-ID')}</span>
+                        <button
+                          type="button"
+                          onClick={() => cancelOrder(order.id)}
+                          aria-label={`Batalkan order ${order.side}`}
+                        >
+                          x
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </aside>
           </div>
 
-          {acct.history.length > 0 && (
-            <div className="arena-hist">
-              <div className="arena-hist-h">Riwayat fill</div>
-              {acct.history.slice(0, 12).map((x, i) => (
-                <div key={i} className="paper-hist-row">
-                  <span className={x.type === 'BUY' ? 'paper-up' : 'paper-dn'}>{x.type}</span>
-                  <span>{x.lot} lot @ {arRp(x.price)}</span>
-                  <span className={x.realized >= 0 ? 'paper-up' : 'paper-dn'}>{x.type === 'SELL' && x.realized != null ? (x.realized >= 0 ? '+' : '') + arRp(x.realized) : ''}</span>
+          {account.history.length > 0 && (
+            <section className="arena-hist">
+              <div className="arena-hist-title">
+                <div>
+                  <strong>Fill History</strong>
+                  <span>12 transaksi terakhir</span>
                 </div>
-              ))}
-            </div>
+                <span>{account.history.length} fill</span>
+              </div>
+              <div className="arena-history-list">
+                {account.history.slice(0, 12).map((entry, index) => (
+                  <div key={`${entry.t}-${index}`} className="arena-history-row">
+                    <span className={entry.type === 'BUY' ? 'paper-up' : 'paper-dn'}>
+                      {entry.type}
+                    </span>
+                    <span>{entry.lot} lot</span>
+                    <span>@ {arRp(entry.price)}</span>
+                    <span>Fee {arRp(entry.fee)}</span>
+                    <strong className={entry.realized >= 0 ? 'paper-up' : 'paper-dn'}>
+                      {entry.type === 'SELL' && entry.realized != null
+                        ? `${entry.realized >= 0 ? '+' : ''}${arRp(entry.realized)}`
+                        : '-'}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
         </>
       )}
