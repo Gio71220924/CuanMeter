@@ -2,7 +2,7 @@
   'use strict';
 
   const SIM_QUANTUM_MS = 250;
-  const MAX_SYNTHETIC_ORDERS = 220;
+  const MAX_SYNTHETIC_ORDERS = 420;
   const MAX_SPECIAL_EVENTS = 5;
   const MAX_INSIGHTS = 5;
 
@@ -275,6 +275,10 @@
         regime: regimeController.get(),
         getFairValue: () => fairValue,
         roundPrice,
+        previousPrice: previousArenaPrice,
+        nextPrice: nextArenaPrice,
+        minimumPrice: minimumFair,
+        maximumPrice: maximumFair,
         submitSynthetic,
         passivePrice,
         medianDepth,
@@ -449,6 +453,7 @@
       const specialResult = runSpecialEvents();
       const fairChanged = syncFairValue(regime);
       const spreadRepair = marketMaker.repairSpread(context);
+      const ladderRepair = marketMaker.repairLadder(context);
       const primaryTrades = Array.isArray(primaryResult.trades)
         ? primaryResult.trades.length
         : 0;
@@ -466,6 +471,7 @@
         || fairChanged
         || primaryResult.changed
         || spreadRepair.changed
+        || ladderRepair.changed
         || specialSpawned
         || specialResult.changed,
       );

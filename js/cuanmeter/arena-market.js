@@ -29,7 +29,7 @@
     normal: freezeProfile({
       id: 'normal',
       label: 'Normal',
-      depthLevels: 10,
+      depthLevels: 14,
       spreadTicks: [1, 2],
       baseLotMin: 20,
       baseLotMax: 100,

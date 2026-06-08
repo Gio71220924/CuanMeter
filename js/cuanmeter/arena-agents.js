@@ -113,7 +113,7 @@
 
         // Split the level into several smaller orders so Freq reflects many
         // participants instead of one giant order.
-        const pieces = randomInteger(random, 3, 6);
+        const pieces = randomInteger(random, 6, 12);
         const base = Math.max(1, Math.floor(slot.targetLot / pieces));
         let remaining = slot.targetLot;
         slot.orderIds = [];
@@ -232,16 +232,20 @@
       };
     }
 
-    function repairSide(slot, nextPrice, context) {
+    function repairSide(slot, nextPrice, context, protectedPrices = null) {
       const liveOrders = liveSlotOrders(slot, context);
-      const moved = moveOne(slot, liveOrders, nextPrice, context);
+      const movableOrders = protectedPrices
+        ? liveOrders.filter((order) => !protectedPrices.has(order.price))
+        : liveOrders;
+      const moved = moveOne(slot, movableOrders, nextPrice, context);
       if (moved) return moved;
 
       const donorSlots = slots
         .filter((candidate) => candidate.side === slot.side && candidate !== slot)
         .sort((left, right) => right.level - left.level);
       for (const donor of donorSlots) {
-        const donorOrders = liveSlotOrders(donor, context);
+        const donorOrders = liveSlotOrders(donor, context)
+          .filter((order) => !protectedPrices || !protectedPrices.has(order.price));
         const donorMove = moveOne(donor, donorOrders, nextPrice, context);
         if (donorMove) return donorMove;
       }
@@ -256,7 +260,10 @@
       if (result.restId == null) {
         const last = Number(context.book.last) || nextPrice;
         const removable = context.book.restingOrders()
-          .filter((order) => order.owner !== 'user')
+          .filter((order) => (
+            order.owner !== 'user'
+            && (!protectedPrices || !protectedPrices.has(order.price))
+          ))
           .sort((left, right) => (
             Math.abs(right.price - last) - Math.abs(left.price - last)
           ))[0];
@@ -339,6 +346,83 @@
       return repairSide(slot, nextPrice, context);
     }
 
+    function repairLadder(context, minimumLevels = levelCount) {
+      let changed = false;
+      const trades = [];
+
+      for (const side of ['buy', 'sell']) {
+        const direction = side === 'buy' ? -1 : 1;
+        const getNextPrice = direction < 0
+          ? context.previousPrice
+          : context.nextPrice;
+        let bestPrice = side === 'buy'
+          ? context.book.bestBid()
+          : context.book.bestAsk();
+        if (bestPrice == null) continue;
+
+        const expectedPrices = [bestPrice];
+        while (expectedPrices.length < minimumLevels) {
+          const nextPrice = getNextPrice(expectedPrices[expectedPrices.length - 1]);
+          if (
+            nextPrice === expectedPrices[expectedPrices.length - 1]
+            || nextPrice < context.minimumPrice
+            || nextPrice > context.maximumPrice
+          ) break;
+          expectedPrices.push(nextPrice);
+        }
+        const protectedPrices = new Set(expectedPrices);
+
+        for (let levelIndex = 1; levelIndex < expectedPrices.length; levelIndex += 1) {
+          const expectedPrice = expectedPrices[levelIndex];
+          const depth = context.book.depth(Math.max(minimumLevels * 2, levelCount));
+          const levels = side === 'buy' ? depth.bids : depth.asks;
+          if (levels.some((level) => level.price === expectedPrice)) continue;
+
+          let donor = null;
+          for (const slot of slots.filter((candidate) => candidate.side === side)) {
+            const liveOrders = liveSlotOrders(slot, context);
+            for (const order of liveOrders) {
+              if (protectedPrices.has(order.price)) continue;
+              const distance = Math.abs(order.price - bestPrice);
+              if (!donor || distance > donor.distance) {
+                donor = { slot, order, distance };
+              }
+            }
+          }
+          if (!donor) {
+            const slot = slots.find((candidate) => (
+              candidate.side === side && candidate.level === levelIndex
+            )) || slots.find((candidate) => candidate.side === side);
+            const result = repairSide(
+              slot,
+              expectedPrice,
+              context,
+              protectedPrices,
+            );
+            changed ||= result.changed;
+            trades.push(...result.trades);
+            continue;
+          }
+
+          const result = context.book.amend(donor.order.id, {
+            price: expectedPrice,
+          });
+          const orderIndex = donor.slot.orderIds.indexOf(donor.order.id);
+          if (orderIndex >= 0) {
+            if (result.restId == null) donor.slot.orderIds.splice(orderIndex, 1);
+            else donor.slot.orderIds[orderIndex] = result.restId;
+          }
+          donor.slot.orderId = donor.slot.orderIds[0] || null;
+          donor.slot.targetPrice = expectedPrice;
+          donor.slot.lastRefreshAt = context.simNow;
+          changed ||= result.changed;
+          trades.push(...result.trades);
+        }
+      }
+
+      return { changed, trades };
+    }
+
     function clear(context) {
       const cancelled = context.book.cancelByOwnerPrefix('mm:');
       for (const slot of slots) {
@@ -353,6 +437,7 @@
       step,
       maintainOne,
       repairSpread,
+      repairLadder,
       clear,
       slots,
     };

@@ -1334,6 +1334,34 @@ test('event-driven market maker repairs a hollow normal top of book', () => {
   assert.ok(widest.spreadTicks <= 4, JSON.stringify(widest));
 });
 
+test('event-driven market maker keeps the nearest ladder levels contiguous', () => {
+  const runtime = loadArenaRuntime();
+  const market = runtime.createMarket({
+    seedPrice: 140,
+    profile: 'normal',
+    seed: 38,
+    forcedRegime: 'normal',
+    initialSpecialEventAt: Number.POSITIVE_INFINITY,
+  });
+
+  for (let index = 0; index < 800; index += 1) {
+    market.step(250);
+  }
+
+  const depth = market.snapshot(10).depth;
+  const nearestBids = depth.bids.map((level) => level.price);
+  const nearestAsks = depth.asks.map((level) => level.price);
+
+  assert.equal(nearestBids.length, 10);
+  assert.equal(nearestAsks.length, 10);
+  nearestBids.slice(1).forEach((price, index) => {
+    assert.equal(price, runtime.previousArenaPrice(nearestBids[index]));
+  });
+  nearestAsks.slice(1).forEach((price, index) => {
+    assert.equal(price, runtime.nextArenaPrice(nearestAsks[index]));
+  });
+});
+
 test('user order API keeps resting, cancellation, and fill callbacks compatible', () => {
   const runtime = loadArenaRuntime();
   const callbacks = [];

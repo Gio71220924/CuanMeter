@@ -74,6 +74,7 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
   const bodyRef = useRefAA(null);
   const lastRowRef = useRefAA(null);
   const centeredFor = useRefAA(null);
+  const manualScrollUntil = useRefAA(0);
   const [draggedOrderId, setDraggedOrderId] = useStateAA(null);
   const [dropPrice, setDropPrice] = useStateAA(null);
 
@@ -86,16 +87,28 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
     previousDepth.current = next;
   }, [snap]);
 
-  // center the current price once per session (then let the user scroll freely)
+  // Keep the active market near the viewport center. Manual scrolling pauses
+  // auto-follow briefly so users can inspect distant price levels.
   useEffectAA(() => {
-    if (!snap || centeredFor.current === ticker) return;
+    if (!snap) return;
     const body = bodyRef.current;
     const row = lastRowRef.current;
-    if (body && row) {
-      body.scrollTop = row.offsetTop - body.clientHeight / 2 + row.clientHeight / 2;
-      centeredFor.current = ticker;
+    if (!body || !row) return;
+
+    const tickerChanged = centeredFor.current !== ticker;
+    if (!tickerChanged && Date.now() < manualScrollUntil.current) return;
+
+    const bodyRect = body.getBoundingClientRect();
+    const rowRect = row.getBoundingClientRect();
+    const rowCenter = rowRect.top + rowRect.height / 2;
+    const safeTop = bodyRect.top + bodyRect.height * 0.35;
+    const safeBottom = bodyRect.top + bodyRect.height * 0.65;
+    if (tickerChanged || rowCenter < safeTop || rowCenter > safeBottom) {
+      const rowCenterInBody = body.scrollTop + rowCenter - bodyRect.top;
+      body.scrollTop = rowCenterInBody - body.clientHeight / 2;
     }
-  }, [snap, ticker]);
+    centeredFor.current = ticker;
+  }, [snap && snap.last, ticker]);
 
   if (!snap) {
     return (
@@ -197,7 +210,12 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
         <span>Done</span>
       </div>
 
-      <div className="arena-bbody" ref={bodyRef}>
+      <div
+        className="arena-bbody"
+        ref={bodyRef}
+        onWheel={() => { manualScrollUntil.current = Date.now() + 8000; }}
+        onTouchStart={() => { manualScrollUntil.current = Date.now() + 8000; }}
+      >
         {rows.map((price) => {
           const ask = askMap[price];
           const bid = bidMap[price];
