@@ -19,6 +19,56 @@ function arShort(value) {
   return arRp(amount);
 }
 
+function arenaDepthWidth(lot, maxLot) {
+  if (!(lot > 0) || !(maxLot > 0)) return 0;
+  return Math.max(7, Math.min(100, Math.sqrt(lot / maxLot) * 100));
+}
+
+function arenaCompactLot(value) {
+  const lot = Math.max(0, Number(value) || 0);
+  if (lot < 1_000) return Math.round(lot).toLocaleString('id-ID');
+  const divisor = lot >= 1_000_000 ? 1_000_000 : 1_000;
+  const suffix = divisor === 1_000_000 ? 'M' : 'K';
+  const scaled = lot / divisor;
+  const digits = scaled >= 100 ? 0 : 1;
+  return `${scaled.toFixed(digits).replace('.', ',').replace(',0', '')}${suffix}`;
+}
+
+function formatSimTime(simTime) {
+  const totalSeconds = Math.max(0, Math.floor((Number(simTime) || 0) / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function ArenaInsights({ insights }) {
+  const entries = Array.isArray(insights) ? insights.slice(0, 5) : [];
+  if (!entries.length) return null;
+
+  return (
+    <section className="arena-insights" aria-label="Market Insight simulasi">
+      <div className="arena-insights-head">
+        <div>
+          <strong>Market Insight</strong>
+          <span>Pola terdeteksi setelah event selesai</span>
+        </div>
+        <span>{entries.length}/5</span>
+      </div>
+      <div className="arena-insight-list">
+        {entries.map((insight, index) => (
+          <article
+            key={insight.id == null ? `${insight.category}-${index}` : insight.id}
+            className={`arena-insight arena-insight-${insight.category || 'market'}`}
+          >
+            <span>{formatSimTime(insight.simTime)}</span>
+            <p>{insight.message}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
   const previousDepth = useRefAA({});
   const bodyRef = useRefAA(null);
@@ -98,14 +148,11 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
 
   // Fixed range from ARA (top) down to ARB (bottom) — constant for the session, so
   // scroll position stays put and Done/lot update in place instead of shifting on ticks.
-  const top = roundToTick(stats.ara || (last + 15 * tick), tick);
-  const bottom = roundToTick(stats.arb || (last - 15 * tick), tick);
-  const levelCount = Math.max(0, Math.round((top - bottom) / tick));
-  const rows = [];
-
-  for (let index = 0; index <= levelCount && index < 240; index += 1) {
-    rows.push(top - index * tick);
-  }
+  const rows = buildArenaPriceRows(
+    stats.ara || (last + 15 * tick),
+    stats.arb || Math.max(50, last - 15 * tick),
+    240,
+  );
 
   const maxLot = Math.max(
     1,
@@ -196,10 +243,13 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
                   <>
                     <span
                       className="arena-lotbar arena-lotbar-bid"
-                      style={{ width: `${(bid.lot / maxLot) * 100}%` }}
+                      style={{ width: `${arenaDepthWidth(bid.lot, maxLot)}%` }}
                     />
-                    <em className={`arena-lotn${deltaClass(price, bid.lot)}`}>
-                      {bid.lot.toLocaleString('id-ID')}
+                    <em
+                      className={`arena-lotn${deltaClass(price, bid.lot)}`}
+                      title={`${bid.lot.toLocaleString('id-ID')} lot`}
+                    >
+                      {arenaCompactLot(bid.lot)}
                     </em>
                   </>
                 )}
@@ -216,12 +266,15 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
                 {(mySell[price] || []).map(renderOrderChip)}
                 {ask && (
                   <>
-                    <em className={`arena-lotn${deltaClass(price, ask.lot)}`}>
-                      {ask.lot.toLocaleString('id-ID')}
+                    <em
+                      className={`arena-lotn${deltaClass(price, ask.lot)}`}
+                      title={`${ask.lot.toLocaleString('id-ID')} lot`}
+                    >
+                      {arenaCompactLot(ask.lot)}
                     </em>
                     <span
                       className="arena-lotbar arena-lotbar-ask"
-                      style={{ width: `${(ask.lot / maxLot) * 100}%` }}
+                      style={{ width: `${arenaDepthWidth(ask.lot, maxLot)}%` }}
                     />
                   </>
                 )}
@@ -273,6 +326,8 @@ function ArenaPage() {
   const [results, setResults] = useStateAA([]);
 
   const ticker = account.ticker;
+  const marketProfile = account.market?.profile || 'normal';
+  const marketSpeed = account.market?.speed || 1;
 
   useEffectAA(() => {
     if (!ticker) {
@@ -291,6 +346,8 @@ function ArenaPage() {
 
         const market = createMarket({
           seedPrice: startingPrice,
+          profile: marketProfile,
+          speed: marketSpeed,
           onUpdate: () => {
             if (disposed) return;
             setSnap(market.snapshot());
@@ -307,7 +364,7 @@ function ArenaPage() {
         const firstSnapshot = market.snapshot();
         setSnap(firstSnapshot);
         setPrice(String(firstSnapshot.last));
-        market.start(700);
+        market.start();
       })
       .catch(() => {
         if (!disposed) setMessage('Harga awal gagal dimuat. Coba pilih saham lagi.');
@@ -318,7 +375,11 @@ function ArenaPage() {
       if (marketRef.current) marketRef.current.stop();
       marketRef.current = null;
     };
-  }, [ticker]);
+  }, [ticker, marketProfile]);
+
+  useEffectAA(() => {
+    if (marketRef.current) marketRef.current.setSpeed(marketSpeed);
+  }, [marketSpeed]);
 
   useEffectAA(() => () => {
     clearTimeout(messageTimer.current);
@@ -354,12 +415,18 @@ function ArenaPage() {
     if (!market) return;
 
     const orderLot = Math.floor(Number(lot)) || 0;
+    const finalOrderPrice = orderPrice == null
+      ? null
+      : market.normalizeLimitPrice(orderPrice);
     if (orderLot <= 0) { showMessage('Lot tidak valid'); return; }
-    if (orderPrice != null && !(orderPrice > 0)) { showMessage('Harga tidak valid'); return; }
+    if (finalOrderPrice != null && !(finalOrderPrice > 0)) {
+      showMessage('Harga tidak valid');
+      return;
+    }
     if (side === 'sell' && orderLot > position.lot) { showMessage('Lot melebihi posisi'); return; }
 
     if (side === 'buy') {
-      const reference = orderPrice || snap.bestAsk || last;
+      const reference = finalOrderPrice || snap.bestAsk || last;
       const estimate = calculateArenaEstimate({
         side: 'buy',
         lot: orderLot,
@@ -372,13 +439,19 @@ function ArenaPage() {
       }
     }
 
-    const result = market.submitUser({ side, price: orderPrice, lot: orderLot });
+    const result = market.submitUser({
+      side,
+      price: finalOrderPrice,
+      lot: orderLot,
+    });
     setSnap(market.snapshot());
     setOrders(market.userOrders());
 
     const filled = result.trades.reduce((sum, trade) => sum + trade.lot, 0);
     const action = side === 'buy' ? 'Beli' : 'Jual';
-    const at = orderPrice != null ? ` @ ${orderPrice.toLocaleString('id-ID')}` : '';
+    const at = finalOrderPrice != null
+      ? ` @ ${finalOrderPrice.toLocaleString('id-ID')}`
+      : '';
     if (filled && result.restingLot) showMessage(`${action}: fill ${filled} lot, ${result.restingLot} lot mengantre${at}`);
     else if (filled) showMessage(`${action}: fill ${filled} lot`);
     else if (result.restingLot) showMessage(`${action} ${result.restingLot} lot mengantre${at}`);
@@ -389,14 +462,17 @@ function ArenaPage() {
   const placeOrder = (side) => {
     const market = marketRef.current;
     if (!market) return;
-    executeOrder(side, mode === 'market' ? null : roundToTick(Number(price), market.tick));
+    executeOrder(
+      side,
+      mode === 'market' ? null : normalizeArenaOrderPrice(Number(price)),
+    );
   };
 
   // Ladder + button: place a limit order directly at the clicked price.
   const placeAt = (side, atPrice) => {
     const market = marketRef.current;
     if (!market) return;
-    const p = roundToTick(atPrice, market.tick);
+    const p = normalizeArenaOrderPrice(atPrice);
     setMode('limit');
     setPrice(String(p));
     executeOrder(side, p);
@@ -413,7 +489,7 @@ function ArenaPage() {
       return;
     }
 
-    const nextPrice = roundToTick(Number(targetPrice), market.tick);
+    const nextPrice = market.normalizeLimitPrice(Number(targetPrice));
     if (!(nextPrice > 0) || nextPrice === order.price) {
       if (nextPrice === order.price) showMessage('Order tetap di harga yang sama');
       return;
@@ -500,15 +576,19 @@ function ArenaPage() {
     resetArena(modal, ticker);
   };
 
-  const tick = snap ? snap.tick : 1;
   const lotNumber = Math.max(0, Math.floor(Number(lot)) || 0);
   const priceNumber = Math.max(0, Number(price) || 0);
+  const activeMarket = marketRef.current;
+  const rawLimitReference = priceNumber || last;
+  const normalizedLimitReference = activeMarket
+    ? activeMarket.normalizeLimitPrice(rawLimitReference)
+    : normalizeArenaOrderPrice(rawLimitReference);
   const buyReference = mode === 'market'
     ? ((snap && snap.bestAsk) || last)
-    : (priceNumber || last);
+    : normalizedLimitReference;
   const sellReference = mode === 'market'
     ? ((snap && snap.bestBid) || last)
-    : (priceNumber || last);
+    : normalizedLimitReference;
   const allocationPrice = buyReference || last || 0;
   const maxBuy = calculateArenaAllocation({
     cash: availableBuyingPower,
@@ -531,7 +611,9 @@ function ArenaPage() {
 
   const stepLot = (delta) => setLot(String(Math.max(1, lotNumber + delta)));
   const stepPrice = (delta) => {
-    const nextPrice = Math.max(tick, roundToTick(priceNumber + delta * tick, tick));
+    const nextPrice = delta < 0
+      ? previousArenaPrice(priceNumber)
+      : nextArenaPrice(priceNumber);
     setPrice(String(nextPrice));
   };
   const setAllocation = (fraction) => {
@@ -551,6 +633,20 @@ function ArenaPage() {
       if (!side || order.side === side) market.cancel(order.id);
     });
     setOrders(market.userOrders());
+  };
+  const changeProfile = (nextProfile) => {
+    if (nextProfile === marketProfile) return;
+    if (orders.length > 0) {
+      const confirmed = window.confirm(
+        'Ganti profil akan membatalkan seluruh open order Arena. Lanjutkan?',
+      );
+      if (!confirmed) return;
+    }
+    withdrawAll();
+    setArenaMarketPreferences({ profile: nextProfile });
+  };
+  const changeSpeed = (speed) => {
+    setArenaMarketPreferences({ speed });
   };
 
   return (
@@ -653,6 +749,55 @@ function ArenaPage() {
               <button type="button" className="arena-change" onClick={() => setArenaTicker(null)}>
                 Ganti saham
               </button>
+            </div>
+
+            <div className="arena-sim-controls" aria-label="Kontrol simulasi market">
+              <div className="arena-control-group">
+                <span>Profil market</span>
+                <div className="arena-mini-seg arena-profile-options">
+                  {Object.values(ARENA_PROFILES).map((profile) => (
+                    <button
+                      key={profile.id}
+                      type="button"
+                      className={marketProfile === profile.id ? 'on' : ''}
+                      onClick={() => changeProfile(profile.id)}
+                      data-arena-profile={profile.id}
+                      aria-pressed={marketProfile === profile.id}
+                    >
+                      {profile.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="arena-control-group arena-speed-control">
+                <span>Speed</span>
+                <div className="arena-mini-seg">
+                  {ARENA_SPEEDS.map((speed) => (
+                    <button
+                      key={speed}
+                      type="button"
+                      className={marketSpeed === speed ? 'on' : ''}
+                      onClick={() => changeSpeed(speed)}
+                      data-arena-speed={speed}
+                      aria-pressed={marketSpeed === speed}
+                    >
+                      {speed}x
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="arena-regime-wrap">
+                <span>Regime</span>
+                <strong
+                  className={`arena-regime arena-regime-${snap?.regime?.id || 'normal'}`}
+                  data-arena-regime={snap?.regime?.id || 'normal'}
+                >
+                  <i aria-hidden="true" />
+                  {snap?.regime?.label || 'Normal'}
+                </strong>
+              </div>
             </div>
 
             {snap && snap.stats && (
@@ -832,7 +977,12 @@ function ArenaPage() {
                         <span className={order.side === 'buy' ? 'paper-up' : 'paper-dn'}>
                           {order.side === 'buy' ? 'BUY' : 'SELL'}
                         </span>
-                        <span>{order.lot} lot @ {order.price.toLocaleString('id-ID')}</span>
+                        <span className="arena-order-detail">
+                          <b>{order.lot.toLocaleString('id-ID')} lot @ {order.price.toLocaleString('id-ID')}</b>
+                          <small>
+                            antrean depan {arenaCompactLot(order.aheadLot)} lot
+                          </small>
+                        </span>
                         <button
                           type="button"
                           onClick={() => cancelOrder(order.id)}
@@ -845,10 +995,12 @@ function ArenaPage() {
                   </div>
                 )}
               </div>
-            </aside>
-          </div>
+              </aside>
+            </div>
 
-          {account.history.length > 0 && (
+            <ArenaInsights insights={snap?.insights} />
+
+            {account.history.length > 0 && (
             <section className="arena-hist">
               <div className="arena-hist-title">
                 <div>

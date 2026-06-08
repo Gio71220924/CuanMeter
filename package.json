@@ -5,7 +5,7 @@
     "scripts": {
         "build:static": "node scripts/build-static.js",
         "download:model": "node scripts/download-model.js",
-        "test:arena": "node --test tests/arena-utils.spec.js",
+        "test:arena": "node --test tests/arena-utils.spec.js tests/arena-market.spec.js tests/arena-agents.spec.js",
         "start": "node server.js"
     },
     "keywords": [

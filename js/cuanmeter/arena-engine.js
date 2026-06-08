@@ -17,6 +17,11 @@ function tickSizeFor(price) {
 function roundToTick(price, tick) {
   return Math.round(price / tick) * tick;
 }
+function normalizeOwner(owner) {
+  if (typeof owner === 'string') return owner;
+  if (owner == null) return '';
+  return String(owner);
+}
 
 /* Create an order book.
    submit(order) where order = { side:'buy'|'sell', price:number|null, lot, owner }
@@ -50,6 +55,7 @@ function createBook(tick) {
 
   function submit(order) {
     let remaining = Math.floor(order.lot) || 0;
+    const owner = normalizeOwner(order.owner);
     const trades = [];
     if (remaining <= 0) return { trades, restingLot: 0, restId: null };
     const opp = order.side === 'buy' ? asks : bids;
@@ -66,8 +72,8 @@ function createBook(tick) {
         trades.push({
           price: lvl.price,
           lot: fill,
-          buyOwner: order.side === 'buy' ? order.owner : resting.owner,
-          sellOwner: order.side === 'sell' ? order.owner : resting.owner,
+          buyOwner: order.side === 'buy' ? owner : resting.owner,
+          sellOwner: order.side === 'sell' ? owner : resting.owner,
         });
         resting.lot -= fill;
         remaining -= fill;
@@ -81,7 +87,7 @@ function createBook(tick) {
     let restId = null;
     if (remaining > 0 && order.price != null) {
       restId = ++seq;
-      levelFor(order.side, order.price).orders.push({ id: restId, lot: remaining, owner: order.owner, seq: ++seq });
+      levelFor(order.side, order.price).orders.push({ id: restId, lot: remaining, owner, seq: ++seq });
     }
     return { trades, restingLot: order.price == null ? 0 : remaining, restId };
   }
@@ -114,11 +120,59 @@ function createBook(tick) {
     return out;
   }
 
+  function restingOrders() {
+    const out = [];
+    for (const [side, levels] of [['buy', bids], ['sell', asks]]) {
+      for (const level of levels) {
+        for (const order of level.orders) {
+          out.push({
+            id: order.id,
+            side,
+            price: level.price,
+            lot: order.lot,
+            owner: order.owner,
+          });
+        }
+      }
+    }
+    return out;
+  }
+
+  function inspectOrder(id) {
+    return restingOrders().find((order) => order.id === id) || null;
+  }
+
+  function lotsAhead(id) {
+    for (const levels of [bids, asks]) {
+      for (const level of levels) {
+        let ahead = 0;
+        for (const order of level.orders) {
+          if (order.id === id) return ahead;
+          ahead += order.lot;
+        }
+      }
+    }
+    return null;
+  }
+
+  function cancelByOwnerPrefix(prefix) {
+    if (typeof prefix !== 'string' || prefix.length === 0) return 0;
+    const ids = restingOrders()
+      .filter((order) => typeof order.owner === 'string' && order.owner.startsWith(prefix))
+      .map((order) => order.id);
+    ids.forEach(cancel);
+    return ids.length;
+  }
+
   return {
     submit,
     cancel,
     depth,
     restingByOwner,
+    restingOrders,
+    inspectOrder,
+    lotsAhead,
+    cancelByOwnerPrefix,
     bestBid,
     bestAsk,
     tick,

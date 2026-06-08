@@ -15,12 +15,27 @@ const AR_FEE_SELL = 0.0025;
 const arListeners = new Set();
 
 function arDefault() {
-  return { cash: AR_DEFAULT_MODAL, initial: AR_DEFAULT_MODAL, ticker: null, position: { lot: 0, avg: 0 }, history: [], feeOn: true };
+  return {
+    cash: AR_DEFAULT_MODAL,
+    initial: AR_DEFAULT_MODAL,
+    ticker: null,
+    position: { lot: 0, avg: 0 },
+    history: [],
+    feeOn: true,
+    market: { profile: 'normal', speed: 1 },
+  };
 }
 function getArena() {
   try {
     const v = JSON.parse(localStorage.getItem(AR_KEY));
-    if (v && typeof v.cash === 'number') return { ...arDefault(), ...v, position: v.position || { lot: 0, avg: 0 } };
+    if (v && typeof v.cash === 'number') {
+      return {
+        ...arDefault(),
+        ...v,
+        position: v.position || { lot: 0, avg: 0 },
+        market: normalizeArenaPreferences(v.market),
+      };
+    }
   } catch (e) {}
   return arDefault();
 }
@@ -33,7 +48,15 @@ function subscribeArena(fn) { arListeners.add(fn); return () => arListeners.dele
 function resetArena(modal, ticker) {
   const m = Number(modal) > 0 ? Math.round(Number(modal)) : AR_DEFAULT_MODAL;
   const cur = getArena();
-  setArena({ cash: m, initial: m, ticker: ticker || cur.ticker, position: { lot: 0, avg: 0 }, history: [], feeOn: cur.feeOn });
+  setArena({
+    cash: m,
+    initial: m,
+    ticker: ticker || cur.ticker,
+    position: { lot: 0, avg: 0 },
+    history: [],
+    feeOn: cur.feeOn,
+    market: cur.market,
+  });
 }
 function setArenaTicker(ticker) {
   // switching stock clears the (synthetic) position — different market
@@ -41,6 +64,16 @@ function setArenaTicker(ticker) {
   setArena({ ...s, ticker, position: { lot: 0, avg: 0 } });
 }
 function setArenaFee(on) { setArena({ ...getArena(), feeOn: !!on }); }
+function setArenaMarketPreferences(next) {
+  const state = getArena();
+  setArena({
+    ...state,
+    market: normalizeArenaPreferences({
+      ...state.market,
+      ...(next || {}),
+    }),
+  });
+}
 
 /* Glue: apply engine fills involving the user to the account.
    `trades` may hold 1+ fills (a market order can hit several levels);
@@ -87,7 +120,8 @@ function useArena() {
 
 if (typeof window !== 'undefined') {
   Object.assign(window, {
-    getArena, setArenaTicker, setArenaFee, resetArena, applyUserFills, subscribeArena, useArena,
+    getArena, setArenaTicker, setArenaFee, setArenaMarketPreferences,
+    resetArena, applyUserFills, subscribeArena, useArena,
     AR_DEFAULT_MODAL, AR_FEE_BUY, AR_FEE_SELL,
   });
 }
