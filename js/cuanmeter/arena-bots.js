@@ -2,7 +2,7 @@
   'use strict';
 
   const SIM_QUANTUM_MS = 500;
-  const MAX_SYNTHETIC_ORDERS = 80;
+  const MAX_SYNTHETIC_ORDERS = 220;
   const MAX_SPECIAL_EVENTS = 5;
   const MAX_INSIGHTS = 5;
 

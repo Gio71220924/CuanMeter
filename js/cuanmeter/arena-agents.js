@@ -53,6 +53,7 @@
           side,
           level,
           orderId: null,
+          orderIds: [],
           targetPrice: null,
           targetLot,
           lastRefreshAt: 0,
@@ -64,7 +65,7 @@
     function desiredPrice(slot, context) {
       const fairValue = context.roundPrice(context.getFairValue(), 'nearest');
       const spreadFactor = Math.max(0.5, Number(context.regime.spreadFactor) || 1);
-      const firstOffset = Math.max(1, Math.round(baseSpread * spreadFactor));
+      const firstOffset = clamp(Math.round(baseSpread * spreadFactor), 1, 2);
       const offset = firstOffset + slot.level;
       const signedOffset = slot.side === 'buy' ? -offset : offset;
       const mode = slot.side === 'buy' ? 'floor' : 'ceil';
@@ -89,34 +90,50 @@
       const trades = [];
 
       for (const slot of slots) {
-        const existing = slot.orderId == null
-          ? null
-          : context.book.inspectOrder(slot.orderId);
+        const ids = Array.isArray(slot.orderIds) ? slot.orderIds : [];
+        const liveOrders = ids
+          .map((id) => context.book.inspectOrder(id))
+          .filter(Boolean);
+        const restingLot = liveOrders.reduce((sum, order) => sum + order.lot, 0);
+        const head = liveOrders[0] || null;
         const nextPrice = desiredPrice(slot, context);
-        const stale = existing
+        const stale = ids.length
           && context.simNow - slot.lastRefreshAt >= slot.staleAfterMs;
-        const depleted = existing
-          && existing.lot < Math.max(1, slot.targetLot * 0.35);
-        const moved = existing
-          && Math.abs(existing.price - nextPrice) >= context.tick;
+        const depleted = restingLot < Math.max(1, slot.targetLot * 0.35);
+        const moved = head
+          && Math.abs(head.price - nextPrice) >= context.tick;
 
-        if (existing && !stale && !depleted && !moved) {
-          slot.targetPrice = existing.price;
+        if (ids.length && !stale && !depleted && !moved) {
+          slot.targetPrice = head ? head.price : nextPrice;
           continue;
         }
 
-        if (existing) context.book.cancel(existing.id);
+        for (const id of ids) context.book.cancel(id);
 
-        const result = context.submitSynthetic({
-          side: slot.side,
-          price: nextPrice,
-          lot: slot.targetLot,
-          owner: slot.key,
-        });
-        slot.orderId = result.restId;
+        // Split the level into several smaller orders so Freq reflects many
+        // participants instead of one giant order.
+        const pieces = randomInteger(random, 3, 6);
+        const base = Math.max(1, Math.floor(slot.targetLot / pieces));
+        let remaining = slot.targetLot;
+        slot.orderIds = [];
+        for (let piece = 0; piece < pieces && remaining > 0; piece += 1) {
+          const jitter = randomInteger(random, -Math.floor(base * 0.4), Math.floor(base * 0.4));
+          const lot = piece === pieces - 1
+            ? remaining
+            : Math.min(remaining, Math.max(1, base + jitter));
+          remaining -= lot;
+          const result = context.submitSynthetic({
+            side: slot.side,
+            price: nextPrice,
+            lot,
+            owner: slot.key,
+          });
+          if (result.restId != null) slot.orderIds.push(result.restId);
+          trades.push(...result.trades);
+        }
+        slot.orderId = slot.orderIds[0] || null;
         slot.targetPrice = nextPrice;
         slot.lastRefreshAt = context.simNow;
-        trades.push(...result.trades);
         changed = true;
       }
 
@@ -127,6 +144,7 @@
       const cancelled = context.book.cancelByOwnerPrefix('mm:');
       for (const slot of slots) {
         slot.orderId = null;
+        slot.orderIds = [];
         slot.targetPrice = null;
       }
       return cancelled;
