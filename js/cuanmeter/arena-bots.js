@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const SIM_QUANTUM_MS = 500;
+  const SIM_QUANTUM_MS = 250;
   const MAX_SYNTHETIC_ORDERS = 220;
   const MAX_SPECIAL_EVENTS = 5;
   const MAX_INSIGHTS = 5;
@@ -132,9 +132,11 @@
     let timer = null;
     let nextEventId = 1;
     let eventSequenceIndex = 0;
-    let nextSpecialEventAt = Number.isFinite(Number(opts.initialSpecialEventAt))
-      ? Math.max(0, Number(opts.initialSpecialEventAt))
-      : profile.specialCooldownMs;
+    let nextSpecialEventAt = opts.initialSpecialEventAt === Number.POSITIVE_INFINITY
+      ? Number.POSITIVE_INFINITY
+      : Number.isFinite(Number(opts.initialSpecialEventAt))
+        ? Math.max(0, Number(opts.initialSpecialEventAt))
+        : profile.specialCooldownMs;
     const specialEvents = [];
     const requestedEventSequence = Array.isArray(opts.specialEventSequence)
       ? opts.specialEventSequence.filter((type) => (
@@ -146,6 +148,14 @@
         item && typeof item === 'object' ? { ...item } : item
       )).slice(0, MAX_INSIGHTS)
       : [];
+    let lastEvent = {
+      type: 'SEED',
+      side: null,
+      price: fairValue,
+      lot: 0,
+      tradeCount: 0,
+      simTime: 0,
+    };
 
     book.last = fairValue;
 
@@ -278,19 +288,54 @@
     }
 
     const marketMaker = createMarketMakerAgent({ profile, rng: random });
-    const retail = createRetailAgent({ profile, rng: random });
-    const momentum = createMomentumAgent({ profile, rng: random });
+    const orderFlow = createOrderFlowAgent({ profile, rng: random });
+    const flowController = createMarketFlowController({
+      rng: random,
+      sequence: opts.flowEventSequence,
+    });
 
     marketMaker.step(createAgentContext());
 
-    function updateFairValue(deltaMs, regime) {
+    function syncFairValue(regime) {
       const previous = fairValue;
-      const timeFactor = Math.max(0.1, Math.min(4, deltaMs / SIM_QUANTUM_MS));
-      const noise = ((random() - 0.5) * 2) * profile.volatility;
-      const directionalBias = (Number(regime.bias) || 0) * 0.9;
-      const movement = (noise + directionalBias) * currentTick() * timeFactor;
-      fairValue = roundPrice(fairValue + movement, 'nearest');
+      const bestBid = book.bestBid();
+      const bestAsk = book.bestAsk();
+      const midpoint = Number.isFinite(bestBid) && Number.isFinite(bestAsk)
+        ? (bestBid + bestAsk) / 2
+        : Number(book.last) || fairValue;
+      const last = Number(book.last) || fairValue;
+      const directionalBias = (Number(regime.bias) || 0) * currentTick() * 0.35;
+      fairValue = roundPrice(
+        (last * 0.7) + (midpoint * 0.3) + directionalBias,
+        'nearest',
+      );
       return fairValue !== previous;
+    }
+
+    function runPrimaryEvent(type, context) {
+      if (type === 'ADD') {
+        const maintenance = marketMaker.maintainOne(context);
+        if (maintenance.changed) {
+          return {
+            type: 'ADD',
+            ...maintenance,
+          };
+        }
+        return orderFlow.addPassive(context);
+      }
+      if (type === 'CANCEL') return orderFlow.cancelOne(context);
+      if (type === 'AMEND') return orderFlow.amendOne(context);
+      if (type === 'MATCH') return orderFlow.match(context);
+      if (type === 'SWEEP') return orderFlow.sweep(context);
+      return {
+        type: 'IDLE',
+        changed: false,
+        trades: [],
+        side: null,
+        price: null,
+        lot: 0,
+        orderId: null,
+      };
     }
 
     function selectSpecialEventType() {
@@ -378,6 +423,15 @@
       return { changed, tradeCount };
     }
 
+    function needsLiquidityRepair() {
+      const depth = book.depth(Math.min(4, profile.depthLevels));
+      const bidSparse = depth.bids.length < 4
+        && book.bestBid() !== dailyBands.arb;
+      const askSparse = depth.asks.length < 4
+        && book.bestAsk() !== dailyBands.ara;
+      return bidSparse || askSparse;
+    }
+
     function step(deltaMs = SIM_QUANTUM_MS) {
       const numericDelta = Number(deltaMs);
       const elapsed = Number.isFinite(numericDelta) && numericDelta > 0
@@ -387,34 +441,43 @@
 
       const regimeChanged = regimeController.advance(simNow);
       const regime = regimeController.get();
-      const fairChanged = updateFairValue(elapsed, regime);
       const context = createAgentContext();
-      const makerResult = marketMaker.step(context);
-      const retailResult = retail.step(context);
-      const momentumResult = momentum.step(context);
+      const requestedEventType = flowController.next(regime.id);
+      const eventType = needsLiquidityRepair() ? 'ADD' : requestedEventType;
+      const primaryResult = runPrimaryEvent(eventType, context);
       const specialSpawned = maybeSpawnSpecialEvent(regime);
       const specialResult = runSpecialEvents();
-      const tradeCount = makerResult.trades.length
-        + retailResult.trades.length
-        + momentumResult.trades.length
-        + specialResult.tradeCount;
+      const fairChanged = syncFairValue(regime);
+      const spreadRepair = marketMaker.repairSpread(context);
+      const primaryTrades = Array.isArray(primaryResult.trades)
+        ? primaryResult.trades.length
+        : 0;
+      const tradeCount = primaryTrades + specialResult.tradeCount;
+      lastEvent = {
+        type: primaryResult.type,
+        side: primaryResult.side,
+        price: primaryResult.price,
+        lot: primaryResult.lot,
+        tradeCount: primaryTrades,
+        simTime: simNow,
+      };
       const changed = Boolean(
         regimeChanged
         || fairChanged
-        || makerResult.changed
-        || retailResult.changed
-        || momentumResult.changed
+        || primaryResult.changed
+        || spreadRepair.changed
         || specialSpawned
         || specialResult.changed,
       );
 
-      if (changed) safeInvoke(opts.onUpdate);
+      safeInvoke(opts.onUpdate);
 
       return {
         changed,
         tradeCount,
         regimeChanged,
         simNow,
+        event: { ...lastEvent },
       };
     }
 
@@ -473,6 +536,7 @@
           arb: dailyBands.arb,
         },
         regime: regimeController.get(),
+        lastEvent: { ...lastEvent },
         insights: insights.map((item) => (
           item && typeof item === 'object' ? { ...item } : item
         )),

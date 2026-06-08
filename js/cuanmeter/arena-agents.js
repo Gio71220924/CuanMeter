@@ -40,6 +40,7 @@
       Math.max(1, spreadRange[1] || spreadRange[0] || 1),
     );
     const slots = [];
+    let maintenanceCursor = 0;
 
     for (const side of ['buy', 'sell']) {
       for (let level = 0; level < levelCount; level += 1) {
@@ -140,6 +141,204 @@
       return { changed, trades };
     }
 
+    function liveSlotOrders(slot, context) {
+      const liveOrders = (Array.isArray(slot.orderIds) ? slot.orderIds : [])
+        .map((id) => context.book.inspectOrder(id))
+        .filter(Boolean);
+      slot.orderIds = liveOrders.map((order) => order.id);
+      slot.orderId = slot.orderIds[0] || null;
+      return liveOrders;
+    }
+
+    function moveOne(slot, liveOrders, nextPrice, context) {
+      const order = liveOrders.find((candidate) => candidate.price !== nextPrice);
+      if (!order) return null;
+      const result = context.book.amend(order.id, { price: nextPrice });
+      const index = slot.orderIds.indexOf(order.id);
+      if (index >= 0) {
+        if (result.restId == null) slot.orderIds.splice(index, 1);
+        else slot.orderIds[index] = result.restId;
+      }
+      slot.orderId = slot.orderIds[0] || null;
+      slot.targetPrice = nextPrice;
+      slot.lastRefreshAt = context.simNow;
+      return {
+        changed: result.changed,
+        trades: result.trades,
+        side: slot.side,
+        price: nextPrice,
+        lot: order.lot,
+        orderId: result.restId,
+      };
+    }
+
+    function maintainOne(context) {
+      for (let attempt = 0; attempt < slots.length; attempt += 1) {
+        const index = (maintenanceCursor + attempt) % slots.length;
+        const slot = slots[index];
+        const liveOrders = liveSlotOrders(slot, context);
+
+        const restingLot = liveOrders.reduce((sum, order) => sum + order.lot, 0);
+        if (restingLot >= slot.targetLot) continue;
+
+        const nextPrice = liveOrders[0]
+          ? liveOrders[0].price
+          : desiredPrice(slot, context);
+        const lot = slot.targetLot - restingLot;
+        const result = context.submitSynthetic({
+          side: slot.side,
+          price: nextPrice,
+          lot,
+          owner: slot.key,
+        });
+        if (result.restId != null) slot.orderIds.push(result.restId);
+        slot.orderId = slot.orderIds[0] || null;
+        slot.targetPrice = nextPrice;
+        slot.lastRefreshAt = context.simNow;
+        maintenanceCursor = (index + 1) % slots.length;
+        return {
+          changed: result.restId != null || result.trades.length > 0,
+          trades: result.trades,
+          side: slot.side,
+          price: nextPrice,
+          lot,
+          orderId: result.restId,
+        };
+      }
+
+      for (let attempt = 0; attempt < slots.length; attempt += 1) {
+        const index = (maintenanceCursor + attempt) % slots.length;
+        const slot = slots[index];
+        const liveOrders = liveSlotOrders(slot, context);
+        if (!liveOrders.length) continue;
+        const moved = moveOne(
+          slot,
+          liveOrders,
+          desiredPrice(slot, context),
+          context,
+        );
+        if (!moved) continue;
+        maintenanceCursor = (index + 1) % slots.length;
+        return moved;
+      }
+
+      return {
+        changed: false,
+        trades: [],
+        side: null,
+        price: null,
+        lot: 0,
+        orderId: null,
+      };
+    }
+
+    function repairSide(slot, nextPrice, context) {
+      const liveOrders = liveSlotOrders(slot, context);
+      const moved = moveOne(slot, liveOrders, nextPrice, context);
+      if (moved) return moved;
+
+      const donorSlots = slots
+        .filter((candidate) => candidate.side === slot.side && candidate !== slot)
+        .sort((left, right) => right.level - left.level);
+      for (const donor of donorSlots) {
+        const donorOrders = liveSlotOrders(donor, context);
+        const donorMove = moveOne(donor, donorOrders, nextPrice, context);
+        if (donorMove) return donorMove;
+      }
+
+      const lot = Math.max(1, Math.round(slot.targetLot * 0.25));
+      let result = context.submitSynthetic({
+        side: slot.side,
+        price: nextPrice,
+        lot,
+        owner: slot.key,
+      });
+      if (result.restId == null) {
+        const last = Number(context.book.last) || nextPrice;
+        const removable = context.book.restingOrders()
+          .filter((order) => order.owner !== 'user')
+          .sort((left, right) => (
+            Math.abs(right.price - last) - Math.abs(left.price - last)
+          ))[0];
+        if (removable) {
+          context.book.cancel(removable.id);
+          result = context.submitSynthetic({
+            side: slot.side,
+            price: nextPrice,
+            lot,
+            owner: slot.key,
+          });
+        }
+      }
+      if (result.restId != null) slot.orderIds.push(result.restId);
+      slot.orderId = slot.orderIds[0] || null;
+      slot.targetPrice = nextPrice;
+      slot.lastRefreshAt = context.simNow;
+      return {
+        changed: result.restId != null || result.trades.length > 0,
+        trades: result.trades,
+        side: slot.side,
+        price: nextPrice,
+        lot,
+        orderId: result.restId,
+      };
+    }
+
+    function repairSpread(context) {
+      const bestBid = context.book.bestBid();
+      const bestAsk = context.book.bestAsk();
+      const last = Number(context.book.last) || Number(context.getFairValue()) || 50;
+      const bidSlot = slots.find((slot) => slot.side === 'buy' && slot.level === 0);
+      const askSlot = slots.find((slot) => slot.side === 'sell' && slot.level === 0);
+      if (bestBid == null) {
+        return repairSide(
+          bidSlot,
+          context.roundPrice(last - context.tick, 'floor'),
+          context,
+        );
+      }
+      if (bestAsk == null) {
+        return repairSide(
+          askSlot,
+          context.roundPrice(last + context.tick, 'ceil'),
+          context,
+        );
+      }
+
+      const spreadFactor = Math.max(
+        0.5,
+        Number(context.regime && context.regime.spreadFactor) || 1,
+      );
+      const maximumTicks = clamp(
+        Math.round(baseSpread * spreadFactor) * 2,
+        2,
+        4,
+      );
+      if (bestAsk - bestBid <= maximumTicks * context.tick) {
+        return {
+          changed: false,
+          trades: [],
+          side: null,
+          price: null,
+          lot: 0,
+          orderId: null,
+        };
+      }
+
+      const repairBid = last - bestBid >= bestAsk - last;
+      const bidPrice = context.roundPrice(
+        bestAsk - (maximumTicks * context.tick),
+        'ceil',
+      );
+      const askPrice = context.roundPrice(
+        bestBid + (maximumTicks * context.tick),
+        'floor',
+      );
+      const slot = repairBid ? bidSlot : askSlot;
+      const nextPrice = repairBid ? bidPrice : askPrice;
+      return repairSide(slot, nextPrice, context);
+    }
+
     function clear(context) {
       const cancelled = context.book.cancelByOwnerPrefix('mm:');
       for (const slot of slots) {
@@ -152,6 +351,8 @@
 
     return {
       step,
+      maintainOne,
+      repairSpread,
       clear,
       slots,
     };
@@ -230,6 +431,202 @@
     }
 
     return { step };
+  }
+
+  function createOrderFlowAgent({
+    profile,
+    rng = Math.random,
+  } = {}) {
+    const random = typeof rng === 'function' ? rng : Math.random;
+    const marketProfile = profile || {};
+    let sequence = 0;
+
+    function chooseSide(context) {
+      const bias = Number(context.regime && context.regime.bias) || 0;
+      const buyChance = clamp(0.5 + bias, 0.08, 0.92);
+      return random() < buyChance ? 'buy' : 'sell';
+    }
+
+    function ordinaryOrders(context) {
+      return context.book.restingOrders().filter((order) => (
+        order.owner !== 'user'
+        && /^(mm:|retail:|flow:|seed:)/.test(order.owner)
+      ));
+    }
+
+    function chooseOrder(context) {
+      const orders = ordinaryOrders(context);
+      if (!orders.length) return null;
+      return orders[Math.min(
+        orders.length - 1,
+        Math.floor(random() * orders.length),
+      )];
+    }
+
+    function eventResult(type, details = {}) {
+      const trades = Array.isArray(details.trades) ? details.trades : [];
+      return {
+        type,
+        changed: Boolean(details.changed || trades.length),
+        trades,
+        side: details.side || null,
+        price: Number.isFinite(Number(details.price)) ? Number(details.price) : null,
+        lot: Math.max(0, Math.floor(Number(details.lot)) || 0),
+        orderId: details.orderId == null ? null : details.orderId,
+      };
+    }
+
+    function addPassive(context) {
+      const side = chooseSide(context);
+      const tick = Math.max(1, Number(context.tick) || 1);
+      const reference = Number(context.getFairValue()) || Number(context.book.last) || 0;
+      const levels = Math.max(2, Math.floor(marketProfile.depthLevels) || 8);
+      const offset = randomInteger(random, 1, levels);
+      const direction = side === 'buy' ? -1 : 1;
+      let price = context.roundPrice(
+        reference + (direction * offset * tick),
+        side === 'buy' ? 'floor' : 'ceil',
+      );
+
+      if (side === 'buy' && context.book.bestAsk() != null) {
+        price = context.roundPrice(
+          Math.min(price, context.book.bestAsk() - tick),
+          'floor',
+        );
+      }
+      if (side === 'sell' && context.book.bestBid() != null) {
+        price = context.roundPrice(
+          Math.max(price, context.book.bestBid() + tick),
+          'ceil',
+        );
+      }
+
+      const minimum = Math.max(1, Math.floor(marketProfile.baseLotMin) || 1);
+      const maximum = Math.max(
+        minimum,
+        Math.floor(marketProfile.baseLotMax) || minimum,
+        Math.round((Number(marketProfile.depthLotMin) || minimum) * 0.12),
+      );
+      const lot = randomInteger(random, minimum, maximum);
+      sequence += 1;
+      const result = context.submitSynthetic({
+        side,
+        price,
+        lot,
+        owner: `flow:add:${sequence}`,
+      });
+      return eventResult('ADD', {
+        changed: result.restId != null || result.trades.length > 0,
+        trades: result.trades,
+        side,
+        price,
+        lot,
+        orderId: result.restId,
+      });
+    }
+
+    function cancelOne(context) {
+      const order = chooseOrder(context);
+      if (!order) return addPassive(context);
+      const changed = context.book.cancel(order.id);
+      return eventResult('CANCEL', {
+        changed,
+        side: order.side,
+        price: order.price,
+        lot: order.lot,
+        orderId: order.id,
+      });
+    }
+
+    function amendOne(context) {
+      const order = chooseOrder(context);
+      if (!order) return addPassive(context);
+      const magnitude = Math.max(1, Math.round(order.lot * (0.08 + random() * 0.22)));
+      const increase = random() >= 0.55;
+      const nextLot = increase
+        ? order.lot + magnitude
+        : Math.max(1, order.lot - magnitude);
+      const result = context.book.amend(order.id, { lot: nextLot });
+      return eventResult('AMEND', {
+        changed: result.changed,
+        trades: result.trades,
+        side: order.side,
+        price: order.price,
+        lot: nextLot,
+        orderId: result.restId,
+      });
+    }
+
+    function match(context) {
+      const side = chooseSide(context);
+      const mediumChance = clamp(
+        Number(marketProfile.mediumTradeChance) || 0,
+        0,
+        1,
+      );
+      const maximum = random() < mediumChance
+        ? Math.max(8, Math.min(80, Math.floor(marketProfile.baseLotMax) || 20))
+        : 8;
+      const lot = randomInteger(random, 1, maximum);
+      sequence += 1;
+      const result = context.submitSynthetic({
+        side,
+        price: null,
+        lot,
+        owner: `flow:match:${sequence}`,
+      });
+      const price = result.trades.length
+        ? result.trades[result.trades.length - 1].price
+        : null;
+      return eventResult('MATCH', {
+        changed: result.trades.length > 0,
+        trades: result.trades,
+        side,
+        price,
+        lot,
+      });
+    }
+
+    function sweep(context) {
+      const side = chooseSide(context);
+      const depth = context.book.depth(8);
+      const opposing = side === 'buy' ? depth.asks : depth.bids;
+      if (!opposing.length) return addPassive(context);
+      const fullLevels = Math.min(2, Math.max(0, opposing.length - 4));
+      let lot = opposing
+        .slice(0, fullLevels)
+        .reduce((sum, level) => sum + level.lot, 0);
+      const partialLevel = opposing[fullLevels];
+      if (partialLevel && partialLevel.lot > 1) {
+        lot += Math.max(1, Math.floor(partialLevel.lot * 0.35));
+      }
+      if (lot <= 0) return match(context);
+      sequence += 1;
+      const result = context.submitSynthetic({
+        side,
+        price: null,
+        lot,
+        owner: `flow:sweep:${sequence}`,
+      });
+      const price = result.trades.length
+        ? result.trades[result.trades.length - 1].price
+        : null;
+      return eventResult('SWEEP', {
+        changed: result.trades.length > 0,
+        trades: result.trades,
+        side,
+        price,
+        lot,
+      });
+    }
+
+    return {
+      addPassive,
+      amendOne,
+      cancelOne,
+      match,
+      sweep,
+    };
   }
 
   function eventNow(stepContext, context) {
@@ -648,6 +1045,7 @@
     createIcebergAgent,
     createMarketMakerAgent,
     createMomentumAgent,
+    createOrderFlowAgent,
     createRetailAgent,
     createSpoofAgent,
     createWallAgent,

@@ -23,6 +23,7 @@ function loadArenaRuntime() {
     'arena-market.js',
     'arena-engine.js',
     'arena-agents.js',
+    'arena-flow.js',
     'arena-bots.js',
   ];
   const context = vm.createContext({
@@ -164,6 +165,23 @@ function createAgentHarness(runtime, { seed, profile }) {
       });
     },
   };
+}
+
+function createFlowHarness(runtime, { seed = 101, profile = 'normal' } = {}) {
+  const harness = createAgentHarness(runtime, { seed, profile });
+  harness.context.regime = {
+    id: 'normal',
+    activity: 0.62,
+    aggression: 0.42,
+    bias: 0,
+    spreadFactor: 1,
+  };
+  harness.context.getFairValue = () => 140;
+  harness.context.roundPrice = (price) => Math.round(price);
+  harness.context.passivePrice = (side) => (
+    side === 'buy' ? harness.book.bestBid() : harness.book.bestAsk()
+  );
+  return harness;
 }
 
 function sampleMarket(runtime, {
@@ -508,6 +526,57 @@ test('price-time matching still fills oldest order first and reports partial rem
   });
 });
 
+test('amend reducing quantity preserves order id and FIFO priority', () => {
+  const book = createBook(1);
+  const first = book.submit({ side: 'buy', price: 100, lot: 10, owner: 'first' });
+  const second = book.submit({ side: 'buy', price: 100, lot: 8, owner: 'second' });
+
+  const amended = book.amend(first.restId, { lot: 6 });
+
+  assert.deepEqual(localize(amended), {
+    changed: true,
+    restId: first.restId,
+    trades: [],
+  });
+  assert.deepEqual(localize(book.restingOrders()), [
+    { id: first.restId, side: 'buy', price: 100, lot: 6, owner: 'first' },
+    { id: second.restId, side: 'buy', price: 100, lot: 8, owner: 'second' },
+  ]);
+});
+
+test('amend increasing quantity loses FIFO priority', () => {
+  const book = createBook(1);
+  const first = book.submit({ side: 'sell', price: 105, lot: 5, owner: 'first' });
+  const second = book.submit({ side: 'sell', price: 105, lot: 8, owner: 'second' });
+
+  const amended = book.amend(first.restId, { lot: 12 });
+
+  assert.equal(amended.changed, true);
+  assert.notEqual(amended.restId, first.restId);
+  assert.deepEqual(localize(book.restingOrders()), [
+    { id: second.restId, side: 'sell', price: 105, lot: 8, owner: 'second' },
+    { id: amended.restId, side: 'sell', price: 105, lot: 12, owner: 'first' },
+  ]);
+});
+
+test('amend changing price resubmits at the new level', () => {
+  const book = createBook(1);
+  const original = book.submit({ side: 'buy', price: 100, lot: 7, owner: 'maker' });
+
+  const amended = book.amend(original.restId, { price: 101, lot: 7 });
+
+  assert.equal(amended.changed, true);
+  assert.notEqual(amended.restId, original.restId);
+  assert.equal(book.inspectOrder(original.restId), null);
+  assert.deepEqual(localize(book.inspectOrder(amended.restId)), {
+    id: amended.restId,
+    side: 'buy',
+    price: 101,
+    lot: 7,
+    owner: 'maker',
+  });
+});
+
 test('market maker seeds persistent profile depth and retains ordinary quote IDs', () => {
   const runtime = loadArenaRuntime();
   const market = runtime.createMarket({
@@ -542,10 +611,20 @@ test('market maker uses aggregate profile depth instead of ordinary agent lots',
   });
   const makerOrders = market.book.restingOrders()
     .filter((order) => order.owner.startsWith('mm:'));
-  assert.ok(makerOrders.length > 0);
+  const aggregateBySlot = new Map();
+
   makerOrders.forEach((order) => {
-    assert.ok(order.lot >= profile.depthLotMin);
-    assert.ok(order.lot <= profile.depthLotMax);
+    aggregateBySlot.set(
+      order.owner,
+      (aggregateBySlot.get(order.owner) || 0) + order.lot,
+    );
+  });
+
+  assert.ok(makerOrders.length > 0);
+  assert.ok(makerOrders.length > aggregateBySlot.size);
+  aggregateBySlot.forEach((lot) => {
+    assert.ok(lot >= profile.depthLotMin);
+    assert.ok(lot <= profile.depthLotMax);
   });
 });
 
@@ -592,6 +671,68 @@ test('market maker target lots remain uneven with a constant RNG', () => {
   assert.ok(targetLots.every((lot) => (
     lot >= profile.depthLotMin && lot <= profile.depthLotMax
   )));
+});
+
+test('order flow agent performs one atomic queue mutation per operation', () => {
+  const runtime = loadArenaRuntime();
+  const harness = createFlowHarness(runtime, { seed: 401 });
+  const agent = runtime.createOrderFlowAgent({
+    profile: runtime.ARENA_PROFILES.normal,
+    rng: runtime.createArenaRng(401),
+  });
+
+  const beforeAdd = harness.book.restingOrders();
+  const added = agent.addPassive(harness.context);
+  const afterAdd = harness.book.restingOrders();
+  assert.equal(added.type, 'ADD');
+  assert.equal(added.changed, true);
+  assert.equal(afterAdd.length, beforeAdd.length + 1);
+
+  const beforeCancel = afterAdd;
+  const cancelled = agent.cancelOne(harness.context);
+  const afterCancel = harness.book.restingOrders();
+  assert.equal(cancelled.type, 'CANCEL');
+  assert.equal(cancelled.changed, true);
+  assert.equal(afterCancel.length, beforeCancel.length - 1);
+
+  const beforeAmend = afterCancel;
+  const amended = agent.amendOne(harness.context);
+  const afterAmend = harness.book.restingOrders();
+  assert.equal(amended.type, 'AMEND');
+  assert.equal(amended.changed, true);
+  assert.notDeepEqual(localize(afterAmend), localize(beforeAmend));
+});
+
+test('order flow MATCH executes against the current best quote', () => {
+  const runtime = loadArenaRuntime();
+  const harness = createFlowHarness(runtime, { seed: 402 });
+  const agent = runtime.createOrderFlowAgent({
+    profile: runtime.ARENA_PROFILES.normal,
+    rng: () => 0,
+  });
+  const previousLast = harness.book.last;
+
+  const result = agent.match(harness.context);
+
+  assert.equal(result.type, 'MATCH');
+  assert.ok(result.trades.length > 0);
+  assert.notEqual(harness.book.last, null);
+  assert.ok(harness.book.last >= previousLast);
+});
+
+test('order flow SWEEP consumes more than one opposing order', () => {
+  const runtime = loadArenaRuntime();
+  const harness = createFlowHarness(runtime, { seed: 403 });
+  const agent = runtime.createOrderFlowAgent({
+    profile: runtime.ARENA_PROFILES.normal,
+    rng: () => 0,
+  });
+
+  const result = agent.sweep(harness.context);
+
+  assert.equal(result.type, 'SWEEP');
+  assert.ok(result.trades.length >= 2);
+  assert.ok(result.lot >= result.trades.reduce((sum, trade) => sum + trade.lot, 0));
 });
 
 test('retail flow creates irregular trade and idle cycles with a seeded RNG', () => {
@@ -738,7 +879,7 @@ test('market schedules capped special events and keeps bounded synthetic state',
     sawSpecialOrder ||= syntheticOrders.some((order) => (
       /^(spoof|iceberg|wall|whale):/.test(order.owner)
     ));
-    assert.ok(syntheticOrders.length <= 80);
+    assert.ok(syntheticOrders.length <= 220);
     assert.ok(market.snapshot().insights.length <= 5);
   }
 
@@ -967,6 +1108,7 @@ test('market snapshot preserves the Arena contract and adds regime and insights'
     'done',
     'insights',
     'last',
+    'lastEvent',
     'ref',
     'regime',
     'stats',
@@ -986,6 +1128,14 @@ test('market snapshot preserves the Arena contract and adds regime and insights'
   ]);
   assert.equal(snapshot.regime.id, 'quiet');
   assert.deepEqual(snapshot.insights, []);
+  assert.deepEqual(snapshot.lastEvent, {
+    type: 'SEED',
+    side: null,
+    price: 140,
+    lot: 0,
+    tradeCount: 0,
+    simTime: 0,
+  });
   assert.equal(snapshot.depth.bids.length, 10);
   assert.equal(snapshot.depth.asks.length, 10);
 });
@@ -1018,6 +1168,7 @@ test('snapshot copies done, insights, regime, and initial insight input', () => 
   first.insights[0].type = 'mutated-snapshot';
   first.insights.push({ type: 'extra-snapshot' });
   first.regime.id = 'mutated-regime';
+  first.lastEvent.type = 'mutated-event';
 
   const second = market.snapshot();
   assert.notEqual(second.done[tradedPrice], 999_999);
@@ -1027,6 +1178,160 @@ test('snapshot copies done, insights, regime, and initial insight input', () => 
     price: 145,
   }]);
   assert.equal(second.regime.id, 'normal');
+  assert.notEqual(second.lastEvent.type, 'mutated-event');
+});
+
+test('forced queue events mutate queues without changing trade statistics or last price', () => {
+  const runtime = loadArenaRuntime();
+
+  for (const eventType of ['ADD', 'CANCEL', 'AMEND', 'IDLE']) {
+    const market = runtime.createMarket({
+      seedPrice: 140,
+      profile: 'normal',
+      seed: 4_400 + eventType.length,
+      forcedRegime: 'normal',
+      flowEventSequence: [eventType],
+      initialSpecialEventAt: Number.POSITIVE_INFINITY,
+    });
+    const before = market.snapshot(20);
+    const beforeOrders = market.book.restingOrders();
+    const cycle = market.step(250);
+    const after = market.snapshot(20);
+    const afterOrders = market.book.restingOrders();
+
+    assert.equal(cycle.event.type, eventType);
+    assert.equal(after.lastEvent.type, eventType);
+    assert.equal(after.last, before.last);
+    assert.deepEqual(localize(after.stats), localize(before.stats));
+    if (eventType === 'IDLE') {
+      assert.deepEqual(localize(afterOrders), localize(beforeOrders));
+    } else {
+      assert.notDeepEqual(localize(afterOrders), localize(beforeOrders));
+    }
+  }
+});
+
+test('forced MATCH and SWEEP events update actual trade statistics', () => {
+  const runtime = loadArenaRuntime();
+
+  for (const eventType of ['MATCH', 'SWEEP']) {
+    const market = runtime.createMarket({
+      seedPrice: 140,
+      profile: 'normal',
+      seed: 5_500 + eventType.length,
+      forcedRegime: 'trend_up',
+      flowEventSequence: [eventType],
+      initialSpecialEventAt: Number.POSITIVE_INFINITY,
+    });
+    const before = market.snapshot(20);
+    const cycle = market.step(250);
+    const after = market.snapshot(20);
+
+    assert.equal(cycle.event.type, eventType);
+    assert.equal(after.lastEvent.type, eventType);
+    assert.ok(cycle.tradeCount > 0);
+    assert.ok(after.stats.vol > before.stats.vol);
+    assert.ok(after.stats.freq > before.stats.freq);
+    assert.ok(after.done[String(after.last)] > 0);
+  }
+});
+
+test('normal seeded flow produces more queue events than aggressive events', () => {
+  const runtime = loadArenaRuntime();
+  const market = runtime.createMarket({
+    seedPrice: 140,
+    profile: 'normal',
+    seed: 6_606,
+    forcedRegime: 'normal',
+    initialSpecialEventAt: Number.POSITIVE_INFINITY,
+  });
+  const counts = {
+    ADD: 0,
+    CANCEL: 0,
+    AMEND: 0,
+    MATCH: 0,
+    SWEEP: 0,
+    IDLE: 0,
+  };
+
+  for (let index = 0; index < 2_000; index += 1) {
+    const event = market.step(250).event;
+    counts[event.type] += 1;
+  }
+
+  const queueEvents = counts.ADD + counts.CANCEL + counts.AMEND;
+  const aggressiveEvents = counts.MATCH + counts.SWEEP;
+  assert.ok(queueEvents > aggressiveEvents * 1.8, JSON.stringify(counts));
+  assert.ok(counts.IDLE > 0, JSON.stringify(counts));
+});
+
+test('event-driven market maker keeps both sides populated during long sessions', () => {
+  const runtime = loadArenaRuntime();
+
+  for (const profileId of ['liquid', 'normal']) {
+    const profile = runtime.ARENA_PROFILES[profileId];
+    const market = runtime.createMarket({
+      seedPrice: 140,
+      profile: profileId,
+      seed: 60_608,
+      forcedRegime: 'normal',
+      initialSpecialEventAt: Number.POSITIVE_INFINITY,
+    });
+
+    for (let index = 0; index < 1_000; index += 1) {
+      market.step(250);
+    }
+
+    const snapshot = market.snapshot(10);
+    const { depth } = snapshot;
+    const bidLot = depth.bids.reduce((sum, level) => sum + level.lot, 0);
+    const askLot = depth.asks.reduce((sum, level) => sum + level.lot, 0);
+    const bidAtArb = snapshot.bestBid === snapshot.stats.arb;
+    const askAtAra = snapshot.bestAsk === snapshot.stats.ara;
+
+    assert.ok(
+      depth.bids.length >= 4 || bidAtArb,
+      `${profileId} bid levels: ${depth.bids.length}`,
+    );
+    assert.ok(
+      depth.asks.length >= 4 || askAtAra,
+      `${profileId} ask levels: ${depth.asks.length}`,
+    );
+    assert.ok(bidLot >= profile.depthLotMin, `${profileId} bid lot: ${bidLot}`);
+    assert.ok(askLot >= profile.depthLotMin, `${profileId} ask lot: ${askLot}`);
+  }
+});
+
+test('event-driven market maker repairs a hollow normal top of book', () => {
+  const runtime = loadArenaRuntime();
+  const market = runtime.createMarket({
+    seedPrice: 140,
+    profile: 'normal',
+    seed: 26,
+    forcedRegime: 'normal',
+    initialSpecialEventAt: Number.POSITIVE_INFINITY,
+  });
+
+  let widest = null;
+  for (let index = 0; index < 800; index += 1) {
+    market.step(250);
+    const snapshot = market.snapshot(10);
+    let price = snapshot.bestBid;
+    let spreadTicks = 0;
+    while (price < snapshot.bestAsk && spreadTicks < 100) {
+      price = runtime.nextArenaPrice(price);
+      spreadTicks += 1;
+    }
+    if (!widest || spreadTicks > widest.spreadTicks) {
+      widest = {
+        bestBid: snapshot.bestBid,
+        bestAsk: snapshot.bestAsk,
+        spreadTicks,
+      };
+    }
+  }
+
+  assert.ok(widest.spreadTicks <= 4, JSON.stringify(widest));
 });
 
 test('user order API keeps resting, cancellation, and fill callbacks compatible', () => {
@@ -1177,19 +1482,19 @@ test('scheduler is recursive, speed-aware, normalized, and start-stop idempotent
   market.start(700);
   market.start();
   assert.equal(fake.pending.size, 1);
-  assert.deepEqual(fake.scheduledDelays, [250]);
+  assert.deepEqual(fake.scheduledDelays, [125]);
   assert.equal(market.getState().running, true);
 
   market.setSpeed('5');
   assert.equal(fake.pending.size, 1);
   assert.equal(fake.cancelled.length, 1);
-  assert.deepEqual(fake.scheduledDelays, [250, 100]);
+  assert.deepEqual(fake.scheduledDelays, [125, 50]);
   assert.equal(market.getState().speed, 5);
 
   market.setSpeed(3);
   assert.equal(fake.pending.size, 1);
   assert.equal(fake.cancelled.length, 2);
-  assert.deepEqual(fake.scheduledDelays, [250, 100, 500]);
+  assert.deepEqual(fake.scheduledDelays, [125, 50, 250]);
   assert.equal(market.getState().speed, 1);
 
   market.stop();
@@ -1222,7 +1527,7 @@ test('reentrant setSpeed from onUpdate keeps exactly one scheduled callback', ()
   assert.ok(updateCount > 0);
   assert.equal(market.getState().speed, 5);
   assert.equal(fake.pending.size, 1);
-  assert.equal(fake.scheduledDelays.at(-1), 100);
+  assert.equal(fake.scheduledDelays.at(-1), 50);
 
   market.stop();
   assert.equal(fake.pending.size, 0);
@@ -1288,13 +1593,14 @@ test('unexpected step errors report safely and still schedule exactly one next c
   const market = runtime.createMarket({
     seedPrice: 140,
     seed: 97,
+    flowEventSequence: ['ADD'],
     schedule: fake.schedule,
     cancelSchedule: fake.cancelSchedule,
     onError: (error) => {
       errors.push(error.message);
     },
   });
-  market.book.inspectOrder = () => {
+  market.book.submit = () => {
     throw new Error('agent failed');
   };
 
@@ -1318,6 +1624,7 @@ test('step returns the exact cycle contract and normalizes simulated delta', () 
   const first = localize(market.step(250));
   assert.deepEqual(Object.keys(first).sort(), [
     'changed',
+    'event',
     'regimeChanged',
     'simNow',
     'tradeCount',
@@ -1326,8 +1633,19 @@ test('step returns the exact cycle contract and normalizes simulated delta', () 
   assert.equal(typeof first.changed, 'boolean');
   assert.equal(typeof first.tradeCount, 'number');
   assert.equal(typeof first.regimeChanged, 'boolean');
+  assert.deepEqual(Object.keys(first.event).sort(), [
+    'lot',
+    'price',
+    'side',
+    'simTime',
+    'tradeCount',
+    'type',
+  ]);
+  assert.ok(runtime.ARENA_FLOW_EVENTS.includes(first.event.type));
+  assert.equal(first.event.tradeCount, 0);
+  assert.equal(first.event.simTime, 250);
 
-  assert.equal(market.step(0).simNow, 750);
-  assert.equal(market.step(Number.NaN).simNow, 1250);
-  assert.equal(market.step().simNow, 1750);
+  assert.equal(market.step(0).simNow, 500);
+  assert.equal(market.step(Number.NaN).simNow, 750);
+  assert.equal(market.step().simNow, 1_000);
 });

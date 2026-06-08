@@ -102,6 +102,54 @@ function createBook(tick) {
     return false;
   }
 
+  function amend(id, changes = {}) {
+    for (const [side, levels] of [['buy', bids], ['sell', asks]]) {
+      for (const level of levels) {
+        const index = level.orders.findIndex((order) => order.id === id);
+        if (index < 0) continue;
+
+        const order = level.orders[index];
+        const requestedLot = changes.lot == null
+          ? order.lot
+          : Math.floor(Number(changes.lot)) || 0;
+        const requestedPrice = changes.price == null
+          ? level.price
+          : Number(changes.price);
+
+        if (requestedLot <= 0) {
+          level.orders.splice(index, 1);
+          prune();
+          return { changed: true, restId: null, trades: [] };
+        }
+
+        if (requestedPrice === level.price && requestedLot <= order.lot) {
+          if (requestedLot === order.lot) {
+            return { changed: false, restId: order.id, trades: [] };
+          }
+          order.lot = requestedLot;
+          return { changed: true, restId: order.id, trades: [] };
+        }
+
+        const replacement = {
+          side,
+          price: requestedPrice,
+          lot: requestedLot,
+          owner: order.owner,
+        };
+        level.orders.splice(index, 1);
+        prune();
+        const result = submit(replacement);
+        return {
+          changed: true,
+          restId: result.restId,
+          trades: result.trades,
+        };
+      }
+    }
+
+    return { changed: false, restId: null, trades: [] };
+  }
+
   function depth(n) {
     const map = (arr) => arr.slice(0, n || 7).map((l) => ({
       price: l.price,
@@ -167,6 +215,7 @@ function createBook(tick) {
   return {
     submit,
     cancel,
+    amend,
     depth,
     restingByOwner,
     restingOrders,
