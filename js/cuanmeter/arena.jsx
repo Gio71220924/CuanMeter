@@ -76,6 +76,8 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
   const centeredFor = useRefAA(null);
   const manualScrollUntil = useRefAA(0);
   const dragStartPrice = useRefAA(null);
+  const onMoveRef = useRefAA(onMove);
+  onMoveRef.current = onMove;
   const [draggedOrderId, setDraggedOrderId] = useStateAA(null);
   const [dropPrice, setDropPrice] = useStateAA(null);
 
@@ -128,7 +130,15 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
       return Number.isFinite(value) ? value : null;
     };
 
-    const track = (clientX, clientY) => setDropPrice(priceUnder(clientX, clientY));
+    let pointerX = null;
+    let pointerY = null;
+    let rafId = null;
+
+    const track = (clientX, clientY) => {
+      pointerX = clientX;
+      pointerY = clientY;
+      setDropPrice(priceUnder(clientX, clientY));
+    };
     const finish = (clientX, clientY) => {
       const targetPrice = priceUnder(clientX, clientY);
       const orderId = draggedOrderId;
@@ -137,8 +147,30 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
       setDropPrice(null);
       dragStartPrice.current = null;
       if (orderId != null && targetPrice != null && targetPrice !== startPrice) {
-        onMove(orderId, targetPrice);
+        onMoveRef.current(orderId, targetPrice);
       }
+    };
+
+    // Auto-scroll the ladder when the pointer nears its top/bottom edge so the
+    // order can be dragged to any price across the full ARA->ARB range, even
+    // rows that are off-screen.
+    const EDGE = 52;
+    const MAX_SPEED = 16;
+    const autoScroll = () => {
+      const body = bodyRef.current;
+      if (body && pointerY != null) {
+        const rect = body.getBoundingClientRect();
+        if (pointerY < rect.top + EDGE) {
+          const intensity = (rect.top + EDGE - pointerY) / EDGE;
+          body.scrollTop -= MAX_SPEED * Math.min(1, intensity);
+          if (pointerX != null) setDropPrice(priceUnder(pointerX, pointerY));
+        } else if (pointerY > rect.bottom - EDGE) {
+          const intensity = (pointerY - (rect.bottom - EDGE)) / EDGE;
+          body.scrollTop += MAX_SPEED * Math.min(1, intensity);
+          if (pointerX != null) setDropPrice(priceUnder(pointerX, pointerY));
+        }
+      }
+      rafId = requestAnimationFrame(autoScroll);
     };
 
     const onMouseMove = (event) => track(event.clientX, event.clientY);
@@ -155,11 +187,14 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
       finish(touch ? touch.clientX : 0, touch ? touch.clientY : 0);
     };
 
+    // Pause auto-follow re-centering while dragging so the ladder stays put.
+    manualScrollUntil.current = Date.now() + 60_000;
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
     document.addEventListener('touchmove', onTouchMove, { passive: false });
     document.addEventListener('touchend', onTouchEnd);
     document.body.style.userSelect = 'none';
+    rafId = requestAnimationFrame(autoScroll);
 
     return () => {
       document.removeEventListener('mousemove', onMouseMove);
@@ -167,8 +202,9 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
       document.removeEventListener('touchmove', onTouchMove);
       document.removeEventListener('touchend', onTouchEnd);
       document.body.style.userSelect = '';
+      if (rafId != null) cancelAnimationFrame(rafId);
     };
-  }, [draggedOrderId, onMove]);
+  }, [draggedOrderId]);
 
   if (!snap) {
     return (
