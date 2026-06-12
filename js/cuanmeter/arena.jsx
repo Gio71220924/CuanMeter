@@ -272,14 +272,16 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
                   </>
                 )}
               </span>
-              <button
-                type="button"
-                className="arena-plus arena-plus-buy"
-                onClick={(event) => { event.stopPropagation(); onPlace('buy', price); }}
-                aria-label={`Pasang beli di ${price.toLocaleString('id-ID')}`}
-              >
-                +
-              </button>
+              <span className="arena-c-act">
+                <button
+                  type="button"
+                  className="arena-plus arena-plus-buy"
+                  onClick={(event) => { event.stopPropagation(); onPlace('buy', price); }}
+                  aria-label={`Pasang beli di ${price.toLocaleString('id-ID')}`}
+                >
+                  +
+                </button>
+              </span>
               <span className="arena-c-freq">{bid ? bid.freq : ''}</span>
               <span className={`arena-c-delta${bidDelta.cls}`}>{bidDelta.glyph}</span>
               <span className={`arena-c-blot${myBuy[price] ? ' arena-c-mine' : ''}`}>
@@ -313,14 +315,16 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
               </span>
               <span className={`arena-c-delta${askDelta.cls}`}>{askDelta.glyph}</span>
               <span className="arena-c-freq">{ask ? ask.freq : ''}</span>
-              <button
-                type="button"
-                className="arena-plus arena-plus-sell"
-                onClick={(event) => { event.stopPropagation(); onPlace('sell', price); }}
-                aria-label={`Pasang jual di ${price.toLocaleString('id-ID')}`}
-              >
-                +
-              </button>
+              <span className="arena-c-act">
+                <button
+                  type="button"
+                  className="arena-plus arena-plus-sell"
+                  onClick={(event) => { event.stopPropagation(); onPlace('sell', price); }}
+                  aria-label={`Pasang jual di ${price.toLocaleString('id-ID')}`}
+                >
+                  +
+                </button>
+              </span>
               <span className={`arena-c-done${priceState}`}>
                 {done[price] ? done[price].toLocaleString('id-ID') : ''}
               </span>

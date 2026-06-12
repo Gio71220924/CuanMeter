@@ -897,21 +897,20 @@ body[data-theme="dark"] .cta-terminal {
 }
 
 .arena-tape {
-  --ob-bg: #1c1f26;
-  --ob-bg2: #20242c;
-  --ob-head: #14161b;
-  --ob-line: #2a2f38;
-  --ob-text: #cdd2db;
-  --ob-dim: #767c88;
-  --ob-faint: #565c68;
-  --ob-up: #2bb6a3;
-  --ob-dn: #ef5350;
+  --ob-bg: var(--surface);
+  --ob-head: color-mix(in oklab, var(--fg) 6%, var(--surface));
+  --ob-line: var(--border);
+  --ob-text: var(--fg);
+  --ob-dim: var(--fg-muted);
+  --ob-faint: var(--fg-faint);
+  --ob-up: var(--success);
+  --ob-dn: var(--danger);
   overflow: hidden;
   min-width: 0;
   background: var(--ob-bg);
   border: 1px solid var(--ob-line);
   border-radius: var(--radius);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-sm);
   color: var(--ob-text);
   font-variant-numeric: tabular-nums;
 }
@@ -930,8 +929,8 @@ body[data-theme="dark"] .cta-terminal {
 
 .arena-tape-titlebar strong { font-size: 12px; letter-spacing: 0.02em; }
 .arena-tape-titlebar .arena-live-dot {
-  background: rgba(43, 182, 163, 0.14);
-  border-color: rgba(43, 182, 163, 0.4);
+  background: color-mix(in oklab, var(--ob-up) 14%, transparent);
+  border-color: color-mix(in oklab, var(--ob-up) 40%, transparent);
   color: var(--ob-up);
 }
 
@@ -1312,22 +1311,24 @@ body[data-theme="dark"] .cta-terminal {
    the app theme, and overrides the base light-card rules above.
    ============================================================ */
 .arena-book-term {
-  --ob-bg: #1c1f26;
-  --ob-bg2: #20242c;
-  --ob-head: #14161b;
-  --ob-line: #2a2f38;
-  --ob-line-soft: #23272f;
-  --ob-text: #cdd2db;
-  --ob-dim: #767c88;
-  --ob-faint: #565c68;
-  --ob-up: #2bb6a3;
-  --ob-dn: #ef5350;
-  --ob-freq: #8b93ff;
+  /* Follow the app theme: light surface in light mode, dark in dark mode. */
+  --ob-bg: var(--surface);
+  --ob-bg2: var(--surface-hover);
+  --ob-head: color-mix(in oklab, var(--fg) 6%, var(--surface));
+  --ob-line: var(--border);
+  --ob-line-soft: color-mix(in oklab, var(--border) 60%, transparent);
+  --ob-text: var(--fg);
+  --ob-dim: var(--fg-muted);
+  --ob-faint: var(--fg-faint);
+  --ob-up: var(--success);
+  --ob-dn: var(--danger);
+  --ob-freq: #7c6cff;
   background: var(--ob-bg);
   border-color: var(--ob-line);
   color: var(--ob-text);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-sm);
 }
+body[data-theme="dark"] .arena-book-term { --ob-freq: #9aa0ff; }
 
 .arena-book-term .arena-book-titlebar {
   min-height: 44px;
@@ -1342,46 +1343,77 @@ body[data-theme="dark"] .cta-terminal {
   font-size: 9px;
 }
 .arena-book-term .arena-live-dot {
-  background: rgba(43, 182, 163, 0.14);
-  border-color: rgba(43, 182, 163, 0.4);
+  background: color-mix(in oklab, var(--ob-up) 14%, transparent);
+  border-color: color-mix(in oklab, var(--ob-up) 40%, transparent);
   color: var(--ob-up);
 }
 
 .arena-book-term .arena-brow {
   grid-template-columns:
-    66px 22px 32px 18px 54px minmax(80px, 1fr) 54px 18px 32px 22px 52px;
+    minmax(74px, 1fr) 32px 44px 26px minmax(74px, 1.1fr) 104px minmax(74px, 1.1fr) 26px 44px 32px minmax(66px, 0.9fr);
   gap: 0;
-  height: 22px;
-  padding: 0 8px;
+  height: 30px;
+  padding: 0;
+  align-items: stretch;
 }
+
+/* Vertical column separators — full-height cells form a table grid */
+.arena-book-term .arena-brow > * {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 6px;
+  border-right: 1px solid var(--ob-line-soft);
+}
+.arena-book-term .arena-brow > *:last-child { border-right: none; }
+.arena-book-term .arena-c-blot { justify-content: flex-end; }
+.arena-book-term .arena-c-alot { justify-content: flex-start; }
+.arena-book-term .arena-c-trade { justify-content: flex-end; }
+.arena-book-term .arena-c-done { justify-content: flex-end; }
+.arena-book-term .arena-c-px { flex-direction: column; }
+.arena-book-term .arena-c-act { padding: 0; }
 
 .arena-book-term .arena-bhead,
 .arena-book-term .arena-btot {
-  height: 26px;
+  height: 32px;
   background: var(--ob-head);
   color: var(--ob-faint);
-  font-size: 8.5px;
+  font-size: 10px;
   letter-spacing: 0.05em;
 }
 .arena-book-term .arena-bhead { border-bottom: 1px solid var(--ob-line); }
 .arena-book-term .arena-btot {
   border-top: 1px solid var(--ob-line);
   color: var(--ob-dim);
-  font-size: 9.5px;
+  font-size: 11px;
 }
+/* Reserve the same scrollbar gutter on head/total as the scrollable body
+   so the vertical column dividers line up across all three rows. */
+.arena-book-term .arena-bhead,
+.arena-book-term .arena-btot {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.arena-book-term .arena-bhead::-webkit-scrollbar,
+.arena-book-term .arena-btot::-webkit-scrollbar { width: 0; height: 0; }
 .arena-book-term .arena-btot > span { color: var(--ob-text); }
 /* header / total column alignment: numbers right, actions centred */
 .arena-book-term .arena-bhead > span,
-.arena-book-term .arena-btot > span { text-align: right; }
+.arena-book-term .arena-btot > span { justify-content: flex-end; }
 .arena-book-term .arena-bhead > span:nth-child(1),
-.arena-book-term .arena-btot > span:nth-child(1) { text-align: left; }
+.arena-book-term .arena-btot > span:nth-child(1) { justify-content: flex-start; }
 .arena-book-term .arena-bhead > span:nth-child(2),
 .arena-book-term .arena-bhead > span:nth-child(6),
 .arena-book-term .arena-bhead > span:nth-child(10),
-.arena-book-term .arena-btot > span:nth-child(6) { text-align: center; }
+.arena-book-term .arena-btot > span:nth-child(6) { justify-content: center; }
 
 .arena-book-term .arena-bbody {
-  max-height: 460px;
+  max-height: 540px;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
   scrollbar-color: var(--ob-line) transparent;
 }
 
@@ -1394,11 +1426,11 @@ body[data-theme="dark"] .cta-terminal {
   background: var(--ob-bg2);
 }
 .arena-book-term .arena-brow-last {
-  background: rgba(139, 147, 255, 0.1);
+  background: color-mix(in oklab, var(--ob-freq) 12%, transparent);
   box-shadow: inset 2px 0 0 var(--ob-freq);
 }
 .arena-book-term .arena-brow-last:hover {
-  background: rgba(139, 147, 255, 0.16);
+  background: color-mix(in oklab, var(--ob-freq) 18%, transparent);
 }
 
 /* Trade column — subtle directional depth bar + compact value */
@@ -1409,9 +1441,9 @@ body[data-theme="dark"] .cta-terminal {
   justify-content: flex-end;
   height: 100%;
   overflow: hidden;
-  padding-right: 4px;
+  padding-right: 6px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9.5px;
+  font-size: 11px;
   color: var(--ob-dim);
 }
 .arena-book-term .arena-c-trade em {
@@ -1427,17 +1459,17 @@ body[data-theme="dark"] .cta-terminal {
   border-radius: 1px;
   opacity: 0.5;
 }
-.arena-book-term .arena-tbar-bid { background: rgba(43, 182, 163, 0.32); }
-.arena-book-term .arena-tbar-ask { background: rgba(239, 83, 80, 0.3); }
+.arena-book-term .arena-tbar-bid { background: color-mix(in oklab, var(--ob-up) 30%, transparent); }
+.arena-book-term .arena-tbar-ask { background: color-mix(in oklab, var(--ob-dn) 28%, transparent); }
 .arena-book-term .arena-c-trade-bid em { color: color-mix(in oklab, var(--ob-up) 80%, var(--ob-text)); }
 .arena-book-term .arena-c-trade-ask em { color: color-mix(in oklab, var(--ob-dn) 80%, var(--ob-text)); }
 
 .arena-book-term .arena-plus {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   border-width: 1px;
-  font-size: 11px;
-  line-height: 13px;
+  font-size: 13px;
+  line-height: 17px;
   opacity: 0.55;
 }
 .arena-book-term .arena-plus-buy { color: var(--ob-up); }
@@ -1445,12 +1477,12 @@ body[data-theme="dark"] .cta-terminal {
 
 .arena-book-term .arena-c-freq {
   color: var(--ob-freq);
-  font-size: 9px;
+  font-size: 11px;
   text-align: center;
 }
 
 .arena-book-term .arena-c-delta {
-  font-size: 7px;
+  font-size: 9px;
   text-align: center;
   color: transparent;
 }
@@ -1460,27 +1492,27 @@ body[data-theme="dark"] .cta-terminal {
 .arena-book-term .arena-c-blot,
 .arena-book-term .arena-c-alot {
   height: 100%;
-  font-size: 10.5px;
+  font-size: 12.5px;
   color: var(--ob-text);
 }
-.arena-book-term .arena-lotn { color: var(--ob-text); padding: 0 4px; }
+.arena-book-term .arena-lotn { color: var(--ob-text); padding: 0 5px; }
 .arena-book-term .arena-lotn.d-up { color: var(--ob-up); }
 .arena-book-term .arena-lotn.d-dn { color: var(--ob-dn); }
 
-.arena-book-term .arena-c-px { color: var(--ob-text); font-size: 11.5px; }
-.arena-book-term .arena-c-px small { color: var(--ob-dim); opacity: 1; }
+.arena-book-term .arena-c-px { color: var(--ob-text); font-size: 14px; }
+.arena-book-term .arena-c-px small { color: var(--ob-dim); opacity: 1; font-size: 9px; }
 .arena-book-term .arena-c-px.paper-up { color: var(--ob-up); }
 .arena-book-term .arena-c-px.paper-up small { color: color-mix(in oklab, var(--ob-up) 70%, var(--ob-dim)); }
 .arena-book-term .arena-c-px.paper-dn { color: var(--ob-dn); }
 .arena-book-term .arena-c-px.paper-dn small { color: color-mix(in oklab, var(--ob-dn) 70%, var(--ob-dim)); }
 .arena-book-term .arena-mk {
   background: var(--ob-freq);
-  color: #14161b;
+  color: #fff;
 }
 
 .arena-book-term .arena-c-done {
   color: var(--ob-dim);
-  font-size: 9.5px;
+  font-size: 11px;
   text-align: right;
 }
 .arena-book-term .arena-c-done.paper-up { color: var(--ob-up); }
@@ -1495,11 +1527,11 @@ body[data-theme="dark"] .cta-terminal {
   border-top: 1px solid var(--ob-line);
 }
 .arena-book-actions button {
-  padding: 8px 6px;
+  padding: 11px 8px;
   border: none;
   background: var(--ob-head);
   color: var(--ob-dim);
-  font-size: 10px;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.02em;
   cursor: pointer;
@@ -1509,7 +1541,7 @@ body[data-theme="dark"] .cta-terminal {
 .arena-book-actions .arena-wd-buy:hover { color: var(--ob-up); }
 .arena-book-actions .arena-wd-sell:hover { color: var(--ob-dn); }
 .arena-book-actions .arena-wd-all { background: var(--ob-bg2); color: var(--ob-text); }
-.arena-book-actions .arena-wd-all:hover { background: #2b303a; }
+.arena-book-actions .arena-wd-all:hover { background: color-mix(in oklab, var(--ob-bg2) 80%, var(--ob-text)); }
 
 .arena-ticket-wrap {
   min-width: 0;
