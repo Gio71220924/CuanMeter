@@ -112,8 +112,9 @@
         for (const id of ids) context.book.cancel(id);
 
         // Split the level into several smaller orders so Freq reflects many
-        // participants instead of one giant order.
-        const pieces = randomInteger(random, 6, 12);
+        // participants instead of one giant order. Kept modest because the
+        // book now maintains many more price levels (deeper, contiguous depth).
+        const pieces = randomInteger(random, 3, 6);
         const base = Math.max(1, Math.floor(slot.targetLot / pieces));
         let remaining = slot.targetLot;
         slot.orderIds = [];
