@@ -6,6 +6,15 @@
   const MAX_SPECIAL_EVENTS = 5;
   const MAX_INSIGHTS = 5;
 
+  // Standard-normal sample (Box-Muller). Used by the Ornstein-Uhlenbeck price
+  // process so fair value trends and mean-reverts instead of ping-ponging
+  // between best bid and best ask on every print.
+  function gaussianNoise(rng) {
+    const u = Math.max(1e-9, rng());
+    const v = rng();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+
   function isValidArenaPrice(price) {
     return Number.isInteger(price)
       && price >= 50
@@ -126,6 +135,8 @@
       minimumFair,
       Math.min(maximumFair, roundToValidTick(seed, 'nearest')),
     );
+    // OU equilibrium (slow-moving "true value") that fair value reverts to.
+    let equilibrium = fairValue;
     let simNow = 0;
     let speed = preferences.speed;
     let running = false;
@@ -304,17 +315,38 @@
 
     marketMaker.step(createAgentContext());
 
+    // Ornstein-Uhlenbeck price process: a slow equilibrium drifts with the
+    // regime trend, and fair value mean-reverts toward it with gaussian noise.
+    // Anchored to the stable midpoint (not the bouncy last print) so trades
+    // trend instead of ping-ponging between best bid and best ask.
     function syncFairValue(regime) {
       const previous = fairValue;
+      const tick = currentTick();
       const bestBid = book.bestBid();
       const bestAsk = book.bestAsk();
       const midpoint = Number.isFinite(bestBid) && Number.isFinite(bestAsk)
         ? (bestBid + bestAsk) / 2
         : Number(book.last) || fairValue;
-      const last = Number(book.last) || fairValue;
-      const directionalBias = (Number(regime.bias) || 0) * currentTick() * 0.35;
+
+      const bias = Number(regime.bias) || 0;
+      const volatility = Math.max(0.1, Number(profile.volatility) || 0.8);
+      const activity = Math.max(0.1, Number(regime.activity) || 0.5);
+
+      // 1) Equilibrium drifts: trend term (regime bias) + slow random walk,
+      //    then is gently tugged toward the real book midpoint so it never
+      //    detaches from where liquidity actually sits.
+      equilibrium += (bias * tick * 0.6)
+        + (gaussianNoise(random) * tick * volatility * 0.12);
+      equilibrium += (midpoint - equilibrium) * 0.04;
+      equilibrium = Math.max(minimumFair, Math.min(maximumFair, equilibrium));
+
+      // 2) Fair value reverts to equilibrium (theta) plus diffusion noise.
+      const theta = 0.14;
+      const diffusion = gaussianNoise(random) * tick * volatility * activity * 0.22;
+      const next = fairValue + (theta * (equilibrium - fairValue)) + diffusion;
+
       fairValue = roundPrice(
-        (last * 0.7) + (midpoint * 0.3) + directionalBias,
+        Math.max(minimumFair, Math.min(maximumFair, next)),
         'nearest',
       );
       return fairValue !== previous;

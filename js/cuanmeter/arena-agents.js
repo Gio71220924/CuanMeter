@@ -319,8 +319,8 @@
       );
       const maximumTicks = clamp(
         Math.round(baseSpread * spreadFactor) * 2,
-        2,
-        4,
+        1,
+        3,
       );
       if (bestAsk - bestBid <= maximumTicks * context.tick) {
         return {
@@ -464,8 +464,16 @@
         return { changed: false, trades: [] };
       }
 
+      const tick = Math.max(1, Number(context.tick) || 1);
+      const bestBid = context.book.bestBid();
+      const bestAsk = context.book.bestAsk();
+      const midpoint = Number.isFinite(bestBid) && Number.isFinite(bestAsk)
+        ? (bestBid + bestAsk) / 2
+        : Number(context.book.last) || 0;
+      const fair = Number(context.getFairValue()) || midpoint;
+      const fairPull = clamp(midpoint ? ((fair - midpoint) / tick) * 0.18 : 0, -0.34, 0.34);
       const buyProbability = clamp(
-        0.5 + (Number(context.regime.bias) || 0),
+        0.5 + (Number(context.regime.bias) || 0) + fairPull,
         0.05,
         0.95,
       );
@@ -529,7 +537,19 @@
 
     function chooseSide(context) {
       const bias = Number(context.regime && context.regime.bias) || 0;
-      const buyChance = clamp(0.5 + bias, 0.08, 0.92);
+      // Pull taker side toward the OU fair value: when fair value sits above
+      // the book midpoint, buyers lift offers (and vice-versa). This makes
+      // order flow trend in runs instead of alternating bid/ask each print.
+      const tick = Math.max(1, Number(context.tick) || 1);
+      const bestBid = context.book.bestBid();
+      const bestAsk = context.book.bestAsk();
+      const midpoint = Number.isFinite(bestBid) && Number.isFinite(bestAsk)
+        ? (bestBid + bestAsk) / 2
+        : Number(context.book.last) || 0;
+      const fair = Number(context.getFairValue()) || midpoint;
+      const gapTicks = midpoint ? (fair - midpoint) / tick : 0;
+      const fairPull = clamp(gapTicks * 0.2, -0.38, 0.38);
+      const buyChance = clamp(0.5 + bias + fairPull, 0.06, 0.94);
       return random() < buyChance ? 'buy' : 'sell';
     }
 

@@ -75,6 +75,7 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
   const lastRowRef = useRefAA(null);
   const centeredFor = useRefAA(null);
   const manualScrollUntil = useRefAA(0);
+  const dragStartPrice = useRefAA(null);
   const [draggedOrderId, setDraggedOrderId] = useStateAA(null);
   const [dropPrice, setDropPrice] = useStateAA(null);
 
@@ -110,6 +111,65 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
     centeredFor.current = ticker;
   }, [snap && snap.last, ticker]);
 
+  // Pointer-based drag for moving a resting order to another price. Native
+  // HTML5 drag-and-drop is cancelled by the live order book re-rendering every
+  // tick, so we track the pointer on document and resolve the drop row via
+  // elementFromPoint, which survives re-renders.
+  useEffectAA(() => {
+    if (draggedOrderId == null) return undefined;
+
+    const priceUnder = (clientX, clientY) => {
+      const element = document.elementFromPoint(clientX, clientY);
+      const row = element && element.closest
+        ? element.closest('.arena-price-row')
+        : null;
+      if (!row) return null;
+      const value = Number(row.getAttribute('data-price'));
+      return Number.isFinite(value) ? value : null;
+    };
+
+    const track = (clientX, clientY) => setDropPrice(priceUnder(clientX, clientY));
+    const finish = (clientX, clientY) => {
+      const targetPrice = priceUnder(clientX, clientY);
+      const orderId = draggedOrderId;
+      const startPrice = dragStartPrice.current;
+      setDraggedOrderId(null);
+      setDropPrice(null);
+      dragStartPrice.current = null;
+      if (orderId != null && targetPrice != null && targetPrice !== startPrice) {
+        onMove(orderId, targetPrice);
+      }
+    };
+
+    const onMouseMove = (event) => track(event.clientX, event.clientY);
+    const onMouseUp = (event) => finish(event.clientX, event.clientY);
+    const onTouchMove = (event) => {
+      const touch = event.touches[0];
+      if (touch) {
+        event.preventDefault();
+        track(touch.clientX, touch.clientY);
+      }
+    };
+    const onTouchEnd = (event) => {
+      const touch = event.changedTouches[0];
+      finish(touch ? touch.clientX : 0, touch ? touch.clientY : 0);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onTouchEnd);
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+      document.body.style.userSelect = '';
+    };
+  }, [draggedOrderId, onMove]);
+
   if (!snap) {
     return (
       <div className="arena-book arena-ladder-skel" aria-label="Memuat order book">
@@ -142,19 +202,21 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
     <i
       key={order.id}
       className={`arena-mine${draggedOrderId === order.id ? ' arena-mine-dragging' : ''}`}
-      title={`Drag untuk memindahkan order ${order.side}: ${order.lot} lot @ ${order.price}`}
-      draggable={true}
+      title={`Tarik ke harga lain untuk memindahkan order ${order.side}: ${order.lot} lot @ ${order.price}`}
       data-order-id={order.id}
       onClick={(event) => event.stopPropagation()}
-      onDragStart={(event) => {
+      onMouseDown={(event) => {
         event.stopPropagation();
-        event.dataTransfer.effectAllowed = 'move';
-        event.dataTransfer.setData('text/plain', String(order.id));
+        event.preventDefault();
+        dragStartPrice.current = order.price;
         setDraggedOrderId(order.id);
+        setDropPrice(order.price);
       }}
-      onDragEnd={() => {
-        setDraggedOrderId(null);
-        setDropPrice(null);
+      onTouchStart={(event) => {
+        event.stopPropagation();
+        dragStartPrice.current = order.price;
+        setDraggedOrderId(order.id);
+        setDropPrice(order.price);
       }}
     >
       {order.lot}
@@ -269,24 +331,8 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
               key={price}
               ref={price === last ? lastRowRef : null}
               className={`arena-brow arena-price-row${price === last ? ' arena-brow-last' : ''}${dropPrice === price ? ' arena-row-drop-target' : ''}`}
-              onClick={() => onPick(price)}
+              onClick={() => { if (draggedOrderId == null) onPick(price); }}
               data-price={price}
-              onDragOver={(event) => {
-                event.preventDefault();
-                event.dataTransfer.dropEffect = 'move';
-                if (dropPrice !== price) setDropPrice(price);
-              }}
-              onDrop={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                const transferredId = Number(event.dataTransfer.getData('text/plain'));
-                const orderId = Number.isFinite(transferredId) && transferredId > 0
-                  ? transferredId
-                  : draggedOrderId;
-                if (orderId != null) onMove(orderId, price);
-                setDraggedOrderId(null);
-                setDropPrice(null);
-              }}
             >
               <span
                 className={`arena-c-trade${tradeReal ? '' : ' arena-c-trade-carry'}`}
