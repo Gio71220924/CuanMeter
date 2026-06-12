@@ -69,7 +69,7 @@ function ArenaInsights({ insights }) {
   );
 }
 
-function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
+function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker }) {
   const previousDepth = useRefAA({});
   const bodyRef = useRefAA(null);
   const lastRowRef = useRefAA(null);
@@ -183,6 +183,13 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
     if (previousLot == null) return '';
     return lot > previousLot ? ' d-up' : lot < previousLot ? ' d-dn' : '';
   };
+  const deltaArrow = (price, lot) => {
+    const previousLot = previous[price];
+    if (previousLot == null || lot == null) return { glyph: '', cls: '' };
+    if (lot > previousLot) return { glyph: '▲', cls: ' delta-up' };
+    if (lot < previousLot) return { glyph: '▼', cls: ' delta-dn' };
+    return { glyph: '', cls: '' };
+  };
 
   const totalBidLot = snap.depth.bids.reduce((sum, level) => sum + level.lot, 0);
   const totalAskLot = snap.depth.asks.reduce((sum, level) => sum + level.lot, 0);
@@ -190,7 +197,7 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
   const totalAskFreq = snap.depth.asks.reduce((sum, level) => sum + level.freq, 0);
 
   return (
-    <section className="arena-book" aria-label="Order book simulator">
+    <section className="arena-book arena-book-term" aria-label="Order book simulator">
       <div className="arena-book-titlebar">
         <div>
           <strong>Order Book</strong>
@@ -200,11 +207,14 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
       </div>
 
       <div className="arena-brow arena-bhead">
+        <span>Trade</span>
         <span>Buy</span>
         <span>Freq</span>
-        <span>Bid Lot</span>
-        <span>Price / Change</span>
-        <span>Ask Lot</span>
+        <span>+/-</span>
+        <span>Lot</span>
+        <span>Price</span>
+        <span>Lot</span>
+        <span>+/-</span>
         <span>Freq</span>
         <span>Sell</span>
         <span>Done</span>
@@ -222,6 +232,10 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
           const percent = percentOf(price);
           const priceMarker = marker(price);
           const priceState = percent > 0 ? ' paper-up' : percent < 0 ? ' paper-dn' : '';
+          const tradeSide = bid ? 'bid' : ask ? 'ask' : '';
+          const tradeLot = bid ? bid.lot : ask ? ask.lot : 0;
+          const bidDelta = bid ? deltaArrow(price, bid.lot) : { glyph: '', cls: '' };
+          const askDelta = ask ? deltaArrow(price, ask.lot) : { glyph: '', cls: '' };
 
           return (
             <div
@@ -247,6 +261,17 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
                 setDropPrice(null);
               }}
             >
+              <span className={`arena-c-trade arena-c-trade-${tradeSide || 'none'}`}>
+                {tradeLot > 0 && (
+                  <>
+                    <span
+                      className={`arena-tbar arena-tbar-${tradeSide}`}
+                      style={{ width: `${arenaDepthWidth(tradeLot, maxLot)}%` }}
+                    />
+                    <em>{arenaCompactLot(tradeLot)}</em>
+                  </>
+                )}
+              </span>
               <button
                 type="button"
                 className="arena-plus arena-plus-buy"
@@ -256,20 +281,15 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
                 +
               </button>
               <span className="arena-c-freq">{bid ? bid.freq : ''}</span>
+              <span className={`arena-c-delta${bidDelta.cls}`}>{bidDelta.glyph}</span>
               <span className={`arena-c-blot${myBuy[price] ? ' arena-c-mine' : ''}`}>
                 {bid && (
-                  <>
-                    <span
-                      className="arena-lotbar arena-lotbar-bid"
-                      style={{ width: `${arenaDepthWidth(bid.lot, maxLot)}%` }}
-                    />
-                    <em
-                      className={`arena-lotn${deltaClass(price, bid.lot)}`}
-                      title={`${bid.lot.toLocaleString('id-ID')} lot`}
-                    >
-                      {arenaCompactLot(bid.lot)}
-                    </em>
-                  </>
+                  <em
+                    className={`arena-lotn${deltaClass(price, bid.lot)}`}
+                    title={`${bid.lot.toLocaleString('id-ID')} lot`}
+                  >
+                    {arenaCompactLot(bid.lot)}
+                  </em>
                 )}
                 {(myBuy[price] || []).map(renderOrderChip)}
               </span>
@@ -283,20 +303,15 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
               <span className={`arena-c-alot${mySell[price] ? ' arena-c-mine' : ''}`}>
                 {(mySell[price] || []).map(renderOrderChip)}
                 {ask && (
-                  <>
-                    <em
-                      className={`arena-lotn${deltaClass(price, ask.lot)}`}
-                      title={`${ask.lot.toLocaleString('id-ID')} lot`}
-                    >
-                      {arenaCompactLot(ask.lot)}
-                    </em>
-                    <span
-                      className="arena-lotbar arena-lotbar-ask"
-                      style={{ width: `${arenaDepthWidth(ask.lot, maxLot)}%` }}
-                    />
-                  </>
+                  <em
+                    className={`arena-lotn${deltaClass(price, ask.lot)}`}
+                    title={`${ask.lot.toLocaleString('id-ID')} lot`}
+                  >
+                    {arenaCompactLot(ask.lot)}
+                  </em>
                 )}
               </span>
+              <span className={`arena-c-delta${askDelta.cls}`}>{askDelta.glyph}</span>
               <span className="arena-c-freq">{ask ? ask.freq : ''}</span>
               <button
                 type="button"
@@ -306,7 +321,7 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
               >
                 +
               </button>
-              <span className="arena-c-done">
+              <span className={`arena-c-done${priceState}`}>
                 {done[price] ? done[price].toLocaleString('id-ID') : ''}
               </span>
             </div>
@@ -316,13 +331,28 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, orders, ticker }) {
 
       <div className="arena-brow arena-btot">
         <span />
+        <span />
         <span>{totalBidFreq}</span>
+        <span />
         <span>{totalBidLot.toLocaleString('id-ID')}</span>
         <span>Total</span>
         <span>{totalAskLot.toLocaleString('id-ID')}</span>
+        <span />
         <span>{totalAskFreq}</span>
         <span />
         <span />
+      </div>
+
+      <div className="arena-book-actions">
+        <button type="button" className="arena-wd-buy" onClick={() => onWithdraw && onWithdraw('buy')}>
+          Withdraw All Buy
+        </button>
+        <button type="button" className="arena-wd-all" onClick={() => onWithdraw && onWithdraw()}>
+          Withdraw All
+        </button>
+        <button type="button" className="arena-wd-sell" onClick={() => onWithdraw && onWithdraw('sell')}>
+          Withdraw All Sell
+        </button>
       </div>
     </section>
   );
@@ -342,6 +372,9 @@ function ArenaPage() {
   const [message, setMessage] = useStateAA(null);
   const [query, setQuery] = useStateAA('');
   const [results, setResults] = useStateAA([]);
+  const [tape, setTape] = useStateAA([]);
+  const tapeRef = useRefAA([]);
+  const tapeSeq = useRefAA(0);
 
   const ticker = account.ticker;
   const marketProfile = account.market?.profile || 'normal';
@@ -354,6 +387,8 @@ function ArenaPage() {
     }
 
     let disposed = false;
+    tapeRef.current = [];
+    setTape([]);
 
     fetch('/price?ticker=' + ticker)
       .then((response) => response.json())
@@ -370,11 +405,19 @@ function ArenaPage() {
             if (disposed) return;
             setSnap(market.snapshot());
             setOrders(market.userOrders());
+            setTape(tapeRef.current.slice(0, 30));
           },
           onTrade: (trade) => {
             if (trade.buyOwner === 'user' || trade.sellOwner === 'user') {
               applyUserFills([trade]);
             }
+            const previous = tapeRef.current[0];
+            const direction = previous
+              ? (trade.price > previous.price ? 'up' : trade.price < previous.price ? 'dn' : previous.direction || '')
+              : '';
+            const mine = trade.buyOwner === 'user' || trade.sellOwner === 'user';
+            tapeRef.current.unshift({ price: trade.price, lot: trade.lot, direction, mine, id: ++tapeSeq.current });
+            if (tapeRef.current.length > 40) tapeRef.current.length = 40;
           },
         });
 
@@ -850,11 +893,45 @@ function ArenaPage() {
               orders={orders}
               onPlace={placeAt}
               onMove={moveOrder}
+              onWithdraw={withdrawAll}
               onPick={(selectedPrice) => {
                 setMode('limit');
                 setPrice(String(selectedPrice));
               }}
             />
+
+            <section className="arena-tape" aria-label="Running trade">
+              <div className="arena-tape-titlebar">
+                <strong>Running Trade</strong>
+                <span className="arena-live-dot">LIVE</span>
+              </div>
+              <div className="arena-tape-head">
+                <span>Price</span>
+                <span>Lot</span>
+              </div>
+              <div className="arena-tape-list">
+                {tape.length === 0 && (
+                  <div className="arena-tape-empty">Menunggu transaksi…</div>
+                )}
+                {tape.map((row) => (
+                  <div
+                    key={row.id}
+                    className={`arena-tape-row arena-tape-${row.direction || 'flat'}${row.mine ? ' arena-tape-mine' : ''}`}
+                  >
+                    <span className="arena-tape-px">
+                      <i className="arena-tape-arrow">
+                        {row.direction === 'up' ? '▲' : row.direction === 'dn' ? '▼' : '·'}
+                      </i>
+                      {row.price.toLocaleString('id-ID')}
+                    </span>
+                    <span className="arena-tape-lot">
+                      {row.lot.toLocaleString('id-ID')}
+                      {row.mine && <em className="arena-tape-badge">kamu</em>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
 
             <aside className="arena-ticket-wrap">
               <div className="arena-ticket">

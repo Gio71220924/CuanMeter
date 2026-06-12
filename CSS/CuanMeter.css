@@ -890,10 +890,136 @@ body[data-theme="dark"] .cta-terminal {
 
 .arena-main {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(390px, 0.65fr);
+  grid-template-columns: minmax(0, 1.3fr) 138px minmax(360px, 0.6fr);
   gap: 18px;
   align-items: start;
   margin-bottom: 18px;
+}
+
+.arena-tape {
+  --ob-bg: #1c1f26;
+  --ob-bg2: #20242c;
+  --ob-head: #14161b;
+  --ob-line: #2a2f38;
+  --ob-text: #cdd2db;
+  --ob-dim: #767c88;
+  --ob-faint: #565c68;
+  --ob-up: #2bb6a3;
+  --ob-dn: #ef5350;
+  overflow: hidden;
+  min-width: 0;
+  background: var(--ob-bg);
+  border: 1px solid var(--ob-line);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  color: var(--ob-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.arena-tape-titlebar {
+  min-height: 44px;
+  padding: 8px 12px;
+  background: var(--ob-head);
+  color: var(--ob-text);
+  border-bottom: 1px solid var(--ob-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.arena-tape-titlebar strong { font-size: 12px; letter-spacing: 0.02em; }
+.arena-tape-titlebar .arena-live-dot {
+  background: rgba(43, 182, 163, 0.14);
+  border-color: rgba(43, 182, 163, 0.4);
+  color: var(--ob-up);
+}
+
+.arena-tape-head {
+  height: 26px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  padding: 0 11px;
+  background: var(--ob-head);
+  border-bottom: 1px solid var(--ob-line);
+  color: var(--ob-faint);
+  font-size: 8.5px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.arena-tape-head > span:last-child { text-align: right; }
+
+.arena-tape-list {
+  max-height: 460px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ob-line) transparent;
+}
+
+.arena-tape-empty {
+  padding: 18px 11px;
+  color: var(--ob-dim);
+  font-size: 10px;
+  text-align: center;
+}
+
+.arena-tape-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 11px;
+  border-bottom: 1px solid var(--ob-line);
+  font-size: 10.5px;
+  animation: arenaTapeIn 0.28s ease;
+}
+
+@keyframes arenaTapeIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.arena-tape-px {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+}
+
+.arena-tape-arrow { font-size: 8px; font-style: normal; }
+
+.arena-tape-lot {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: flex-end;
+  color: var(--ob-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.arena-tape-badge {
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(139, 147, 255, 0.18);
+  color: #8b93ff;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.arena-tape-up .arena-tape-px { color: var(--ob-up); }
+.arena-tape-dn .arena-tape-px { color: var(--ob-dn); }
+.arena-tape-flat .arena-tape-px { color: var(--ob-text); }
+
+.arena-tape-mine {
+  background: rgba(139, 147, 255, 0.1);
+  box-shadow: inset 2px 0 0 #8b93ff;
 }
 
 .arena-book {
@@ -1179,6 +1305,211 @@ body[data-theme="dark"] .cta-terminal {
   font-size: 10px;
   text-align: center;
 }
+
+/* ============================================================
+   Dark "trading terminal" Order Book skin.
+   Scoped under .arena-book-term so it stays dark regardless of
+   the app theme, and overrides the base light-card rules above.
+   ============================================================ */
+.arena-book-term {
+  --ob-bg: #1c1f26;
+  --ob-bg2: #20242c;
+  --ob-head: #14161b;
+  --ob-line: #2a2f38;
+  --ob-line-soft: #23272f;
+  --ob-text: #cdd2db;
+  --ob-dim: #767c88;
+  --ob-faint: #565c68;
+  --ob-up: #2bb6a3;
+  --ob-dn: #ef5350;
+  --ob-freq: #8b93ff;
+  background: var(--ob-bg);
+  border-color: var(--ob-line);
+  color: var(--ob-text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.arena-book-term .arena-book-titlebar {
+  min-height: 44px;
+  padding: 8px 12px;
+  background: var(--ob-head);
+  color: var(--ob-text);
+  border-bottom: 1px solid var(--ob-line);
+}
+.arena-book-term .arena-book-titlebar strong { font-size: 12px; letter-spacing: 0.02em; }
+.arena-book-term .arena-book-titlebar > div span {
+  color: var(--ob-faint);
+  font-size: 9px;
+}
+.arena-book-term .arena-live-dot {
+  background: rgba(43, 182, 163, 0.14);
+  border-color: rgba(43, 182, 163, 0.4);
+  color: var(--ob-up);
+}
+
+.arena-book-term .arena-brow {
+  grid-template-columns:
+    66px 22px 32px 18px 54px minmax(80px, 1fr) 54px 18px 32px 22px 52px;
+  gap: 0;
+  height: 22px;
+  padding: 0 8px;
+}
+
+.arena-book-term .arena-bhead,
+.arena-book-term .arena-btot {
+  height: 26px;
+  background: var(--ob-head);
+  color: var(--ob-faint);
+  font-size: 8.5px;
+  letter-spacing: 0.05em;
+}
+.arena-book-term .arena-bhead { border-bottom: 1px solid var(--ob-line); }
+.arena-book-term .arena-btot {
+  border-top: 1px solid var(--ob-line);
+  color: var(--ob-dim);
+  font-size: 9.5px;
+}
+.arena-book-term .arena-btot > span { color: var(--ob-text); }
+/* header / total column alignment: numbers right, actions centred */
+.arena-book-term .arena-bhead > span,
+.arena-book-term .arena-btot > span { text-align: right; }
+.arena-book-term .arena-bhead > span:nth-child(1),
+.arena-book-term .arena-btot > span:nth-child(1) { text-align: left; }
+.arena-book-term .arena-bhead > span:nth-child(2),
+.arena-book-term .arena-bhead > span:nth-child(6),
+.arena-book-term .arena-bhead > span:nth-child(10),
+.arena-book-term .arena-btot > span:nth-child(6) { text-align: center; }
+
+.arena-book-term .arena-bbody {
+  max-height: 460px;
+  scrollbar-color: var(--ob-line) transparent;
+}
+
+.arena-book-term .arena-price-row {
+  border-bottom: 1px solid var(--ob-line-soft);
+  transition: background-color 90ms ease;
+}
+.arena-book-term .arena-price-row:hover,
+.arena-book-term .arena-price-row:focus-visible {
+  background: var(--ob-bg2);
+}
+.arena-book-term .arena-brow-last {
+  background: rgba(139, 147, 255, 0.1);
+  box-shadow: inset 2px 0 0 var(--ob-freq);
+}
+.arena-book-term .arena-brow-last:hover {
+  background: rgba(139, 147, 255, 0.16);
+}
+
+/* Trade column — subtle directional depth bar + compact value */
+.arena-book-term .arena-c-trade {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  overflow: hidden;
+  padding-right: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  color: var(--ob-dim);
+}
+.arena-book-term .arena-c-trade em {
+  position: relative;
+  z-index: 1;
+  font-style: normal;
+}
+.arena-book-term .arena-tbar {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  border-radius: 1px;
+  opacity: 0.5;
+}
+.arena-book-term .arena-tbar-bid { background: rgba(43, 182, 163, 0.32); }
+.arena-book-term .arena-tbar-ask { background: rgba(239, 83, 80, 0.3); }
+.arena-book-term .arena-c-trade-bid em { color: color-mix(in oklab, var(--ob-up) 80%, var(--ob-text)); }
+.arena-book-term .arena-c-trade-ask em { color: color-mix(in oklab, var(--ob-dn) 80%, var(--ob-text)); }
+
+.arena-book-term .arena-plus {
+  width: 16px;
+  height: 16px;
+  border-width: 1px;
+  font-size: 11px;
+  line-height: 13px;
+  opacity: 0.55;
+}
+.arena-book-term .arena-plus-buy { color: var(--ob-up); }
+.arena-book-term .arena-plus-sell { color: var(--ob-dn); }
+
+.arena-book-term .arena-c-freq {
+  color: var(--ob-freq);
+  font-size: 9px;
+  text-align: center;
+}
+
+.arena-book-term .arena-c-delta {
+  font-size: 7px;
+  text-align: center;
+  color: transparent;
+}
+.arena-book-term .arena-c-delta.delta-up { color: var(--ob-up); }
+.arena-book-term .arena-c-delta.delta-dn { color: var(--ob-dn); }
+
+.arena-book-term .arena-c-blot,
+.arena-book-term .arena-c-alot {
+  height: 100%;
+  font-size: 10.5px;
+  color: var(--ob-text);
+}
+.arena-book-term .arena-lotn { color: var(--ob-text); padding: 0 4px; }
+.arena-book-term .arena-lotn.d-up { color: var(--ob-up); }
+.arena-book-term .arena-lotn.d-dn { color: var(--ob-dn); }
+
+.arena-book-term .arena-c-px { color: var(--ob-text); font-size: 11.5px; }
+.arena-book-term .arena-c-px small { color: var(--ob-dim); opacity: 1; }
+.arena-book-term .arena-c-px.paper-up { color: var(--ob-up); }
+.arena-book-term .arena-c-px.paper-up small { color: color-mix(in oklab, var(--ob-up) 70%, var(--ob-dim)); }
+.arena-book-term .arena-c-px.paper-dn { color: var(--ob-dn); }
+.arena-book-term .arena-c-px.paper-dn small { color: color-mix(in oklab, var(--ob-dn) 70%, var(--ob-dim)); }
+.arena-book-term .arena-mk {
+  background: var(--ob-freq);
+  color: #14161b;
+}
+
+.arena-book-term .arena-c-done {
+  color: var(--ob-dim);
+  font-size: 9.5px;
+  text-align: right;
+}
+.arena-book-term .arena-c-done.paper-up { color: var(--ob-up); }
+.arena-book-term .arena-c-done.paper-dn { color: var(--ob-dn); }
+
+/* Footer withdraw actions */
+.arena-book-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--ob-line);
+  border-top: 1px solid var(--ob-line);
+}
+.arena-book-actions button {
+  padding: 8px 6px;
+  border: none;
+  background: var(--ob-head);
+  color: var(--ob-dim);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background-color 110ms ease, color 110ms ease;
+}
+.arena-book-actions button:hover { background: var(--ob-bg2); color: var(--ob-text); }
+.arena-book-actions .arena-wd-buy:hover { color: var(--ob-up); }
+.arena-book-actions .arena-wd-sell:hover { color: var(--ob-dn); }
+.arena-book-actions .arena-wd-all { background: var(--ob-bg2); color: var(--ob-text); }
+.arena-book-actions .arena-wd-all:hover { background: #2b303a; }
 
 .arena-ticket-wrap {
   min-width: 0;
@@ -1814,7 +2145,7 @@ body[data-theme="dark"] .arena-mini-seg button.on {
   }
 
   .arena-main {
-    grid-template-columns: minmax(0, 1.15fr) minmax(290px, 0.85fr);
+    grid-template-columns: minmax(0, 1.2fr) 116px minmax(280px, 0.7fr);
   }
 
   .arena-sim-controls {
@@ -1832,6 +2163,9 @@ body[data-theme="dark"] .arena-mini-seg button.on {
     position: static;
     top: auto;
   }
+  .arena-tape { order: 3; }
+  .arena-ticket-wrap { order: 2; }
+  .arena-tape-list { max-height: 240px; }
 }
 
 @media (max-width: 640px) {
