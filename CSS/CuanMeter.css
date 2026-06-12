@@ -1451,18 +1451,21 @@ body[data-theme="dark"] .arena-book-term { --ob-freq: #9aa0ff; }
   z-index: 1;
   font-style: normal;
 }
-.arena-book-term .arena-tbar {
+/* Buy/Sell pressure split bar (green buy | red sell), proportional. */
+.arena-book-term .arena-tbar-split {
   position: absolute;
   top: 3px;
   bottom: 3px;
-  left: 0;
-  border-radius: 1px;
-  opacity: 0.5;
+  left: 6px;
+  right: 6px;
+  display: flex;
+  border-radius: 2px;
+  overflow: hidden;
+  opacity: 0.42;
 }
-.arena-book-term .arena-tbar-bid { background: color-mix(in oklab, var(--ob-up) 30%, transparent); }
-.arena-book-term .arena-tbar-ask { background: color-mix(in oklab, var(--ob-dn) 28%, transparent); }
-.arena-book-term .arena-c-trade-bid em { color: color-mix(in oklab, var(--ob-up) 80%, var(--ob-text)); }
-.arena-book-term .arena-c-trade-ask em { color: color-mix(in oklab, var(--ob-dn) 80%, var(--ob-text)); }
+.arena-book-term .arena-tbar-buy { height: 100%; background: var(--ob-up); }
+.arena-book-term .arena-tbar-sell { height: 100%; background: var(--ob-dn); }
+.arena-book-term .arena-c-trade em { color: var(--ob-text); }
 
 .arena-book-term .arena-plus {
   width: 20px;

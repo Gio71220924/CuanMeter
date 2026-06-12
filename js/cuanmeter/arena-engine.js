@@ -72,6 +72,7 @@ function createBook(tick) {
         trades.push({
           price: lvl.price,
           lot: fill,
+          aggressor: order.side, // taker side that crossed the spread
           buyOwner: order.side === 'buy' ? owner : resting.owner,
           sellOwner: order.side === 'sell' ? owner : resting.owner,
         });

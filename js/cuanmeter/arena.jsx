@@ -121,6 +121,8 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
   const { tick, last } = snap;
   const stats = snap.stats || {};
   const done = snap.done || {};
+  const doneBuy = snap.doneBuy || {};
+  const doneSell = snap.doneSell || {};
   const previous = previousDepth.current;
   const askMap = {};
   const bidMap = {};
@@ -232,8 +234,11 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
           const percent = percentOf(price);
           const priceMarker = marker(price);
           const priceState = percent > 0 ? ' paper-up' : percent < 0 ? ' paper-dn' : '';
-          const tradeSide = bid ? 'bid' : ask ? 'ask' : '';
-          const tradeLot = bid ? bid.lot : ask ? ask.lot : 0;
+          const buyLot = doneBuy[price] || 0;
+          const sellLot = doneSell[price] || 0;
+          const tradeTotal = buyLot + sellLot;
+          const buyPct = tradeTotal ? Math.round((buyLot / tradeTotal) * 100) : 0;
+          const sellPct = tradeTotal ? 100 - buyPct : 0;
           const bidDelta = bid ? deltaArrow(price, bid.lot) : { glyph: '', cls: '' };
           const askDelta = ask ? deltaArrow(price, ask.lot) : { glyph: '', cls: '' };
 
@@ -261,14 +266,19 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
                 setDropPrice(null);
               }}
             >
-              <span className={`arena-c-trade arena-c-trade-${tradeSide || 'none'}`}>
-                {tradeLot > 0 && (
+              <span
+                className="arena-c-trade"
+                title={tradeTotal
+                  ? `Buy ${buyLot.toLocaleString('id-ID')} lot (${buyPct}%) · Sell ${sellLot.toLocaleString('id-ID')} lot (${sellPct}%)`
+                  : ''}
+              >
+                {tradeTotal > 0 && (
                   <>
-                    <span
-                      className={`arena-tbar arena-tbar-${tradeSide}`}
-                      style={{ width: `${arenaDepthWidth(tradeLot, maxLot)}%` }}
-                    />
-                    <em>{arenaCompactLot(tradeLot)}</em>
+                    <span className="arena-tbar-split" aria-hidden="true">
+                      <span className="arena-tbar-buy" style={{ width: `${buyPct}%` }} />
+                      <span className="arena-tbar-sell" style={{ width: `${sellPct}%` }} />
+                    </span>
+                    <em>{arenaCompactLot(tradeTotal)}</em>
                   </>
                 )}
               </span>

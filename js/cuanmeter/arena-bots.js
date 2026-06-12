@@ -168,6 +168,8 @@
       open: book.last,
       prevClose: previousClose,
       done: {},
+      doneBuy: {},
+      doneSell: {},
     };
 
     function reportError(error) {
@@ -195,6 +197,8 @@
       stats.high = Math.max(stats.high, trade.price);
       stats.low = Math.min(stats.low, trade.price);
       stats.done[trade.price] = (stats.done[trade.price] || 0) + trade.lot;
+      const sideBucket = trade.aggressor === 'sell' ? stats.doneSell : stats.doneBuy;
+      sideBucket[trade.price] = (sideBucket[trade.price] || 0) + trade.lot;
     }
 
     function emitTrades(trades) {
@@ -529,6 +533,8 @@
         bestBid: book.bestBid(),
         bestAsk: book.bestAsk(),
         done: { ...stats.done },
+        doneBuy: { ...stats.doneBuy },
+        doneSell: { ...stats.doneSell },
         stats: {
           vol: stats.vol,
           val: stats.val,
