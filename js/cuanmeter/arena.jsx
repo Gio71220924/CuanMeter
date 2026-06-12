@@ -234,6 +234,18 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
     target[order.price].push(order);
   });
 
+  // Start dragging a resting order. Bound to both the order chip and the whole
+  // lot cell that holds it, so the order can be grabbed from anywhere in the
+  // highlighted box, not just the small chip.
+  const beginOrderDrag = (order, event) => {
+    if (!order) return;
+    event.stopPropagation();
+    if (event.type === 'mousedown' && event.cancelable) event.preventDefault();
+    dragStartPrice.current = order.price;
+    setDraggedOrderId(order.id);
+    setDropPrice(order.price);
+  };
+
   const renderOrderChip = (order) => (
     <i
       key={order.id}
@@ -241,19 +253,8 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
       title={`Tarik ke harga lain untuk memindahkan order ${order.side}: ${order.lot} lot @ ${order.price}`}
       data-order-id={order.id}
       onClick={(event) => event.stopPropagation()}
-      onMouseDown={(event) => {
-        event.stopPropagation();
-        event.preventDefault();
-        dragStartPrice.current = order.price;
-        setDraggedOrderId(order.id);
-        setDropPrice(order.price);
-      }}
-      onTouchStart={(event) => {
-        event.stopPropagation();
-        dragStartPrice.current = order.price;
-        setDraggedOrderId(order.id);
-        setDropPrice(order.price);
-      }}
+      onMouseDown={(event) => beginOrderDrag(order, event)}
+      onTouchStart={(event) => beginOrderDrag(order, event)}
     >
       {order.lot}
     </i>
@@ -398,7 +399,11 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
               </span>
               <span className="arena-c-freq">{bid ? bid.freq : ''}</span>
               <span className={`arena-c-delta${bidDelta.cls}`}>{bidDelta.glyph}</span>
-              <span className={`arena-c-blot${myBuy[price] ? ' arena-c-mine' : ''}`}>
+              <span
+                className={`arena-c-blot${myBuy[price] ? ' arena-c-mine' : ''}`}
+                onMouseDown={myBuy[price] ? (event) => beginOrderDrag(myBuy[price][0], event) : undefined}
+                onTouchStart={myBuy[price] ? (event) => beginOrderDrag(myBuy[price][0], event) : undefined}
+              >
                 {bid && (
                   <em
                     className={`arena-lotn${deltaClass(price, bid.lot)}`}
@@ -416,7 +421,11 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
                 </span>
                 <small>{percent >= 0 ? '+' : ''}{percent.toFixed(2)}%</small>
               </span>
-              <span className={`arena-c-alot${mySell[price] ? ' arena-c-mine' : ''}`}>
+              <span
+                className={`arena-c-alot${mySell[price] ? ' arena-c-mine' : ''}`}
+                onMouseDown={mySell[price] ? (event) => beginOrderDrag(mySell[price][0], event) : undefined}
+                onTouchStart={mySell[price] ? (event) => beginOrderDrag(mySell[price][0], event) : undefined}
+              >
                 {(mySell[price] || []).map(renderOrderChip)}
                 {ask && (
                   <em

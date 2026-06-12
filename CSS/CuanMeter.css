@@ -1235,7 +1235,9 @@ body[data-theme="dark"] .cta-terminal {
 .arena-c-mine {
   box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--primary) 72%, transparent);
   border-radius: 5px;
+  cursor: grab;
 }
+.arena-c-mine:active { cursor: grabbing; }
 
 .arena-row-drop-target {
   background: color-mix(in oklab, var(--primary-soft) 78%, var(--surface)) !important;
