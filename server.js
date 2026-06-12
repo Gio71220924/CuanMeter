@@ -1289,8 +1289,11 @@ function serveStatic(pathname, res) {
 
     const filePath = path.join(ROOT, pathname);
 
-    // Security: jangan keluar dari ROOT folder
-    if (!filePath.startsWith(ROOT)) {
+    // Security: jangan keluar dari ROOT folder. Cocokkan dengan separator agar
+    // direktori sibling yang namanya berawalan sama (mis. CuanMeter-Backup)
+    // tidak ikut lolos prefix-check.
+    const rootWithSep = ROOT.endsWith(path.sep) ? ROOT : ROOT + path.sep;
+    if (filePath !== ROOT && !filePath.startsWith(rootWithSep)) {
         res.writeHead(403); res.end('Forbidden'); return;
     }
 
