@@ -19,6 +19,22 @@ function arShort(value) {
   return arRp(amount);
 }
 
+// Realistic order frequency per price level. Real boards show many resting
+// orders per level; cheaper shares attract far more retail participants than
+// expensive ones. Derive a display frequency from the level lot scaled by a
+// per-share price factor (sub-linear in lot, so deep levels read ~tens-hundreds)
+// instead of exposing the handful of synthetic sub-orders actually maintained.
+function arenaSyntheticFreq(lot, price) {
+  if (!(lot > 0)) return 0;
+  const sharePrice = Number(price) || 0;
+  const priceFactor = sharePrice < 100 ? 0.55
+    : sharePrice < 500 ? 0.34
+      : sharePrice < 2_000 ? 0.2
+        : sharePrice < 5_000 ? 0.12
+          : 0.07;
+  return Math.max(1, Math.round(Math.sqrt(lot) * priceFactor));
+}
+
 function arenaDepthWidth(lot, maxLot) {
   if (!(lot > 0) || !(maxLot > 0)) return 0;
   return Math.max(7, Math.min(100, Math.sqrt(lot / maxLot) * 100));
@@ -294,8 +310,14 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
 
   const totalBidLot = snap.depth.bids.reduce((sum, level) => sum + level.lot, 0);
   const totalAskLot = snap.depth.asks.reduce((sum, level) => sum + level.lot, 0);
-  const totalBidFreq = snap.depth.bids.reduce((sum, level) => sum + level.freq, 0);
-  const totalAskFreq = snap.depth.asks.reduce((sum, level) => sum + level.freq, 0);
+  const totalBidFreq = snap.depth.bids.reduce(
+    (sum, level) => sum + arenaSyntheticFreq(level.lot, level.price),
+    0,
+  );
+  const totalAskFreq = snap.depth.asks.reduce(
+    (sum, level) => sum + arenaSyntheticFreq(level.lot, level.price),
+    0,
+  );
 
   // Build a contiguous trade-pressure band: every tick inside the traded
   // range gets a buy/sell split bar (carried from the nearest real print)
@@ -397,7 +419,7 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
                   +
                 </button>
               </span>
-              <span className="arena-c-freq">{bid ? bid.freq : ''}</span>
+              <span className="arena-c-freq">{bid ? arenaSyntheticFreq(bid.lot, price) : ''}</span>
               <span className={`arena-c-delta${bidDelta.cls}`}>{bidDelta.glyph}</span>
               <span
                 className={`arena-c-blot${myBuy[price] ? ' arena-c-mine' : ''}`}
@@ -437,7 +459,7 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
                 )}
               </span>
               <span className={`arena-c-delta${askDelta.cls}`}>{askDelta.glyph}</span>
-              <span className="arena-c-freq">{ask ? ask.freq : ''}</span>
+              <span className="arena-c-freq">{ask ? arenaSyntheticFreq(ask.lot, price) : ''}</span>
               <span className="arena-c-act">
                 <button
                   type="button"
