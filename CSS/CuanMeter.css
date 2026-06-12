@@ -1466,6 +1466,9 @@ body[data-theme="dark"] .arena-book-term { --ob-freq: #9aa0ff; }
 .arena-book-term .arena-tbar-buy { height: 100%; background: var(--ob-up); }
 .arena-book-term .arena-tbar-sell { height: 100%; background: var(--ob-dn); }
 .arena-book-term .arena-c-trade em { color: var(--ob-text); }
+/* carried band (no real print at this tick) — keep the column continuous
+   but visibly subordinate to actual trades */
+.arena-book-term .arena-c-trade-carry .arena-tbar-split { opacity: 0.16; }
 
 .arena-book-term .arena-plus {
   width: 20px;

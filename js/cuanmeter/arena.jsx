@@ -198,6 +198,26 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
   const totalBidFreq = snap.depth.bids.reduce((sum, level) => sum + level.freq, 0);
   const totalAskFreq = snap.depth.asks.reduce((sum, level) => sum + level.freq, 0);
 
+  // Build a contiguous trade-pressure band: every tick inside the traded
+  // range gets a buy/sell split bar (carried from the nearest real print)
+  // so the Trade column reads as one solid block instead of scattered bars.
+  const tradedPrices = rows.filter((price) => (done[price] || 0) > 0);
+  const bandHi = tradedPrices.length ? Math.max(...tradedPrices) : null;
+  const bandLo = tradedPrices.length ? Math.min(...tradedPrices) : null;
+  const tradeBand = {};
+  let tradeCarry = null;
+  rows.forEach((price) => {
+    const buy = doneBuy[price] || 0;
+    const sell = doneSell[price] || 0;
+    const total = buy + sell;
+    if (total > 0) {
+      tradeCarry = { buy, sell, total };
+      tradeBand[price] = { ...tradeCarry, real: true };
+    } else if (bandHi != null && price <= bandHi && price >= bandLo && tradeCarry) {
+      tradeBand[price] = { ...tradeCarry, real: false };
+    }
+  });
+
   return (
     <section className="arena-book arena-book-term" aria-label="Order book simulator">
       <div className="arena-book-titlebar">
@@ -234,9 +254,11 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
           const percent = percentOf(price);
           const priceMarker = marker(price);
           const priceState = percent > 0 ? ' paper-up' : percent < 0 ? ' paper-dn' : '';
-          const buyLot = doneBuy[price] || 0;
-          const sellLot = doneSell[price] || 0;
-          const tradeTotal = buyLot + sellLot;
+          const band = tradeBand[price];
+          const buyLot = band ? band.buy : 0;
+          const sellLot = band ? band.sell : 0;
+          const tradeTotal = band ? band.total : 0;
+          const tradeReal = band ? band.real : false;
           const buyPct = tradeTotal ? Math.round((buyLot / tradeTotal) * 100) : 0;
           const sellPct = tradeTotal ? 100 - buyPct : 0;
           const bidDelta = bid ? deltaArrow(price, bid.lot) : { glyph: '', cls: '' };
@@ -267,8 +289,8 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
               }}
             >
               <span
-                className="arena-c-trade"
-                title={tradeTotal
+                className={`arena-c-trade${tradeReal ? '' : ' arena-c-trade-carry'}`}
+                title={tradeReal
                   ? `Buy ${buyLot.toLocaleString('id-ID')} lot (${buyPct}%) · Sell ${sellLot.toLocaleString('id-ID')} lot (${sellPct}%)`
                   : ''}
               >
@@ -278,7 +300,7 @@ function ArenaLadder({ snap, onPick, onPlace, onMove, onWithdraw, orders, ticker
                       <span className="arena-tbar-buy" style={{ width: `${buyPct}%` }} />
                       <span className="arena-tbar-sell" style={{ width: `${sellPct}%` }} />
                     </span>
-                    <em>{arenaCompactLot(tradeTotal)}</em>
+                    {tradeReal && <em>{arenaCompactLot(tradeTotal)}</em>}
                   </>
                 )}
               </span>
