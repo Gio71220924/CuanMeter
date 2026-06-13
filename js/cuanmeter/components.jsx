@@ -129,22 +129,44 @@ function CoinLogo({ size = 36 }) {
 }
 
 /* ---------- Header (sticky + mobile menu) ---------- */
-const HEADER_LINKS = [
-  { id: 'average',  label: 'Rata-rata' },
-  { id: 'araarb',   label: 'ARA/ARB' },
-  { id: 'profit',   label: 'Profit' },
-  { id: 'amunisi',  label: 'Amunisi' },
-  { id: 'dividen',  label: 'Dividen' },
-  { id: 'analyzer', label: 'Analyzer' },
-  { id: 'heatmap',  label: 'Heatmap' },
-  { id: 'papertrade', label: 'Simulasi' },
-  { id: 'arena',    label: 'Arena' },
-  { id: 'guides',   label: 'Panduan' },
+// Grouped navigation: 10 flat links collapsed into 3 dropdown groups + 1
+// standalone link, so the top bar reads as 4 items instead of ten.
+const NAV_GROUPS = [
+  {
+    label: 'Kalkulator',
+    items: [
+      { id: 'average', label: 'Rata-rata' },
+      { id: 'araarb',  label: 'ARA/ARB' },
+      { id: 'profit',  label: 'Profit' },
+      { id: 'amunisi', label: 'Amunisi' },
+      { id: 'dividen', label: 'Dividen' },
+    ],
+  },
+  {
+    label: 'Analisa',
+    items: [
+      { id: 'analyzer', label: 'Analyzer' },
+      { id: 'heatmap',  label: 'Heatmap' },
+    ],
+  },
+  {
+    label: 'Simulasi',
+    items: [
+      { id: 'papertrade', label: 'Paper Trade' },
+      { id: 'arena',      label: 'Arena FO' },
+    ],
+  },
+  { label: 'Panduan', id: 'guides' },
 ];
 
 function Header({ route, onNavigate, theme, onThemeChange }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState(null);
+
+  const groupIsActive = (group) => (
+    Array.isArray(group.items) && group.items.some((item) => item.id === route)
+  );
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -194,14 +216,48 @@ function Header({ route, onNavigate, theme, onThemeChange }) {
           className="nav-desktop"
           style={{ display: 'flex', alignItems: 'center', gap: 4 }}
         >
-          {HEADER_LINKS.map((l) => (
-            <button
-              key={l.id}
-              onClick={() => onNavigate(l.id)}
-              className={`nav-link${route === l.id ? ' nav-link--active' : ''}`}
-            >
-              {l.label}
-            </button>
+          {NAV_GROUPS.map((group) => (
+            group.items ? (
+              <div
+                key={group.label}
+                className="nav-group"
+                onMouseEnter={() => setOpenGroup(group.label)}
+                onMouseLeave={() => setOpenGroup((cur) => (cur === group.label ? null : cur))}
+              >
+                <button
+                  type="button"
+                  className={`nav-link nav-group-btn${groupIsActive(group) ? ' nav-link--active' : ''}`}
+                  onClick={() => setOpenGroup((cur) => (cur === group.label ? null : group.label))}
+                  aria-haspopup="true"
+                  aria-expanded={openGroup === group.label}
+                >
+                  {group.label}
+                  <span className={`nav-caret${openGroup === group.label ? ' nav-caret--open' : ''}`} aria-hidden="true">▾</span>
+                </button>
+                {openGroup === group.label && (
+                  <div className="nav-dropdown" role="menu">
+                    {group.items.map((item) => (
+                      <button
+                        key={item.id}
+                        role="menuitem"
+                        onClick={() => { onNavigate(item.id); setOpenGroup(null); }}
+                        className={`nav-dropdown-item${route === item.id ? ' nav-dropdown-item--active' : ''}`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                key={group.id}
+                onClick={() => onNavigate(group.id)}
+                className={`nav-link${route === group.id ? ' nav-link--active' : ''}`}
+              >
+                {group.label}
+              </button>
+            )
           ))}
         </nav>
 
@@ -261,28 +317,45 @@ function Header({ route, onNavigate, theme, onThemeChange }) {
             borderBottom: '1px solid var(--border)',
           }}
         >
-          {HEADER_LINKS.map((l) => (
-            <button
-              key={l.id}
-              onClick={() => {
-                onNavigate(l.id);
-                setMenuOpen(false);
-              }}
-              style={{
-                display: 'block',
-                width: '100%',
-                padding: '14px 16px',
-                textAlign: 'left',
-                fontSize: 16,
-                fontWeight: 600,
-                color: route === l.id ? 'var(--primary)' : 'var(--fg)',
-                borderRadius: 'var(--radius)',
-                background: route === l.id ? 'var(--primary-soft)' : 'transparent',
-              }}
-            >
-              {l.label}
-            </button>
-          ))}
+          {NAV_GROUPS.map((group) => {
+            const links = group.items || [{ id: group.id, label: group.label }];
+            return (
+              <div key={group.label} style={{ marginBottom: group.items ? 10 : 0 }}>
+                {group.items && (
+                  <div style={{
+                    padding: '10px 16px 4px',
+                    fontSize: 11,
+                    fontWeight: 800,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    color: 'var(--fg-faint)',
+                  }}>
+                    {group.label}
+                  </div>
+                )}
+                {links.map((l) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    onClick={() => { onNavigate(l.id); setMenuOpen(false); }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      padding: '14px 16px',
+                      textAlign: 'left',
+                      fontSize: 16,
+                      fontWeight: 600,
+                      color: route === l.id ? 'var(--primary)' : 'var(--fg)',
+                      borderRadius: 'var(--radius)',
+                      background: route === l.id ? 'var(--primary-soft)' : 'transparent',
+                    }}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -318,6 +391,57 @@ function Header({ route, onNavigate, theme, onThemeChange }) {
           background: var(--primary-soft);
         }
         .nav-link--active {
+          color: var(--primary);
+          background: var(--primary-soft);
+        }
+        .nav-group { position: relative; }
+        .nav-group-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+        }
+        .nav-caret {
+          font-size: 10px;
+          line-height: 1;
+          opacity: 0.7;
+          transition: transform 0.18s ease;
+        }
+        .nav-caret--open { transform: rotate(180deg); }
+        .nav-dropdown {
+          position: absolute;
+          top: calc(100% + 6px);
+          left: 0;
+          min-width: 180px;
+          padding: 6px;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+          box-shadow: var(--shadow);
+          z-index: 50;
+          animation: navDropIn 0.16s ease;
+        }
+        @keyframes navDropIn {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .nav-dropdown-item {
+          padding: 10px 12px;
+          text-align: left;
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--fg-muted);
+          background: transparent;
+          border-radius: calc(var(--radius) - 2px);
+          transition: color 0.12s, background 0.12s;
+        }
+        .nav-dropdown-item:hover {
+          color: var(--primary);
+          background: var(--primary-soft);
+        }
+        .nav-dropdown-item--active {
           color: var(--primary);
           background: var(--primary-soft);
         }
