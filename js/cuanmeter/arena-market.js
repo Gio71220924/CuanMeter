@@ -14,7 +14,7 @@
     liquid: freezeProfile({
       id: 'liquid',
       label: 'Likuid',
-      depthLevels: 24,
+      depthLevels: 26,
       spreadTicks: [1, 1],
       baseLotMin: 45,
       baseLotMax: 160,
@@ -44,7 +44,7 @@
     gorengan: freezeProfile({
       id: 'gorengan',
       label: 'Gorengan',
-      depthLevels: 16,
+      depthLevels: 26,
       spreadTicks: [1, 3],
       baseLotMin: 5,
       baseLotMax: 55,
@@ -59,7 +59,7 @@
     trending: freezeProfile({
       id: 'trending',
       label: 'Trending',
-      depthLevels: 20,
+      depthLevels: 26,
       spreadTicks: [1, 2],
       baseLotMin: 15,
       baseLotMax: 90,
