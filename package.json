@@ -3,10 +3,13 @@
     "version": "2.0.0",
     "description": "Sahamath - kalkulator saham IDX untuk trader Indonesia",
     "scripts": {
+        "build": "node scripts/build-bundle.js",
         "build:static": "node scripts/build-static.js",
         "download:model": "node scripts/download-model.js",
+        "serve:dist": "node dist/server.js",
         "test:arena": "node --test tests/arena-utils.spec.js tests/arena-market.spec.js tests/arena-flow.spec.js tests/arena-agents.spec.js",
-        "start": "node server.js"
+        "start": "node server.js",
+        "dev": "node --watch server.js"
     },
     "keywords": [
         "stock calculator",
@@ -17,5 +20,8 @@
         "bursa efek"
     ],
     "author": "Sahamath",
-    "license": "MIT"
+    "license": "MIT",
+    "devDependencies": {
+        "esbuild": "^0.24.0"
+    }
 }
