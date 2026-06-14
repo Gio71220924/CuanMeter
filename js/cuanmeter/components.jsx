@@ -227,7 +227,7 @@ function Header({ route, onNavigate, theme, onThemeChange }) {
                 <button
                   type="button"
                   className={`nav-link nav-group-btn${groupIsActive(group) ? ' nav-link--active' : ''}`}
-                  onClick={() => setOpenGroup((cur) => (cur === group.label ? null : group.label))}
+                  onClick={() => setOpenGroup(group.label)}
                   aria-haspopup="true"
                   aria-expanded={openGroup === group.label}
                 >
