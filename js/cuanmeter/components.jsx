@@ -423,6 +423,16 @@ function Header({ route, onNavigate, theme, onThemeChange }) {
           z-index: 50;
           animation: navDropIn 0.16s ease;
         }
+        /* Invisible bridge over the 6px gap so moving the cursor from the
+           group button into the menu doesn't trigger mouse-leave. */
+        .nav-dropdown::before {
+          content: '';
+          position: absolute;
+          top: -8px;
+          left: 0;
+          right: 0;
+          height: 8px;
+        }
         @keyframes navDropIn {
           from { opacity: 0; transform: translateY(-4px); }
           to { opacity: 1; transform: translateY(0); }
