@@ -29,6 +29,7 @@ const SCRIPT_ORDER = [
   'js/cuanmeter/analyzer.jsx',
   'js/cuanmeter/guides.jsx',
   'js/cuanmeter/heatmap.jsx',
+  'js/cuanmeter/risk.jsx',
   'js/cuanmeter/papertrade.jsx',
   'js/cuanmeter/arena-utils.js',
   'js/cuanmeter/arena-market.js',

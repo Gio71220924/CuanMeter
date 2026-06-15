@@ -147,6 +147,7 @@ const NAV_GROUPS = [
     items: [
       { id: 'analyzer', label: 'Analyzer' },
       { id: 'heatmap',  label: 'Heatmap' },
+      { id: 'profilrisiko', label: 'Profil Risiko' },
     ],
   },
   {
