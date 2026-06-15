@@ -1536,10 +1536,265 @@ function FinalCTA({ onNavigate }) {
   );
 }
 
+/* ---------- ProductShowcase — animated 4-panel demo (Kalkulator · Live · Arena · Analyzer) ---------- */
+const SHOWCASE_TABS = [
+  { id: 'calc',     label: 'Kalkulator', route: 'average',  dot: 'var(--primary)' },
+  { id: 'live',     label: 'Live Price', route: 'heatmap',  dot: 'var(--warning)' },
+  { id: 'arena',    label: 'Arena FO',   route: 'arena',    dot: 'var(--danger)' },
+  { id: 'analyzer', label: 'Analyzer',   route: 'analyzer', dot: '#6366f1' },
+];
+
+const SHOWCASE_LIVE = [
+  { t: 'BBCA', p: 9875, c: 1.8 },
+  { t: 'TLKM', p: 2890, c: -0.7 },
+  { t: 'ANTM', p: 1545, c: 2.4 },
+  { t: 'GOTO', p: 64,   c: -1.5 },
+];
+const SHOWCASE_BIDS = [{ px: 1545, lot: 1200 }, { px: 1540, lot: 860 }, { px: 1535, lot: 540 }];
+const SHOWCASE_ASKS = [{ px: 1550, lot: 980 }, { px: 1555, lot: 1340 }, { px: 1560, lot: 720 }];
+const SHOWCASE_AVG_TARGET = 4350;
+
+function ShowcasePanel({ tab, count }) {
+  if (tab === 'calc') {
+    return (
+      <div className="pshow-rows">
+        <div className="pshow-line"><span>Beli #1</span><span className="mono tnum">4.500 × 10 lot</span></div>
+        <div className="pshow-line"><span>Beli #2</span><span className="mono tnum">4.200 × 10 lot</span></div>
+        <div className="pshow-divider" />
+        <div className="pshow-result">
+          <span className="pshow-result-lbl">Harga rata-rata</span>
+          <span className="mono tnum pshow-result-val">Rp {count.toLocaleString('id-ID')}</span>
+        </div>
+        <div className="pshow-badge pshow-badge-up mono tnum">Floating +3,4% ▲</div>
+      </div>
+    );
+  }
+  if (tab === 'live') {
+    return (
+      <div className="pshow-rows">
+        {SHOWCASE_LIVE.map((r) => {
+          const up = r.c >= 0;
+          return (
+            <div key={r.t} className="pshow-live-row">
+              <span className="pshow-tk mono">{r.t}</span>
+              <span className="mono tnum pshow-live-px">{r.p.toLocaleString('id-ID')}</span>
+              <span className={`pshow-chip mono tnum ${up ? 'pshow-chip-up' : 'pshow-chip-dn'}`}>
+                {up ? '+' : ''}{r.c.toFixed(1)}% {up ? '▲' : '▼'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+  if (tab === 'arena') {
+    const maxLot = 1340;
+    return (
+      <div className="pshow-book">
+        {SHOWCASE_ASKS.slice().reverse().map((a) => (
+          <div key={a.px} className="pshow-book-row">
+            <span className="mono tnum pshow-book-lot">{a.lot.toLocaleString('id-ID')}</span>
+            <div className="pshow-book-track"><div className="pshow-book-bar pshow-bar-sell" style={{ width: `${(a.lot / maxLot) * 100}%` }} /></div>
+            <span className="mono tnum pshow-book-px pshow-px-sell">{a.px}</span>
+          </div>
+        ))}
+        <div className="pshow-book-mid mono tnum">spread 5 · last 1.548 ▲</div>
+        {SHOWCASE_BIDS.map((b) => (
+          <div key={b.px} className="pshow-book-row">
+            <span className="mono tnum pshow-book-lot">{b.lot.toLocaleString('id-ID')}</span>
+            <div className="pshow-book-track"><div className="pshow-book-bar pshow-bar-buy" style={{ width: `${(b.lot / maxLot) * 100}%` }} /></div>
+            <span className="mono tnum pshow-book-px pshow-px-buy">{b.px}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  // analyzer
+  return (
+    <div className="pshow-rows">
+      <div className="pshow-signal">
+        <span className="pshow-signal-tag">SINYAL</span>
+        <span className="pshow-signal-val">BUY</span>
+        <span className="mono tnum pshow-signal-score">skor {count > 72 ? 72 : count}/100</span>
+      </div>
+      <div className="pshow-gauge"><div className="pshow-gauge-fill" style={{ width: `${(count > 72 ? 72 : count)}%` }} /></div>
+      <div className="pshow-line"><span>Net asing</span><span className="mono tnum pshow-up">+Rp 4,2 M ▲</span></div>
+      <div className="pshow-line"><span>Akumulasi 5 hari</span><span className="mono tnum pshow-up">+12,8% ▲</span></div>
+    </div>
+  );
+}
+
+function ProductShowcase({ onNavigate }) {
+  const [active, setActive] = useStateL(0);
+  const [count, setCount] = useStateL(0);
+  const [inView, setInView] = useStateL(false);
+  const ref = React.useRef(null);
+  const reduce = typeof window !== 'undefined' && window.matchMedia
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Reveal on scroll
+  useEffectL(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) setInView(true); });
+    }, { threshold: 0.3 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // Auto-advance tabs once visible (skip when reduced motion)
+  useEffectL(() => {
+    if (!inView || reduce) return;
+    const id = setInterval(() => setActive((a) => (a + 1) % SHOWCASE_TABS.length), 3600);
+    return () => clearInterval(id);
+  }, [inView, reduce]);
+
+  // Count-up target depends on active panel
+  useEffectL(() => {
+    const target = SHOWCASE_TABS[active].id === 'calc' ? SHOWCASE_AVG_TARGET
+      : SHOWCASE_TABS[active].id === 'analyzer' ? 72 : 0;
+    if (!target) { setCount(0); return; }
+    if (reduce) { setCount(target); return; }
+    let raf, start;
+    const step = (ts) => {
+      if (!start) start = ts;
+      const p = Math.min(1, (ts - start) / 700);
+      setCount(Math.round(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [active, reduce]);
+
+  const tab = SHOWCASE_TABS[active];
+
+  return (
+    <section className="pshow-section" ref={ref}>
+      <div className="container">
+        <div className={`pshow-head ${inView ? 'pshow-in' : ''}`}>
+          <div className="badge" style={{ marginBottom: 14 }}>
+            <Icon name="chart" size={12} />
+            <span>LIHAT LANGSUNG · DEMO</span>
+          </div>
+          <h2 className="pshow-title">Semua alat, <span style={{ color: 'var(--primary)' }}>satu layar.</span></h2>
+          <p className="pshow-sub">Kalkulator, harga live, simulasi Arena FO, sampai Analyzer — gerak beneran, bukan screenshot.</p>
+        </div>
+
+        <div className={`pshow-frame ${inView ? 'pshow-in' : ''}`}>
+          <div className="pshow-tabs">
+            {SHOWCASE_TABS.map((t, i) => (
+              <button
+                key={t.id}
+                type="button"
+                className={`pshow-tab ${i === active ? 'pshow-tab-active' : ''}`}
+                onClick={() => setActive(i)}
+              >
+                <span className="pshow-tab-dot" style={{ background: t.dot }} />
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="pshow-screen">
+            <div key={active} className="pshow-panel">
+              <ShowcasePanel tab={tab.id} count={count} />
+            </div>
+          </div>
+
+          <div className="pshow-foot">
+            <div className="pshow-progress">
+              {SHOWCASE_TABS.map((t, i) => (
+                <span key={t.id} className={`pshow-pip ${i === active ? 'pshow-pip-on' : ''}`} />
+              ))}
+            </div>
+            <button type="button" className="btn btn-primary pshow-cta" onClick={() => onNavigate && onNavigate(tab.route)}>
+              Buka {tab.label} →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        .pshow-section { padding: 72px 0; }
+        .pshow-head { max-width: 640px; opacity: 0; transform: translateY(16px); transition: opacity .5s ease, transform .5s ease; }
+        .pshow-head.pshow-in { opacity: 1; transform: none; }
+        .pshow-title { font-size: clamp(28px, 4vw, 42px); letter-spacing: -0.025em; margin: 0 0 10px; }
+        .pshow-sub { font-size: 16px; color: var(--fg-muted); margin: 0 0 28px; line-height: 1.5; }
+        .pshow-frame {
+          max-width: 540px; background: var(--surface); border: 1px solid var(--border);
+          border-radius: 20px; overflow: hidden; box-shadow: 0 24px 60px -24px rgba(0,0,0,0.35);
+          opacity: 0; transform: translateY(28px) scale(0.98); transition: opacity .6s ease, transform .6s ease;
+        }
+        .pshow-frame.pshow-in { opacity: 1; transform: none; }
+        .pshow-tabs { display: flex; gap: 4px; padding: 10px; background: var(--surface-2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        .pshow-tab {
+          display: inline-flex; align-items: center; gap: 7px; padding: 8px 13px; border-radius: 10px;
+          font-size: 13px; font-weight: 700; color: var(--fg-muted); background: transparent; cursor: pointer;
+          border: 1px solid transparent;
+          transition-property: background-color, color, border-color; transition-duration: 180ms; transition-timing-function: ease-out;
+        }
+        .pshow-tab:hover { color: var(--fg); }
+        .pshow-tab-active { background: var(--surface); color: var(--fg); border-color: var(--border); }
+        .pshow-tab-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .pshow-screen { padding: 24px; min-height: 232px; display: flex; align-items: stretch; }
+        .pshow-panel { width: 100%; animation: pshowPanel .45s cubic-bezier(0.22,1,0.36,1); }
+        @keyframes pshowPanel { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+        .pshow-rows { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+        .pshow-line { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--fg-muted); }
+        .pshow-divider { height: 1px; background: var(--border); margin: 2px 0; }
+        .pshow-result { display: flex; justify-content: space-between; align-items: baseline; }
+        .pshow-result-lbl { font-size: 13px; font-weight: 700; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .pshow-result-val { font-size: 26px; font-weight: 800; color: var(--fg); }
+        .pshow-badge { align-self: flex-start; padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 800; }
+        .pshow-badge-up { background: color-mix(in oklab, var(--success) 16%, transparent); color: var(--success); }
+        .pshow-live-row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .pshow-live-row:last-child { border-bottom: 0; }
+        .pshow-tk { font-weight: 800; font-size: 15px; color: var(--fg); }
+        .pshow-live-px { font-size: 15px; font-weight: 700; color: var(--fg); }
+        .pshow-chip { padding: 3px 9px; border-radius: 7px; font-size: 12px; font-weight: 800; animation: pshowPulse 2.4s ease-in-out infinite; }
+        .pshow-chip-up { background: color-mix(in oklab, var(--success) 15%, transparent); color: var(--success); }
+        .pshow-chip-dn { background: color-mix(in oklab, var(--danger) 15%, transparent); color: var(--danger); }
+        @keyframes pshowPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+        .pshow-book { display: flex; flex-direction: column; gap: 5px; width: 100%; }
+        .pshow-book-row { display: grid; grid-template-columns: 64px 1fr 56px; gap: 10px; align-items: center; }
+        .pshow-book-lot { font-size: 12px; color: var(--fg-muted); text-align: right; }
+        .pshow-book-track { height: 18px; background: var(--surface-2); border-radius: 5px; overflow: hidden; }
+        .pshow-book-bar { height: 100%; border-radius: 5px; transform-origin: left; animation: pshowBar .6s cubic-bezier(0.22,1,0.36,1); }
+        @keyframes pshowBar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+        .pshow-bar-buy { background: color-mix(in oklab, var(--success) 55%, transparent); }
+        .pshow-bar-sell { background: color-mix(in oklab, var(--danger) 55%, transparent); }
+        .pshow-book-px { font-size: 13px; font-weight: 700; }
+        .pshow-px-buy { color: var(--success); }
+        .pshow-px-sell { color: var(--danger); }
+        .pshow-book-mid { text-align: center; font-size: 11px; color: var(--fg-faint); padding: 4px 0; letter-spacing: 0.04em; }
+        .pshow-signal { display: flex; align-items: baseline; gap: 12px; }
+        .pshow-signal-tag { font-size: 11px; font-weight: 800; color: var(--fg-faint); letter-spacing: 0.08em; }
+        .pshow-signal-val { font-size: 30px; font-weight: 900; color: var(--success); }
+        .pshow-signal-score { font-size: 13px; color: var(--fg-muted); margin-left: auto; }
+        .pshow-gauge { height: 10px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+        .pshow-gauge-fill { height: 100%; background: linear-gradient(90deg, var(--warning), var(--success)); border-radius: 999px; transition: width .2s linear; }
+        .pshow-up { color: var(--success); font-weight: 700; }
+        .pshow-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border-top: 1px solid var(--border); background: var(--surface-2); }
+        .pshow-progress { display: flex; gap: 6px; }
+        .pshow-pip { width: 22px; height: 4px; border-radius: 999px; background: var(--border); transition: background-color .3s ease; }
+        .pshow-pip-on { background: var(--primary); }
+        .pshow-cta { font-size: 14px; font-weight: 700; padding: 9px 18px; }
+        @media (max-width: 600px) { .pshow-foot { flex-direction: column; align-items: stretch; } .pshow-cta { width: 100%; } }
+        @media (prefers-reduced-motion: reduce) {
+          .pshow-head, .pshow-frame { opacity: 1 !important; transform: none !important; transition: none; }
+          .pshow-panel, .pshow-book-bar, .pshow-chip { animation: none !important; }
+        }
+      `}</style>
+    </section>
+  );
+}
+
 function LandingPage({ onNavigate }) {
   return (
     <>
       <Hero onNavigate={onNavigate} />
+      <ProductShowcase onNavigate={onNavigate} />
       <StockMarquee />
       <WatchlistWidget onNavigate={onNavigate} />
       <IHSGChart />
