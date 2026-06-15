@@ -112,12 +112,17 @@ function FrontierChart({ frontier, maxSharpe, minVol, recommended }) {
   const yTicks = Array.from({ length: gridY + 1 }, (_, i) => y0 + ((y1 - y0) * i) / gridY);
   const xTicks = Array.from({ length: gridX + 1 }, (_, i) => x0 + ((x1 - x0) * i) / gridX);
 
-  const marker = (e, glyph, color, title) => e && (
+  const marker = (e, glyph, color, title, ring) => e && (
     <g>
-      <circle cx={sx(e.volatility)} cy={sy(e.return)} r="7" fill={color} stroke="var(--surface)" strokeWidth="2">
+      <circle
+        cx={sx(e.volatility)} cy={sy(e.return)} r={ring ? 11 : 7}
+        fill={ring ? 'none' : color}
+        stroke={ring ? color : 'var(--surface)'}
+        strokeWidth={ring ? 2.5 : 2}
+      >
         <title>{title}: return {e.return}% · vol {e.volatility}% · Sharpe {e.sharpe}</title>
       </circle>
-      <text x={sx(e.volatility)} y={sy(e.return) - 12} textAnchor="middle" fontSize="11" fontWeight="800" fill={color}>{glyph}</text>
+      <text x={sx(e.volatility)} y={sy(e.return) - (ring ? 16 : 12)} textAnchor="middle" fontSize="11" fontWeight="800" fill={color}>{glyph}</text>
     </g>
   );
 
@@ -136,8 +141,8 @@ function FrontierChart({ frontier, maxSharpe, minVol, recommended }) {
         <circle key={i} cx={sx(p.vol)} cy={sy(p.ret)} r="3" fill={heat(p.sharpe)} opacity="0.55" />
       ))}
       {marker(minVol, '●', 'var(--success)', 'Min Volatilitas')}
-      {marker(maxSharpe, '★', 'var(--primary)', 'Max Sharpe')}
-      {marker(recommended, '◆', 'var(--fg)', 'Rekomendasi')}
+      {marker(maxSharpe, '★', '#6366f1', 'Max Sharpe')}
+      {marker(recommended, '◆', 'var(--fg)', 'Rekomendasi', true)}
       <text x={W / 2} y={H - 6} textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--fg-muted)">Risiko / Volatilitas tahunan →</text>
       <text x={14} y={H / 2} textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--fg-muted)" transform={`rotate(-90 14 ${H / 2})`}>Imbal hasil tahunan →</text>
     </svg>
@@ -339,7 +344,7 @@ function RiskPage() {
               <div style={{ padding: 24, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
                 <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 800 }}>Efficient frontier</h3>
                 <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--fg-muted)' }}>
-                  Tiap titik = satu portofolio simulasi (warna = Sharpe). <span style={{ color: 'var(--primary)', fontWeight: 700 }}>★ Max-Sharpe</span> · <span style={{ color: 'var(--success)', fontWeight: 700 }}>● Min-Vol</span> · <span style={{ fontWeight: 700 }}>◆ Rekomendasi</span>
+                  Tiap titik = satu portofolio simulasi (warna = Sharpe). <span style={{ color: '#6366f1', fontWeight: 700 }}>★ Max-Sharpe</span> · <span style={{ color: 'var(--success)', fontWeight: 700 }}>● Min-Vol</span> · <span style={{ fontWeight: 700 }}>◆ Rekomendasi (lingkaran)</span>
                 </p>
                 <FrontierChart frontier={data.frontier} maxSharpe={data.max_sharpe} minVol={data.min_vol} recommended={data.recommended} />
               </div>
