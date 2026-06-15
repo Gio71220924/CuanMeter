@@ -18,6 +18,25 @@ const path = require('path');
 const url = require('url');
 const { exec, spawn } = require('child_process');
 
+// Load .env (no dependency): KEY=VALUE per baris, '#' komentar, kutip opsional.
+// Env var asli (shell/OS) tetap menang atas .env.
+(function loadDotEnv() {
+    try {
+        const envPath = path.join(__dirname, '.env');
+        if (!fs.existsSync(envPath)) return;
+        for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
+            const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+            if (!m || line.trim().startsWith('#')) continue;
+            const key = m[1];
+            let val = m[2].trim();
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                val = val.slice(1, -1);
+            }
+            if (!(key in process.env)) process.env[key] = val;
+        }
+    } catch { /* abaikan .env yang rusak */ }
+})();
+
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;           // folder server.js berada
 const DEFAULT = '/index.html';   // halaman yang dibuka otomatis
