@@ -260,11 +260,14 @@ function RiskPage() {
                       key={opt.label}
                       type="button"
                       onClick={() => pick(qi, opt.score)}
+                      className="risk-choice"
                       style={{
-                        textAlign: 'left', padding: '12px 16px', borderRadius: 10, fontSize: 15, fontWeight: 600,
+                        textAlign: 'left', padding: '12px 16px', borderRadius: 12, fontSize: 15, fontWeight: 600,
                         border: `1.5px solid ${active ? 'var(--primary)' : 'var(--border)'}`,
                         background: active ? 'var(--primary-soft)' : 'var(--surface-2)',
-                        color: active ? 'var(--primary)' : 'var(--fg)', cursor: 'pointer', transition: 'all .15s',
+                        color: active ? 'var(--primary)' : 'var(--fg)', cursor: 'pointer',
+                        transitionProperty: 'border-color, background-color, color, transform',
+                        transitionDuration: '150ms', transitionTimingFunction: 'ease-out',
                       }}
                     >
                       {opt.label}
@@ -291,15 +294,28 @@ function RiskPage() {
             </div>
           </div>
 
-          <button
-            type="button"
-            disabled={!answered}
-            onClick={submitQuiz}
-            className="btn btn-primary"
-            style={{ padding: '14px 28px', fontSize: 16, fontWeight: 700, opacity: answered ? 1 : 0.5, cursor: answered ? 'pointer' : 'not-allowed' }}
-          >
-            Lihat rekomendasi →
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {!answered && (
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-faint)' }}>
+                {answers.filter((a) => a != null).length}/{RISK_QUESTIONS.length} terjawab — lengkapi dulu semua
+              </span>
+            )}
+            <button
+              type="button"
+              disabled={!answered}
+              onClick={submitQuiz}
+              className={`btn risk-cta${answered ? ' btn-primary' : ''}`}
+              style={{
+                padding: '14px 28px', fontSize: 16, fontWeight: 700,
+                cursor: answered ? 'pointer' : 'not-allowed',
+                background: answered ? undefined : 'var(--surface-2)',
+                color: answered ? undefined : 'var(--fg-faint)',
+                border: answered ? undefined : '1px solid var(--border)',
+              }}
+            >
+              Lihat rekomendasi →
+            </button>
+          </div>
         </div>
       )}
 
@@ -334,6 +350,10 @@ function RiskPage() {
                 <MetricCard label="Imbal hasil*" value={`${data.recommended.return}%`} sub="estimasi tahunan" color="var(--success)" />
                 <MetricCard label="Volatilitas" value={`${data.recommended.volatility}%`} sub="risiko tahunan" color="var(--warning)" />
                 <MetricCard label="Sharpe" value={data.recommended.sharpe} sub={`risk-free ${data.risk_free}%`} color="var(--primary)" />
+              </div>
+
+              <div style={{ fontSize: 11, color: 'var(--fg-faint)', marginTop: -12 }}>
+                *Estimasi dari data historis ~1 tahun — bukan jaminan hasil ke depan.
               </div>
 
               <div style={{ padding: 24, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
