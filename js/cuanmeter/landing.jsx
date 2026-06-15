@@ -1628,7 +1628,16 @@ function ProductShowcase({ onNavigate }) {
   const [active, setActive] = useStateL(0);
   const [count, setCount] = useStateL(0);
   const [inView, setInView] = useStateL(false);
+  const [paused, setPaused] = useStateL(false);
   const ref = React.useRef(null);
+
+  const onTabKey = (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    setPaused(true);
+    const n = SHOWCASE_TABS.length;
+    setActive((a) => (e.key === 'ArrowRight' ? (a + 1) % n : (a - 1 + n) % n));
+  };
   const reduce = typeof window !== 'undefined' && window.matchMedia
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -1645,10 +1654,10 @@ function ProductShowcase({ onNavigate }) {
 
   // Auto-advance tabs once visible (skip when reduced motion)
   useEffectL(() => {
-    if (!inView || reduce) return;
+    if (!inView || reduce || paused) return;
     const id = setInterval(() => setActive((a) => (a + 1) % SHOWCASE_TABS.length), 3600);
     return () => clearInterval(id);
-  }, [inView, reduce]);
+  }, [inView, reduce, paused]);
 
   // Count-up target depends on active panel
   useEffectL(() => {
@@ -1681,23 +1690,42 @@ function ProductShowcase({ onNavigate }) {
           <p className="pshow-sub">Kalkulator, harga live, simulasi Arena FO, sampai Analyzer — gerak beneran, bukan screenshot.</p>
         </div>
 
-        <div className={`pshow-frame ${inView ? 'pshow-in' : ''}`}>
-          <div className="pshow-tabs">
+        <div
+          className={`pshow-frame ${inView ? 'pshow-in' : ''}`}
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+          onFocusCapture={() => setPaused(true)}
+          onBlurCapture={() => setPaused(false)}
+        >
+          <div className="pshow-tabs" role="tablist" aria-label="Demo fitur Sahamath">
             {SHOWCASE_TABS.map((t, i) => (
               <button
                 key={t.id}
                 type="button"
+                role="tab"
+                id={`pshow-tab-${t.id}`}
+                aria-selected={i === active}
+                aria-controls="pshow-tabpanel"
+                tabIndex={i === active ? 0 : -1}
                 className={`pshow-tab ${i === active ? 'pshow-tab-active' : ''}`}
-                onClick={() => setActive(i)}
+                onClick={() => { setPaused(true); setActive(i); }}
+                onKeyDown={onTabKey}
               >
-                <span className="pshow-tab-dot" style={{ background: t.dot }} />
+                <span className="pshow-tab-dot" style={{ background: t.dot }} aria-hidden="true" />
                 {t.label}
               </button>
             ))}
           </div>
 
           <div className="pshow-screen">
-            <div key={active} className="pshow-panel">
+            <div
+              key={active}
+              className="pshow-panel"
+              role="tabpanel"
+              id="pshow-tabpanel"
+              aria-labelledby={`pshow-tab-${tab.id}`}
+              tabIndex={0}
+            >
               <ShowcasePanel tab={tab.id} count={count} />
             </div>
           </div>
@@ -1717,12 +1745,12 @@ function ProductShowcase({ onNavigate }) {
 
       <style>{`
         .pshow-section { padding: 72px 0; }
-        .pshow-head { max-width: 640px; opacity: 0; transform: translateY(16px); transition: opacity .5s ease, transform .5s ease; }
+        .pshow-head { max-width: 640px; margin: 0 auto; text-align: center; opacity: 0; transform: translateY(16px); transition: opacity .5s ease, transform .5s ease; }
         .pshow-head.pshow-in { opacity: 1; transform: none; }
         .pshow-title { font-size: clamp(28px, 4vw, 42px); letter-spacing: -0.025em; margin: 0 0 10px; }
         .pshow-sub { font-size: 16px; color: var(--fg-muted); margin: 0 0 28px; line-height: 1.5; }
         .pshow-frame {
-          max-width: 540px; background: var(--surface); border: 1px solid var(--border);
+          max-width: 540px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border);
           border-radius: 20px; overflow: hidden; box-shadow: 0 24px 60px -24px rgba(0,0,0,0.35);
           opacity: 0; transform: translateY(28px) scale(0.98); transition: opacity .6s ease, transform .6s ease;
         }

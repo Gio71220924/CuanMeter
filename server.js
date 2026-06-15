@@ -1355,6 +1355,178 @@ function handlePortfolio(query, res) {
     });
 }
 
+// ─── /ai-analysis  →  Gemini news-catalyst + sentiment per emiten ────────────
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_MODEL = 'gemini-2.5-flash';
+const AI_CACHE = new Map();                 // ticker -> { ts, data }
+const AI_TTL = 3 * 60 * 60 * 1000;          // 3 jam (berita cepat basi)
+
+// Nama emiten untuk query berita yang lebih akurat (fallback: kode + "saham").
+const EMITEN_NAMES = {
+    BBCA: 'Bank Central Asia', BBRI: 'Bank Rakyat Indonesia', BMRI: 'Bank Mandiri',
+    BBNI: 'Bank Negara Indonesia', TLKM: 'Telkom Indonesia', ASII: 'Astra International',
+    UNVR: 'Unilever Indonesia', ICBP: 'Indofood CBP', INDF: 'Indofood Sukses Makmur',
+    KLBF: 'Kalbe Farma', SMGR: 'Semen Indonesia', ANTM: 'Aneka Tambang',
+    ADRO: 'Adaro Energy', PTBA: 'Bukit Asam', ITMG: 'Indo Tambangraya', MEDC: 'Medco Energi',
+    PGAS: 'Perusahaan Gas Negara', UNTR: 'United Tractors', GOTO: 'GoTo Gojek Tokopedia',
+    BUMI: 'Bumi Resources', BREN: 'Barito Renewables', CUAN: 'Petrindo Jaya Kreasi',
+    MDKA: 'Merdeka Copper Gold', BRPT: 'Barito Pacific', AMRT: 'Sumber Alfaria Trijaya',
+    CPIN: 'Charoen Pokphand', MAPI: 'Mitra Adiperkasa', AKRA: 'AKR Corporindo',
+    INCO: 'Vale Indonesia', TINS: 'Timah', ELSA: 'Elnusa', EXCL: 'XL Axiata',
+    ISAT: 'Indosat Ooredoo', WIKA: 'Wijaya Karya', PTPP: 'PP Persero', ADHI: 'Adhi Karya',
+};
+
+function decodeXmlEntities(s) {
+    return String(s || '')
+        .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+        .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'")
+        .replace(/&amp;/g, '&')
+        .replace(/<[^>]+>/g, '')
+        .trim();
+}
+
+// Parse Google News RSS → daftar { title, source, date, link }.
+function parseGoogleNews(xml, limit = 6) {
+    const items = [];
+    const blocks = String(xml).split(/<item>/).slice(1);
+    for (const raw of blocks) {
+        const titleRaw = (raw.match(/<title>([\s\S]*?)<\/title>/) || [])[1] || '';
+        const link = decodeXmlEntities((raw.match(/<link>([\s\S]*?)<\/link>/) || [])[1] || '');
+        const pub = decodeXmlEntities((raw.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || '');
+        const src = decodeXmlEntities((raw.match(/<source[^>]*>([\s\S]*?)<\/source>/) || [])[1] || '');
+        let title = decodeXmlEntities(titleRaw);
+        // Google News kemas judul sebagai "Judul - Sumber"; pisahkan kalau perlu.
+        let source = src;
+        if (!source && / - [^-]+$/.test(title)) {
+            const idx = title.lastIndexOf(' - ');
+            source = title.slice(idx + 3);
+            title = title.slice(0, idx);
+        }
+        if (title) items.push({ title, source: source || 'Google News', date: pub, link });
+        if (items.length >= limit) break;
+    }
+    return items;
+}
+
+async function fetchText(url, ms = 12000) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    try {
+        const r = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0' } });
+        return await r.text();
+    } finally {
+        clearTimeout(t);
+    }
+}
+
+function buildAiPrompt(ticker, name, articles) {
+    const list = articles.length
+        ? articles.map((a, i) => `${i + 1}. "${a.title}" — ${a.source}${a.date ? ` (${a.date})` : ''}`).join('\n')
+        : '(tidak ada berita ditemukan)';
+    return `Kamu analis saham IDX yang ngobrol santai ala Gen Z tapi tetap akurat. Analisis emiten ${ticker} (${name}).
+
+BERITA TERKINI (HANYA pakai ini, JANGAN mengarang berita di luar daftar):
+${list}
+
+Tugas:
+- Tentukan sentimen keseluruhan dari berita di atas.
+- Ekstrak katalis konkret (mis. laporan keuangan/lapkeu, dividen, akuisisi, ekspansi, downgrade, regulasi). Sebutkan sumbernya.
+- Kalau daftar berita kosong/tidak relevan, set sentimen "netral" dan katalis kosong, dan bilang belum ada katalis signifikan.
+- Bahasa Indonesia, ringkas, padat. Bukan ajakan beli/jual.`;
+}
+
+async function callGemini(prompt) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+    const body = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 900,
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: 'object',
+                properties: {
+                    sentimen: { type: 'string', enum: ['positif', 'negatif', 'netral', 'campuran'] },
+                    ringkasan: { type: 'string' },
+                    katalis: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                judul: { type: 'string' },
+                                dampak: { type: 'string', enum: ['positif', 'negatif', 'netral'] },
+                                sumber: { type: 'string' },
+                            },
+                            required: ['judul', 'dampak'],
+                        },
+                    },
+                    risiko: { type: 'string' },
+                    outlook: { type: 'string' },
+                },
+                required: ['sentimen', 'ringkasan', 'katalis'],
+            },
+        },
+    };
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 30000);
+    try {
+        const r = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            signal: ctrl.signal,
+        });
+        const json = await r.json();
+        if (!r.ok) throw new Error(json?.error?.message || `Gemini HTTP ${r.status}`);
+        const text = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        return JSON.parse(text);
+    } finally {
+        clearTimeout(t);
+    }
+}
+
+async function handleAiAnalysis(query, res) {
+    const ticker = String(query.ticker || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+    if (ticker.length !== 4) { sendJSON(res, 400, { status: 'error', message: 'Kode saham harus 4 huruf.' }); return; }
+
+    const cached = AI_CACHE.get(ticker);
+    if (cached && Date.now() - cached.ts < AI_TTL) { sendJSON(res, 200, { ...cached.data, cached: true }); return; }
+
+    if (!GEMINI_API_KEY) {
+        sendJSON(res, 503, { status: 'error', message: 'Analisis AI belum dikonfigurasi (GEMINI_API_KEY belum di-set di server).' });
+        return;
+    }
+
+    const name = EMITEN_NAMES[ticker] || ticker;
+    try {
+        const q = encodeURIComponent(`${name} saham`);
+        const rssUrl = `https://news.google.com/rss/search?q=${q}&hl=id-ID&gl=ID&ceid=ID:id`;
+        let articles = [];
+        try {
+            articles = parseGoogleNews(await fetchText(rssUrl), 6);
+        } catch (e) {
+            logError('AiAnalysis/RSS', e);
+        }
+
+        const analysis = await callGemini(buildAiPrompt(ticker, name, articles));
+        const data = {
+            status: 'ok',
+            ticker,
+            name,
+            generated_at: new Date().toISOString(),
+            articles,
+            analysis,
+            disclaimer: 'Ringkasan AI dari berita publik — bukan rekomendasi investasi. Verifikasi ke sumber asli.',
+        };
+        AI_CACHE.set(ticker, { ts: Date.now(), data });
+        sendJSON(res, 200, data);
+    } catch (e) {
+        logError('AiAnalysis', e);
+        sendJSON(res, 502, { status: 'error', message: 'Gagal membuat analisis AI. Coba lagi nanti.' });
+    }
+}
+
 // ─── Helper: send JSON with CORS ─────────────────────────────────────────────
 function sendJSON(res, status, obj) {
     if (res.headersSent || res.writableEnded) return; // jangan crash kalau response sudah dikirim
@@ -1497,6 +1669,13 @@ const server = http.createServer((req, res) => {
         const ip = req.socket.remoteAddress;
         if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
         return handlePortfolio(parsed.query, res);
+    }
+
+    // API: /ai-analysis
+    if (req.method === 'GET' && pathname === '/ai-analysis') {
+        const ip = req.socket.remoteAddress;
+        if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
+        return handleAiAnalysis(parsed.query, res);
     }
 
     // API: /calendar
