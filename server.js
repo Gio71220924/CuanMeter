@@ -31,6 +31,52 @@ const watchlistCache = new Map(); // ticker -> { data, at }
 const WATCHLIST_TTL_MS = 60 * 1000;
 const fundamentalsCache = new Map(); // ticker -> { data, at }
 const FUNDAMENTALS_TTL_MS = 24 * 60 * 60 * 1000;
+const BOARD_CACHE_FILE = path.join(DATA_DIR, 'board-cache.json');
+const SERVER_ERROR_LOG = path.join(DATA_DIR, 'server-errors.log');
+
+// Curated fallback for the liquid main-board (Utama) tickers the app surfaces
+// most, so /board never returns "unknown" for them even while IDX's live list
+// is blocked by Cloudflare. The live fetch overrides these whenever it works.
+const BOARD_SEED = {
+  BBCA: 'utama', BBRI: 'utama', BMRI: 'utama', BBNI: 'utama', BRIS: 'utama',
+  TLKM: 'utama', ISAT: 'utama', EXCL: 'utama', TOWR: 'utama', MTEL: 'utama',
+  ASII: 'utama', UNTR: 'utama', UNVR: 'utama', ICBP: 'utama', INDF: 'utama',
+  KLBF: 'utama', SIDO: 'utama', SMGR: 'utama', INTP: 'utama', CPIN: 'utama',
+  JPFA: 'utama', AMRT: 'utama', ACES: 'utama', MAPI: 'utama', ERAA: 'utama',
+  ANTM: 'utama', INCO: 'utama', MDKA: 'utama', MBMA: 'utama', PTBA: 'utama',
+  ADRO: 'utama', ADMR: 'utama', AADI: 'utama', ITMG: 'utama', MEDC: 'utama',
+  PGAS: 'utama', PGEO: 'utama', BRPT: 'utama', TPIA: 'utama', BREN: 'utama',
+  BUMI: 'utama', GOTO: 'utama', EMTK: 'utama', MNCN: 'utama', JSMR: 'utama',
+  CUAN: 'utama', RAJA: 'utama', PTRO: 'utama', AMMN: 'utama', BRMS: 'utama',
+};
+
+function logError(context, error) {
+  const message = (error && error.message) || String(error);
+  console.error(`[${context}]`, message);
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.appendFileSync(SERVER_ERROR_LOG, `${new Date().toISOString()}\t${context}\t${message}\n`);
+  } catch { /* logging must never throw */ }
+}
+
+function writeBoardCache() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(BOARD_CACHE_FILE, JSON.stringify(Object.fromEntries(boardCache)));
+  } catch (e) { logError('Board', e); }
+}
+
+function seedBoardCache() {
+  for (const [code, board] of Object.entries(BOARD_SEED)) {
+    if (!boardCache.has(code)) boardCache.set(code, board);
+  }
+  try {
+    if (fs.existsSync(BOARD_CACHE_FILE)) {
+      const disk = JSON.parse(fs.readFileSync(BOARD_CACHE_FILE, 'utf8'));
+      for (const [code, board] of Object.entries(disk)) boardCache.set(code, board);
+    }
+  } catch (e) { logError('Board', e); }
+}
 const KSEI_DETAIL_PAGE_LIMIT = 80;
 const KSEI_EVENT_LIMIT = 160;
 const KSEI_RETRY_COUNT = 2;
@@ -983,8 +1029,9 @@ function fetchBoardList() {
                     }
                 });
                 console.log(`[Board] Loaded ${count} tickers from IDX (${boardCache.size} cached)`);
+                if (count > 0) writeBoardCache();
             } catch (e) {
-                console.error('[Board] Parse error:', e.message);
+                logError('Board', e);
             }
         });
     });
@@ -993,6 +1040,7 @@ function fetchBoardList() {
     req.end();
 }
 
+seedBoardCache();
 fetchBoardList();
 setInterval(fetchBoardList, 24 * 60 * 60 * 1000); // refresh tiap 24 jam
 
@@ -1493,4 +1541,14 @@ server.on('error', (err) => {
         console.error('[Error]', err.message);
     }
     process.exit(1);
+});
+
+// ─── Observability: never die silently on a stray async error ────────────────
+process.on('unhandledRejection', (reason) => {
+    logError('UnhandledRejection', reason instanceof Error ? reason : new Error(String(reason)));
+});
+process.on('uncaughtException', (err) => {
+    // Log and keep serving — a single bad request handler shouldn't take the
+    // whole dev server down. Fatal startup errors still surface via exit above.
+    logError('UncaughtException', err);
 });
