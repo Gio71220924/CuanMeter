@@ -246,7 +246,16 @@ function RiskPage() {
       subtitle="Jawab 5 pertanyaan singkat. Kami susun rekomendasi alokasi saham berbasis Modern Portfolio Theory (Sharpe & Markowitz). Edukasi, bukan ajakan beli."
     >
       {phase === 'quiz' && (
-        <div style={{ maxWidth: 680, display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ maxWidth: 680, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ position: 'sticky', top: 12, zIndex: 5, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px', boxShadow: '0 6px 18px -8px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-muted)' }}>Progres kuis</span>
+              <span className="mono tnum" style={{ fontSize: 13, fontWeight: 800, color: 'var(--primary)' }}>{answers.filter((a) => a != null).length}/{RISK_QUESTIONS.length}</span>
+            </div>
+            <div style={{ height: 6, background: 'var(--surface-2)', borderRadius: 999, overflow: 'hidden' }}>
+              <div style={{ width: `${(answers.filter((a) => a != null).length / RISK_QUESTIONS.length) * 100}%`, height: '100%', background: 'var(--primary)', borderRadius: 999, transition: 'width .3s ease' }} />
+            </div>
+          </div>
           {RISK_QUESTIONS.map((item, qi) => (
             <div key={qi} style={{ padding: 20, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
               <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 14 }}>
@@ -349,7 +358,7 @@ function RiskPage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                 <MetricCard label="Imbal hasil*" value={`${data.recommended.return}%`} sub="estimasi tahunan" color="var(--success)" />
                 <MetricCard label="Volatilitas" value={`${data.recommended.volatility}%`} sub="risiko tahunan" color="var(--warning)" />
-                <MetricCard label="Sharpe" value={data.recommended.sharpe} sub={`risk-free ${data.risk_free}%`} color="var(--primary)" />
+                <MetricCard label="Sharpe" value={data.recommended.sharpe} sub={`risk-free ${data.risk_free}%`} color="#6366f1" />
               </div>
 
               <div style={{ fontSize: 11, color: 'var(--fg-faint)', marginTop: -12 }}>
