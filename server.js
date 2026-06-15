@@ -1442,7 +1442,8 @@ async function callGemini(prompt) {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
             temperature: 0.3,
-            maxOutputTokens: 900,
+            maxOutputTokens: 1400,
+            thinkingConfig: { thinkingBudget: 0 }, // matikan "thinking" 2.5 Flash agar JSON tak terpotong
             responseMimeType: 'application/json',
             responseSchema: {
                 type: 'object',
