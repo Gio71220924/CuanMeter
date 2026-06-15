@@ -1318,6 +1318,43 @@ function handleFundamentals(query, res) {
     });
 }
 
+// ─── /portfolio  →  Risk-profile portfolio optimizer (MPT) ───────────────────
+const RISK_PROFILES = new Set(['conservative', 'moderate', 'aggressive']);
+
+function handlePortfolio(query, res) {
+    const risk = RISK_PROFILES.has(String(query.risk || '').toLowerCase())
+        ? String(query.risk).toLowerCase()
+        : 'moderate';
+    const tickers = [...new Set(
+        String(query.tickers || '').toUpperCase().split(',')
+            .map(t => t.trim())
+            .filter(t => /^[A-Z]{4}$/.test(t))
+    )].slice(0, 12);
+
+    const args = [path.join(ROOT, 'portfolio.py'), '--risk', risk];
+    if (tickers.length) args.push('--tickers', tickers.join(','));
+
+    const python = spawn('python', args);
+    let output = '';
+    let done = false;
+    const finish = (status, obj) => { if (done) return; done = true; clearTimeout(timer); sendJSON(res, status, obj); };
+    const timer = setTimeout(() => {
+        python.kill();
+        finish(504, { status: 'error', message: 'Optimasi portofolio timeout (>45 detik)' });
+    }, 45000);
+
+    python.stdout.on('data', (d) => { output += d.toString(); });
+    python.stderr.on('data', (d) => { console.error(`[Portfolio] ${d}`); });
+    python.on('close', () => {
+        try {
+            finish(200, JSON.parse(output.trim()));
+        } catch (e) {
+            logError('Portfolio', e);
+            finish(502, { status: 'error', message: 'Gagal memproses optimasi portofolio' });
+        }
+    });
+}
+
 // ─── Helper: send JSON with CORS ─────────────────────────────────────────────
 function sendJSON(res, status, obj) {
     if (res.headersSent || res.writableEnded) return; // jangan crash kalau response sudah dikirim
@@ -1453,6 +1490,13 @@ const server = http.createServer((req, res) => {
         const ip = req.socket.remoteAddress;
         if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
         return handleFundamentals(parsed.query, res);
+    }
+
+    // API: /portfolio
+    if (req.method === 'GET' && pathname === '/portfolio') {
+        const ip = req.socket.remoteAddress;
+        if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
+        return handlePortfolio(parsed.query, res);
     }
 
     // API: /calendar
