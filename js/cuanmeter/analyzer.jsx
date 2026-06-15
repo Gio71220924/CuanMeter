@@ -946,6 +946,99 @@ function FundamentalCard({ data, loading }) {
   );
 }
 
+const AI_SENTIMENT = {
+  positif:  { label: 'Positif',  color: 'var(--success)', bg: 'rgba(0,168,107,0.12)', glyph: '▲' },
+  negatif:  { label: 'Negatif',  color: 'var(--danger)',  bg: 'rgba(239,68,68,0.12)', glyph: '▼' },
+  netral:   { label: 'Netral',   color: 'var(--fg-muted)', bg: 'var(--surface-2)',     glyph: '◆' },
+  campuran: { label: 'Campuran', color: 'var(--warning)', bg: 'rgba(245,158,11,0.12)', glyph: '◇' },
+};
+const AI_IMPACT = { positif: 'var(--success)', negatif: 'var(--danger)', netral: 'var(--fg-muted)' };
+
+function AiAnalysisCard({ data, loading, error, onRetry }) {
+  const headerBadge = (
+    <div className="badge" style={{ marginBottom: 0 }}>
+      <Icon name="chart" size={12} />
+      <span>ANALISIS AI · KATALIS & SENTIMEN</span>
+    </div>
+  );
+
+  let body;
+  if (loading) {
+    body = <div style={{ padding: '20px 0', color: 'var(--fg-muted)', fontSize: 14 }}>Membaca berita & menganalisis… (Gemini)</div>;
+  } else if (error) {
+    body = (
+      <div style={{ padding: '12px 0', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <span style={{ color: 'var(--danger)', fontSize: 14 }}>{error}</span>
+        <button onClick={onRetry} className="btn btn-secondary" style={{ fontSize: 12, padding: '6px 14px' }}>Coba lagi</button>
+      </div>
+    );
+  } else if (data && data.analysis) {
+    const a = data.analysis;
+    const s = AI_SENTIMENT[a.sentimen] || AI_SENTIMENT.netral;
+    body = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--fg)' }}>{data.name}</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: s.color, background: s.bg, padding: '4px 12px', borderRadius: 999 }}>
+            {s.glyph} Sentimen {s.label}
+          </span>
+          {data.cached && <span style={{ fontSize: 11, color: 'var(--fg-faint)' }}>· dari cache</span>}
+        </div>
+
+        <p style={{ margin: 0, fontSize: 15, lineHeight: 1.55, color: 'var(--fg)' }}>{a.ringkasan}</p>
+
+        {a.katalis && a.katalis.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--fg-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Katalis</div>
+            {a.katalis.map((k, i) => (
+              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <span style={{ marginTop: 6, width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: AI_IMPACT[k.dampak] || 'var(--fg-muted)' }} />
+                <span style={{ fontSize: 14, color: 'var(--fg)', lineHeight: 1.4 }}>
+                  {k.judul}
+                  {k.sumber && <span style={{ color: 'var(--fg-faint)' }}> · {k.sumber}</span>}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {(a.risiko || a.outlook) && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8, fontSize: 13, color: 'var(--fg-muted)' }}>
+            {a.risiko && <div><strong style={{ color: 'var(--fg)' }}>Risiko:</strong> {a.risiko}</div>}
+            {a.outlook && <div><strong style={{ color: 'var(--fg)' }}>Outlook:</strong> {a.outlook}</div>}
+          </div>
+        )}
+
+        {data.articles && data.articles.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingTop: 4, borderTop: '1px solid var(--border)' }}>
+            <span style={{ fontSize: 11, color: 'var(--fg-faint)', width: '100%' }}>Sumber berita:</span>
+            {data.articles.map((art, i) => (
+              <a key={i} href={art.link} target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: 12, color: 'var(--primary)', textDecoration: 'none', background: 'var(--surface-2)', padding: '4px 10px', borderRadius: 8 }}>
+                {art.source} ↗
+              </a>
+            ))}
+          </div>
+        )}
+
+        {data.disclaimer && (
+          <div style={{ fontSize: 11, color: 'var(--fg-faint)', lineHeight: 1.4 }}>{data.disclaimer}</div>
+        )}
+      </div>
+    );
+  } else {
+    body = null;
+  }
+
+  if (!body) return null;
+  return (
+    <div className="card" style={{ padding: 20, marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {headerBadge}
+      {body}
+    </div>
+  );
+}
+
 function Analyzer({ initialTicker }) {
   const [ticker, setTicker] = useStateZ('BBRI');
   const [active, setActive] = useStateZ('BBRI');
@@ -975,6 +1068,10 @@ function Analyzer({ initialTicker }) {
   const hasScannedRef = useRefZ(false);
   const [strategies, setStrategies] = useStateZ(['triple']);
   const [mode, setMode] = useStateZ('and');
+  const [aiData, setAiData] = useStateZ(null);
+  const [aiLoading, setAiLoading] = useStateZ(false);
+  const [aiError, setAiError] = useStateZ(null);
+  const activeAi = useRefZ('');
 
   const fetchTVPrice = (code) => {
     activePrice.current = code;
@@ -1005,9 +1102,25 @@ function Analyzer({ initialTicker }) {
       .catch(() => { if (activeFund.current === code) { setFundData(null); setFundLoading(false); } });
   };
 
+  const fetchAiAnalysis = (code) => {
+    activeAi.current = code;
+    setAiData(null);
+    setAiError(null);
+    setAiLoading(true);
+    fetch('/ai-analysis?ticker=' + code)
+      .then((r) => r.json())
+      .then((d) => {
+        if (activeAi.current !== code) return;
+        if (d.status === 'ok') setAiData(d);
+        else setAiError(d.message || 'Gagal memuat analisis AI');
+        setAiLoading(false);
+      })
+      .catch(() => { if (activeAi.current === code) { setAiError('Gagal menghubungi server'); setAiLoading(false); } });
+  };
+
   const data = useMemoZ(() => generateAnalysis(active), [active]);
 
-  useEffectZ(() => { fetchTVPrice('BBRI'); fetchBandarmology('BBRI', bandFrom, bandTo); fetchFundamentals('BBRI'); }, []);
+  useEffectZ(() => { fetchTVPrice('BBRI'); fetchBandarmology('BBRI', bandFrom, bandTo); fetchFundamentals('BBRI'); fetchAiAnalysis('BBRI'); }, []);
 
   const onSearchInput = (val) => {
     setTicker(val);
@@ -1039,6 +1152,7 @@ function Analyzer({ initialTicker }) {
       .catch(() => { setMlData({ status: 'offline' }); setMlLoading(false); });
     fetchBandarmology(code, bandFrom, bandTo);
     fetchFundamentals(code);
+    fetchAiAnalysis(code);
   };
 
   useEffectZ(() => {
@@ -1222,6 +1336,7 @@ function Analyzer({ initialTicker }) {
       </div>
 
       {activeTab === 'analisis' && (<>
+      <AiAnalysisCard data={aiData} loading={aiLoading} error={aiError} onRetry={() => fetchAiAnalysis(active)} />
       {/* price header */}
       <div
         style={{
