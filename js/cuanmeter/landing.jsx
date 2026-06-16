@@ -1894,7 +1894,7 @@ function IpoNewsWidget() {
                   {it.prospektus && (
                     <a className="ipo-prospektus" href={it.prospektus} target="_blank" rel="noopener noreferrer">📄 Prospektus</a>
                   )}
-                  <a className="ipo-link" href="https://e-ipo.co.id/id/home" target="_blank" rel="noopener noreferrer">
+                  <a className="ipo-link" href={it.detail || 'https://e-ipo.co.id/id/home'} target="_blank" rel="noopener noreferrer">
                     Info lebih lanjut <span aria-hidden="true">→</span>
                   </a>
                 </div>

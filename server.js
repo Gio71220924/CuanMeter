@@ -1590,8 +1590,10 @@ function parseEipo(html) {
         }
         const prosM = chunk.match(/href="(\/id\/pipeline\/get-propectus-file[^"]*)"/);
         const prospektus = prosM ? EIPO_BASE + prosM[1].replace(/&amp;/g, '&') : null;
+        const detM = chunk.match(/href="(\/id\/ipo\/[^"]+)"/);
+        const detail = detM ? EIPO_BASE + detM[1].replace(/&amp;/g, '&') : `${EIPO_BASE}/id/home`;
 
-        if (code || name) out.push({ id, code, name, stage, syariah, logo, prospektus, fields });
+        if (code || name) out.push({ id, code, name, stage, syariah, logo, prospektus, detail, fields });
     }
     return out.slice(0, 12);
 }
