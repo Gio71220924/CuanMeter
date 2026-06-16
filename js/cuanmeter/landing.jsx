@@ -1818,6 +1818,88 @@ function ProductShowcase({ onNavigate }) {
   );
 }
 
+/* ---------- IpoNewsWidget — feed berita IPO BEI (Google News) ---------- */
+function IpoNewsWidget() {
+  const [data, setDataIpo] = useStateL(null);
+  const [err, setErrIpo] = useStateL(false);
+
+  useEffectL(() => {
+    let alive = true;
+    fetch('/ipo-news')
+      .then((r) => r.json())
+      .then((d) => { if (!alive) return; if (d.status === 'ok') setDataIpo(d); else setErrIpo(true); })
+      .catch(() => { if (alive) setErrIpo(true); });
+    return () => { alive = false; };
+  }, []);
+
+  if (err) return null;
+  if (!data || !data.items || data.items.length === 0) return null; // diam sampai siap
+
+  const fmtDate = (s) => {
+    if (!s) return '';
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return '';
+    const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (diff <= 0) return 'hari ini';
+    if (diff === 1) return 'kemarin';
+    if (diff < 7) return `${diff} hari lalu`;
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+  };
+
+  return (
+    <section className="ipo-news" style={{ padding: '64px 0' }}>
+      <div className="container">
+        <div style={{ marginBottom: 24, maxWidth: 640 }}>
+          <div className="badge" style={{ marginBottom: 12 }}>
+            <Icon name="chart" size={12} />
+            <span>PASAR PRIMER · KALENDER IPO</span>
+          </div>
+          <h2 style={{ fontSize: 'clamp(28px, 4vw, 40px)', letterSpacing: '-0.025em', marginBottom: 8 }}>
+            IPO terbaru di <span style={{ color: 'var(--primary)' }}>BEI</span>.
+          </h2>
+          <p style={{ fontSize: 15, color: 'var(--fg-muted)', margin: 0 }}>
+            Emiten yang lagi & bakal melantai di bursa — dari berita terkini.
+          </p>
+        </div>
+
+        <div className="ipo-grid">
+          {data.items.map((it, i) => (
+            <a
+              key={i}
+              href={it.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ipo-card card interactive"
+              style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 18, textDecoration: 'none' }}
+            >
+              <span className="ipo-card-title" style={{ fontSize: 15, fontWeight: 700, color: 'var(--fg)', lineHeight: 1.4 }}>
+                {it.title}
+              </span>
+              <span style={{ marginTop: 'auto', fontSize: 12, color: 'var(--fg-faint)', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontWeight: 700, color: 'var(--fg-muted)' }}>{it.source}</span>
+                <span>{fmtDate(it.date)} ↗</span>
+              </span>
+            </a>
+          ))}
+        </div>
+
+        {data.disclaimer && (
+          <p style={{ marginTop: 16, fontSize: 12, color: 'var(--fg-faint)' }}>{data.disclaimer}</p>
+        )}
+      </div>
+
+      <style>{`
+        .ipo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+        .ipo-card-title {
+          display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .ipo-card:hover .ipo-card-title { color: var(--primary); }
+        @media (max-width: 640px) { .ipo-grid { grid-template-columns: 1fr; } }
+      `}</style>
+    </section>
+  );
+}
+
 function LandingPage({ onNavigate }) {
   return (
     <>
@@ -1828,6 +1910,7 @@ function LandingPage({ onNavigate }) {
       <IHSGChart />
       <HeatmapPreview onNavigate={onNavigate} />
       <MarketCalendarWidget />
+      <IpoNewsWidget />
       <ToolsGrid onNavigate={onNavigate} />
       <GuidesSection onNavigate={onNavigate} />
       <FinalCTA onNavigate={onNavigate} />

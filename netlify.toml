@@ -63,6 +63,12 @@ status = 200
 force = true
 
 [[redirects]]
+from = "/ipo-news"
+to = "https://sahamath-production.up.railway.app/ipo-news"
+status = 200
+force = true
+
+[[redirects]]
 from = "/fundamentals"
 to = "https://sahamath-production.up.railway.app/fundamentals"
 status = 200

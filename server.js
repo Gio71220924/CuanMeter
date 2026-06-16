@@ -1547,6 +1547,34 @@ async function handleAiAnalysis(query, res) {
     }
 }
 
+// ─── /ipo-news  →  Kalender/berita IPO BEI dari Google News RSS ───────────────
+const IPO_CACHE = { ts: 0, data: null };
+const IPO_TTL = 3 * 60 * 60 * 1000; // 3 jam
+
+async function handleIpoNews(res) {
+    if (IPO_CACHE.data && Date.now() - IPO_CACHE.ts < IPO_TTL) {
+        sendJSON(res, 200, { ...IPO_CACHE.data, cached: true });
+        return;
+    }
+    try {
+        const q = encodeURIComponent('IPO saham Bursa Efek Indonesia');
+        const rssUrl = `https://news.google.com/rss/search?q=${q}&hl=id-ID&gl=ID&ceid=ID:id`;
+        const items = parseGoogleNews(await fetchText(rssUrl), 8);
+        const data = {
+            status: 'ok',
+            generated_at: new Date().toISOString(),
+            items,
+            disclaimer: 'Berita IPO dari Google News — bukan rekomendasi. Cek jadwal & prospektus resmi di e-ipo.co.id / IDX.',
+        };
+        IPO_CACHE.ts = Date.now();
+        IPO_CACHE.data = data;
+        sendJSON(res, 200, data);
+    } catch (e) {
+        logError('IpoNews', e);
+        sendJSON(res, 502, { status: 'error', message: 'Gagal memuat berita IPO.' });
+    }
+}
+
 // ─── Helper: send JSON with CORS ─────────────────────────────────────────────
 function sendJSON(res, status, obj) {
     if (res.headersSent || res.writableEnded) return; // jangan crash kalau response sudah dikirim
@@ -1696,6 +1724,13 @@ const server = http.createServer((req, res) => {
         const ip = req.socket.remoteAddress;
         if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
         return handleAiAnalysis(parsed.query, res);
+    }
+
+    // API: /ipo-news
+    if (req.method === 'GET' && pathname === '/ipo-news') {
+        const ip = req.socket.remoteAddress;
+        if (isRateLimited(ip)) { sendJSON(res, 429, { error: 'Too many requests' }); return; }
+        return handleIpoNews(res);
     }
 
     // API: /calendar
