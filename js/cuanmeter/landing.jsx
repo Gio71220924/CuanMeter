@@ -1655,7 +1655,7 @@ function ProductShowcase({ onNavigate }) {
   // Auto-advance tabs once visible (skip when reduced motion)
   useEffectL(() => {
     if (!inView || reduce || paused) return;
-    const id = setInterval(() => setActive((a) => (a + 1) % SHOWCASE_TABS.length), 3600);
+    const id = setInterval(() => setActive((a) => (a + 1) % SHOWCASE_TABS.length), 2500);
     return () => clearInterval(id);
   }, [inView, reduce, paused]);
 
