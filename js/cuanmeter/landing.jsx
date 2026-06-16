@@ -1918,10 +1918,10 @@ function IpoNewsWidget() {
         .ipo-name { font-size: 19px; margin: 0 0 8px; letter-spacing: -0.02em; line-height: 1.25; min-height: 2.4em; }
         .ipo-code { color: var(--fg-muted); font-weight: 700; }
         .ipo-syariah { display: inline-block; font-size: 11px; font-weight: 800; color: #fff; background: ForestGreen; padding: 2px 10px; border-radius: 6px; }
-        .ipo-fields { display: flex; flex-direction: column; gap: 8px; }
-        .ipo-field { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
-        .ipo-field-label { color: var(--fg-muted); font-weight: 600; }
-        .ipo-field-value { color: var(--fg); font-weight: 700; text-align: right; }
+        .ipo-fields { display: flex; flex-direction: column; gap: 11px; }
+        .ipo-field { display: flex; flex-direction: column; gap: 2px; }
+        .ipo-field-label { font-size: 11px; font-weight: 700; color: var(--fg-muted); letter-spacing: 0.03em; text-transform: uppercase; }
+        .ipo-field-value { font-size: 14px; font-weight: 700; color: var(--fg); }
         .ipo-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 6px; }
         .ipo-prospektus { font-size: 13px; font-weight: 700; color: var(--fg-muted); text-decoration: none; }
         .ipo-prospektus:hover { color: var(--primary); }
