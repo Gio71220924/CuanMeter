@@ -1835,19 +1835,17 @@ function IpoNewsWidget() {
   if (err) return null;
   if (!data || !data.items || data.items.length === 0) return null; // diam sampai siap
 
-  const fmtDate = (s) => {
-    if (!s) return '';
-    const d = new Date(s);
-    if (isNaN(d.getTime())) return '';
-    const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
-    if (diff <= 0) return 'hari ini';
-    if (diff === 1) return 'kemarin';
-    if (diff < 7) return `${diff} hari lalu`;
-    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+  const stageColor = (stage) => {
+    const s = (stage || '').toLowerCase();
+    if (/book building/.test(s)) return '#e0993e';
+    if (/offering|penawaran/.test(s)) return 'var(--primary)';
+    if (/allotment|penjatahan/.test(s)) return '#6366f1';
+    if (/closed|selesai|pencatatan|listing/.test(s)) return 'var(--fg-muted)';
+    return 'var(--primary)';
   };
 
   return (
-    <section className="ipo-news" style={{ padding: '64px 0' }}>
+    <section className="ipo-sec" style={{ padding: '64px 0' }}>
       <div className="container">
         <div style={{ marginBottom: 24, maxWidth: 640 }}>
           <div className="badge" style={{ marginBottom: 12 }}>
@@ -1855,32 +1853,54 @@ function IpoNewsWidget() {
             <span>PASAR PRIMER · KALENDER IPO</span>
           </div>
           <h2 style={{ fontSize: 'clamp(28px, 4vw, 40px)', letterSpacing: '-0.025em', marginBottom: 8 }}>
-            IPO terbaru di <span style={{ color: 'var(--primary)' }}>BEI</span>.
+            IPO di <span style={{ color: 'var(--primary)' }}>BEI</span>.
           </h2>
           <p style={{ fontSize: 15, color: 'var(--fg-muted)', margin: 0 }}>
-            Emiten yang lagi & bakal melantai di bursa — dari berita terkini.
+            Jadwal book building, penawaran, & pencatatan emiten baru — data dari e-ipo.co.id.
           </p>
         </div>
 
         <div className="ipo-grid">
-          {data.items.map((it, i) => (
-            <a
-              key={i}
-              href={it.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ipo-card card interactive"
-              style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 18, textDecoration: 'none' }}
-            >
-              <span className="ipo-card-title" style={{ fontSize: 15, fontWeight: 700, color: 'var(--fg)', lineHeight: 1.4 }}>
-                {it.title}
-              </span>
-              <span style={{ marginTop: 'auto', fontSize: 12, color: 'var(--fg-faint)', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ fontWeight: 700, color: 'var(--fg-muted)' }}>{it.source}</span>
-                <span>{fmtDate(it.date)} ↗</span>
-              </span>
-            </a>
-          ))}
+          {data.items.map((it) => {
+            const sc = stageColor(it.stage);
+            return (
+              <div key={it.id} className="card interactive ipo-card">
+                <div className="ipo-top">
+                  <div className="ipo-logo-box">
+                    {it.logo ? <img src={it.logo} alt={it.code} loading="lazy" /> : <Icon name="chart" size={22} />}
+                  </div>
+                  <span className="ipo-tag" style={{ color: sc, background: `color-mix(in oklab, ${sc} 14%, transparent)` }}>
+                    {(it.stage || 'IPO').toUpperCase()}
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="ipo-name">
+                    {it.name}{it.code && <span className="ipo-code"> ({it.code})</span>}
+                  </h3>
+                  {it.syariah && <span className="ipo-syariah">Syariah</span>}
+                </div>
+
+                <div className="ipo-fields">
+                  {it.fields.map((f, i) => (
+                    <div key={i} className="ipo-field">
+                      <span className="ipo-field-label">{f.label}</span>
+                      <span className="ipo-field-value">{f.value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="ipo-foot">
+                  {it.prospektus && (
+                    <a className="ipo-prospektus" href={it.prospektus} target="_blank" rel="noopener noreferrer">📄 Prospektus</a>
+                  )}
+                  <a className="ipo-link" href="https://e-ipo.co.id/id/home" target="_blank" rel="noopener noreferrer">
+                    Info lebih lanjut <span aria-hidden="true">→</span>
+                  </a>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {data.disclaimer && (
@@ -1889,12 +1909,23 @@ function IpoNewsWidget() {
       </div>
 
       <style>{`
-        .ipo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-        .ipo-card-title {
-          display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
-        }
-        .ipo-card:hover .ipo-card-title { color: var(--primary); }
-        @media (max-width: 640px) { .ipo-grid { grid-template-columns: 1fr; } }
+        .ipo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; align-items: start; }
+        .ipo-card { padding: 24px; text-align: left; display: flex; flex-direction: column; gap: 14px; }
+        .ipo-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+        .ipo-logo-box { width: 52px; height: 52px; border-radius: var(--radius); background: var(--primary-soft); color: var(--primary); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+        .ipo-logo-box img { max-width: 40px; max-height: 40px; object-fit: contain; }
+        .ipo-tag { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
+        .ipo-name { font-size: 19px; margin: 0 0 6px; letter-spacing: -0.02em; line-height: 1.25; }
+        .ipo-code { color: var(--fg-muted); font-weight: 700; }
+        .ipo-syariah { display: inline-block; font-size: 11px; font-weight: 800; color: #fff; background: ForestGreen; padding: 2px 10px; border-radius: 6px; }
+        .ipo-fields { display: flex; flex-direction: column; gap: 8px; }
+        .ipo-field { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+        .ipo-field-label { color: var(--fg-muted); font-weight: 600; }
+        .ipo-field-value { color: var(--fg); font-weight: 700; text-align: right; }
+        .ipo-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 6px; }
+        .ipo-prospektus { font-size: 13px; font-weight: 700; color: var(--fg-muted); text-decoration: none; }
+        .ipo-prospektus:hover { color: var(--primary); }
+        .ipo-link { font-size: 14px; font-weight: 700; color: var(--primary); text-decoration: none; white-space: nowrap; }
       `}</style>
     </section>
   );

@@ -16,7 +16,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
-const { exec, spawn } = require('child_process');
+const { exec, execFile, spawn } = require('child_process');
 
 // Load .env (no dependency): KEY=VALUE per baris, '#' komentar, kutip opsional.
 // Env var asli (shell/OS) tetap menang atas .env.
@@ -1547,9 +1547,71 @@ async function handleAiAnalysis(query, res) {
     }
 }
 
-// ─── /ipo-news  →  Kalender/berita IPO BEI dari Google News RSS ───────────────
+// ─── /ipo-news  →  Kalender IPO terstruktur (scrape e-ipo.co.id) ──────────────
 const IPO_CACHE = { ts: 0, data: null };
 const IPO_TTL = 3 * 60 * 60 * 1000; // 3 jam
+const EIPO_BASE = 'https://e-ipo.co.id';
+
+function stripTags(s) {
+    return String(s || '')
+        .replace(/<br\s*\/?>/gi, ' ')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ')
+        .replace(/\s+/g, ' ').trim();
+}
+
+// Parse halaman e-ipo /id/home → daftar IPO terstruktur.
+function parseEipo(html) {
+    const out = [];
+    const listIdx = html.indexOf('id="ipo-list"');
+    const region = listIdx >= 0 ? html.slice(listIdx) : html;
+    const parts = region.split(/data-key="(\d+)"/).slice(1); // [id, chunk, id, chunk, ...]
+    for (let i = 0; i < parts.length; i += 2) {
+        const id = parts[i];
+        const chunk = parts[i + 1] || '';
+        const stage = stripTags((chunk.match(/pricing-title[^>]*>\s*<h3>([\s\S]*?)<\/h3>/) || [])[1]);
+        const logoM = chunk.match(/img-list"\s+src="([^"]+)"\s+alt="([^"]*)"/);
+        const logo = logoM ? EIPO_BASE + logoM[1].replace(/&amp;/g, '&') : null;
+        const code = logoM ? logoM[2] : '';
+        const nameBlock = (chunk.match(/padding5">\s*<h5[^>]*>([\s\S]*?)<\/h5>/) || [])[1] || '';
+        const syariah = /Syariah/i.test(nameBlock);
+        let name = stripTags(nameBlock.replace(/<span[\s\S]*?<\/span>/gi, ''));
+        if (code) name = name.replace(new RegExp('\\(\\s*' + code + '\\s*\\)'), '').trim();
+
+        const fields = [];
+        const featSec = (chunk.match(/pricing-features">([\s\S]*?)<\/ul>/) || [])[1] || '';
+        const liRe = /<li>\s*<h5[^>]*>([\s\S]*?)<\/h5>\s*<p[^>]*>([\s\S]*?)<\/p>\s*<\/li>/g;
+        let m;
+        while ((m = liRe.exec(featSec))) {
+            const label = stripTags(m[1]);
+            const value = stripTags(m[2]);
+            if (!label || /prospektus/i.test(label)) continue; // prospektus ditangani terpisah
+            if (value) fields.push({ label, value });
+        }
+        const prosM = chunk.match(/href="(\/id\/pipeline\/get-propectus-file[^"]*)"/);
+        const prospektus = prosM ? EIPO_BASE + prosM[1].replace(/&amp;/g, '&') : null;
+
+        if (code || name) out.push({ id, code, name, stage, syariah, logo, prospektus, fields });
+    }
+    return out.slice(0, 12);
+}
+
+// e-ipo pakai Cloudflare yang memblok TLS-fingerprint Node fetch (403 "Just a moment").
+// curl lolos, jadi shell-out ke curl. URL konstan → aman dari injeksi.
+function curlFetch(url) {
+    return new Promise((resolve, reject) => {
+        execFile('curl', [
+            '-s', '-L', '-m', '15',
+            '-H', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
+            '-H', 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            '-H', 'Accept-Language: id-ID,id;q=0.9,en;q=0.8',
+            url,
+        ], { maxBuffer: 8 * 1024 * 1024 }, (err, stdout) => {
+            if (err) return reject(err);
+            resolve(stdout);
+        });
+    });
+}
 
 async function handleIpoNews(res) {
     if (IPO_CACHE.data && Date.now() - IPO_CACHE.ts < IPO_TTL) {
@@ -1557,21 +1619,21 @@ async function handleIpoNews(res) {
         return;
     }
     try {
-        const q = encodeURIComponent('IPO saham Bursa Efek Indonesia');
-        const rssUrl = `https://news.google.com/rss/search?q=${q}&hl=id-ID&gl=ID&ceid=ID:id`;
-        const items = parseGoogleNews(await fetchText(rssUrl), 8);
+        const html = await curlFetch(`${EIPO_BASE}/id/home`);
+        const items = parseEipo(html);
         const data = {
             status: 'ok',
             generated_at: new Date().toISOString(),
             items,
-            disclaimer: 'Berita IPO dari Google News — bukan rekomendasi. Cek jadwal & prospektus resmi di e-ipo.co.id / IDX.',
+            source: 'e-ipo.co.id',
+            disclaimer: 'Data IPO dari e-ipo.co.id (platform resmi penawaran umum). Bukan rekomendasi — baca prospektus sebelum memesan.',
         };
         IPO_CACHE.ts = Date.now();
         IPO_CACHE.data = data;
         sendJSON(res, 200, data);
     } catch (e) {
         logError('IpoNews', e);
-        sendJSON(res, 502, { status: 'error', message: 'Gagal memuat berita IPO.' });
+        sendJSON(res, 502, { status: 'error', message: 'Gagal memuat kalender IPO.' });
     }
 }
 
