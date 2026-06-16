@@ -1837,9 +1837,9 @@ function IpoNewsWidget() {
 
   const stageColor = (stage) => {
     const s = (stage || '').toLowerCase();
-    if (/book building/.test(s)) return '#e0993e';
+    if (/book building/.test(s)) return 'var(--warning)';
     if (/offering|penawaran/.test(s)) return 'var(--primary)';
-    if (/allotment|penjatahan/.test(s)) return '#6366f1';
+    if (/allotment|penjatahan/.test(s)) return 'var(--warning)';
     if (/closed|selesai|pencatatan|listing/.test(s)) return 'var(--fg-muted)';
     return 'var(--primary)';
   };
@@ -1863,8 +1863,10 @@ function IpoNewsWidget() {
         <div className="ipo-grid">
           {data.items.map((it) => {
             const sc = stageColor(it.stage);
+            const shortLbl = (l) => (l || '').replace(/\s*(book building|penawaran umum|penawaran)\s*/ig, ' ').replace(/\s+/g, ' ').trim();
+            const meta = [it.sector, it.lot].filter(Boolean).join(' · ');
             return (
-              <div key={it.id} className="card interactive ipo-card">
+              <div key={it.id} className={`card interactive ipo-card${it.closed ? ' ipo-closed' : ''}`}>
                 <div className="ipo-top">
                   <div className="ipo-logo-box">
                     {it.logo ? <img src={it.logo} alt={it.code} loading="lazy" /> : <Icon name="chart" size={22} />}
@@ -1875,20 +1877,35 @@ function IpoNewsWidget() {
                 </div>
 
                 <div>
-                  <h3 className="ipo-name">
-                    {it.name}{it.code && <span className="ipo-code"> ({it.code})</span>}
-                  </h3>
-                  {it.syariah && <span className="ipo-syariah">Syariah</span>}
+                  <h3 className="ipo-name">{it.name}</h3>
+                  <div className="ipo-idline">
+                    {it.code && <span className="mono ipo-code">{it.code}</span>}
+                    {it.syariah && <span className="ipo-syariah">Syariah</span>}
+                  </div>
                 </div>
 
-                <div className="ipo-fields">
-                  {it.fields.map((f, i) => (
-                    <div key={i} className="ipo-field">
-                      <span className="ipo-field-label">{f.label}</span>
-                      <span className="ipo-field-value">{f.value}</span>
-                    </div>
-                  ))}
-                </div>
+                {(it.price || it.date) && (
+                  <div className="ipo-hero">
+                    {it.price && (
+                      <>
+                        <div className="ipo-hero-label">{shortLbl(it.priceLabel) || 'Harga'}</div>
+                        <div className="ipo-price mono tnum">{it.price}</div>
+                      </>
+                    )}
+                    {it.date && (
+                      <div className="ipo-date">
+                        <span className="ipo-date-label">{shortLbl(it.dateLabel)}</span> {it.date}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(meta || it.info) && (
+                  <div className="ipo-metarow">
+                    {meta && <div>{meta}</div>}
+                    {it.info && <div className="ipo-info">{it.info}</div>}
+                  </div>
+                )}
 
                 <div className="ipo-foot">
                   {it.prospektus && (
@@ -1910,18 +1927,24 @@ function IpoNewsWidget() {
 
       <style>{`
         .ipo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; align-items: stretch; }
-        .ipo-card { padding: 24px; text-align: left; display: flex; flex-direction: column; gap: 14px; }
+        .ipo-card { padding: 22px; text-align: left; display: flex; flex-direction: column; gap: 14px; }
+        .ipo-closed { opacity: 0.72; transition: opacity .2s ease; }
+        .ipo-closed:hover { opacity: 1; }
         .ipo-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
         .ipo-logo-box { width: 52px; height: 52px; border-radius: var(--radius); background: var(--primary-soft); color: var(--primary); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
         .ipo-logo-box img { max-width: 40px; max-height: 40px; object-fit: contain; }
         .ipo-tag { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
-        .ipo-name { font-size: 19px; margin: 0 0 8px; letter-spacing: -0.02em; line-height: 1.25; min-height: 2.4em; }
-        .ipo-code { color: var(--fg-muted); font-weight: 700; }
-        .ipo-syariah { display: inline-block; font-size: 11px; font-weight: 800; color: #fff; background: ForestGreen; padding: 2px 10px; border-radius: 6px; }
-        .ipo-fields { display: flex; flex-direction: column; gap: 11px; }
-        .ipo-field { display: flex; flex-direction: column; gap: 2px; }
-        .ipo-field-label { font-size: 11px; font-weight: 700; color: var(--fg-muted); letter-spacing: 0.03em; text-transform: uppercase; }
-        .ipo-field-value { font-size: 14px; font-weight: 700; color: var(--fg); }
+        .ipo-name { font-size: 18px; margin: 0; letter-spacing: -0.02em; line-height: 1.25; min-height: 2.3em; }
+        .ipo-idline { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+        .ipo-code { font-size: 12px; font-weight: 800; color: var(--fg-muted); }
+        .ipo-syariah { font-size: 10px; font-weight: 800; color: #fff; background: var(--success); padding: 2px 8px; border-radius: 5px; }
+        .ipo-hero { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+        .ipo-hero-label { font-size: 10px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--fg-muted); }
+        .ipo-price { font-size: 21px; font-weight: 800; color: var(--fg); letter-spacing: -0.01em; margin-top: 2px; line-height: 1.1; }
+        .ipo-date { font-size: 12px; color: var(--fg-muted); margin-top: 8px; }
+        .ipo-date-label { font-weight: 700; color: var(--fg); }
+        .ipo-metarow { font-size: 12px; color: var(--fg-muted); display: flex; flex-direction: column; gap: 2px; }
+        .ipo-info { color: var(--fg-faint); }
         .ipo-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 6px; }
         .ipo-prospektus { font-size: 13px; font-weight: 700; color: var(--fg-muted); text-decoration: none; }
         .ipo-prospektus:hover { color: var(--primary); }

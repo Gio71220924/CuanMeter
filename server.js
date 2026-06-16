@@ -1593,7 +1593,20 @@ function parseEipo(html) {
         const detM = chunk.match(/href="(\/id\/ipo\/[^"]+)"/);
         const detail = detM ? EIPO_BASE + detM[1].replace(/&amp;/g, '&') : `${EIPO_BASE}/id/home`;
 
-        if (code || name) out.push({ id, code, name, stage, syariah, logo, prospektus, detail, fields });
+        // Beri peran ke field generik agar kartu bisa menonjolkan harga + tanggal.
+        const pick = (re) => fields.find((f) => re.test(f.label)) || {};
+        const priceF = pick(/harga/i);
+        const dateF = pick(/periode|tanggal/i);
+        const closed = /closed|selesai|pencatatan|listing/i.test(stage);
+
+        if (code || name) out.push({
+            id, code, name, stage, syariah, logo, prospektus, detail, closed,
+            priceLabel: priceF.label || '', price: priceF.value || '',
+            dateLabel: dateF.label || '', date: dateF.value || '',
+            sector: pick(/sektor/i).value || '',
+            lot: pick(/saham ditawarkan|ditawarkan/i).value || '',
+            info: pick(/informasi/i).value || '',
+        });
     }
     return out.slice(0, 12);
 }
