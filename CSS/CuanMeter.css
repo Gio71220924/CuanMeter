@@ -2681,7 +2681,7 @@ body[data-theme="dark"] .arena-mini-seg button.on {
 
 /* ===== Sector Heatmap — home preview ===== */
 .heatmap-preview .heatmap-canvas {
-  height: min(46vh, 420px);
+  height: min(55vh, 504px);
 }
 .heatmap-preview-toolbar {
   display: flex;
