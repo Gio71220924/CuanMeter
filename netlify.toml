@@ -57,6 +57,30 @@ status = 200
 force = true
 
 [[redirects]]
+from = "/ai-analysis"
+to = "https://sahamath-production.up.railway.app/ai-analysis"
+status = 200
+force = true
+
+[[redirects]]
+from = "/fundamentals"
+to = "https://sahamath-production.up.railway.app/fundamentals"
+status = 200
+force = true
+
+[[redirects]]
+from = "/portfolio"
+to = "https://sahamath-production.up.railway.app/portfolio"
+status = 200
+force = true
+
+[[redirects]]
+from = "/heatmap"
+to = "https://sahamath-production.up.railway.app/heatmap"
+status = 200
+force = true
+
+[[redirects]]
 from = "/*"
 to = "/index.html"
 status = 200
