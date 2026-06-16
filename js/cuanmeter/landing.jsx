@@ -1909,13 +1909,13 @@ function IpoNewsWidget() {
       </div>
 
       <style>{`
-        .ipo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; align-items: start; }
+        .ipo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; align-items: stretch; }
         .ipo-card { padding: 24px; text-align: left; display: flex; flex-direction: column; gap: 14px; }
         .ipo-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
         .ipo-logo-box { width: 52px; height: 52px; border-radius: var(--radius); background: var(--primary-soft); color: var(--primary); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
         .ipo-logo-box img { max-width: 40px; max-height: 40px; object-fit: contain; }
         .ipo-tag { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
-        .ipo-name { font-size: 19px; margin: 0 0 6px; letter-spacing: -0.02em; line-height: 1.25; }
+        .ipo-name { font-size: 19px; margin: 0 0 8px; letter-spacing: -0.02em; line-height: 1.25; min-height: 2.4em; }
         .ipo-code { color: var(--fg-muted); font-weight: 700; }
         .ipo-syariah { display: inline-block; font-size: 11px; font-weight: 800; color: #fff; background: ForestGreen; padding: 2px 10px; border-radius: 6px; }
         .ipo-fields { display: flex; flex-direction: column; gap: 8px; }
