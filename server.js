@@ -307,6 +307,62 @@ const MACRO_ONEOFF = [
     { date: '2026-11-03', label: 'Pemilu AS', title: 'US Midterm Election', detail: 'Pemilu sela AS (DPR, Senat, Gubernur). Bisa menggeser arah kebijakan ekonomi dan sentimen pasar global.', impact: 'high', source: 'US Election', url: 'https://www.usa.gov/midterm-elections' },
 ];
 
+// FOMC live scraper — ambil jadwal resmi dari federalreserve.gov, fallback ke FOMC_SCHEDULE.
+const FOMC_MONTHS = {
+    january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
+    july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
+};
+let fomcLive = null;
+let fomcTs = 0;
+const FOMC_TTL = 7 * 24 * 60 * 60 * 1000; // 7 hari (jadwal jarang berubah)
+
+function parseFomc(html) {
+    const out = {};
+    const pad = (n) => String(n).padStart(2, '0');
+    const years = [];
+    const yearRe = /(\d{4}) FOMC Meetings/g;
+    let ym;
+    while ((ym = yearRe.exec(html))) years.push({ year: parseInt(ym[1], 10), idx: ym.index });
+    for (let i = 0; i < years.length; i++) {
+        const section = html.slice(years[i].idx, i + 1 < years.length ? years[i + 1].idx : html.length);
+        const meetRe = /fomc-meeting__month[^>]*>\s*<strong>([A-Za-z]+)<\/strong>[\s\S]*?fomc-meeting__date[^>]*>([^<]+)</g;
+        const list = [];
+        let mm;
+        while ((mm = meetRe.exec(section))) {
+            const month = FOMC_MONTHS[mm[1].trim().toLowerCase()];
+            if (month == null) continue;
+            const nums = (mm[2].match(/\d+/g) || []).map(Number);
+            if (!nums.length) continue;
+            const y = years[i].year;
+            const d1 = nums[0];
+            const d2 = nums[nums.length - 1];
+            const start = `${y}-${pad(month + 1)}-${pad(d1)}`;
+            let end;
+            if (d2 >= d1) {
+                end = `${y}-${pad(month + 1)}-${pad(d2)}`;
+            } else { // lintas bulan (mis. April 30 - May 1)
+                const nm = month === 11 ? 0 : month + 1;
+                const ny = month === 11 ? y + 1 : y;
+                end = `${ny}-${pad(nm + 1)}-${pad(d2)}`;
+            }
+            list.push([start, end]);
+        }
+        if (list.length) out[years[i].year] = list;
+    }
+    return out;
+}
+
+async function refreshFomcSchedule() {
+    if (fomcLive && Date.now() - fomcTs < FOMC_TTL) return;
+    try {
+        const html = await curlFetch('https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm');
+        const parsed = parseFomc(html);
+        if (parsed && Object.keys(parsed).length) { fomcLive = parsed; fomcTs = Date.now(); }
+    } catch (e) {
+        logError('FOMC', e);
+    }
+}
+
 /** @param {number} month - 0-indexed (0 = January) */
 function firstBusinessDay(year, month) {
     const d = new Date(year, month, 1);
@@ -385,9 +441,11 @@ function getMacroEvents() {
 
     const years = [today.getFullYear(), today.getFullYear() + 1];
 
-    // FOMC (The Fed) — rapat 2 hari, keputusan di hari ke-2
+    // FOMC (The Fed) — pakai jadwal live dari Fed (refresh di background), fallback hardcode
+    refreshFomcSchedule();
+    const fomcData = fomcLive || FOMC_SCHEDULE;
     for (const year of years) {
-        for (const [start, end] of (FOMC_SCHEDULE[year] || [])) {
+        for (const [start, end] of (fomcData[year] || [])) {
             const d = new Date(start + 'T00:00:00');
             if (d < from || d > until) continue;
             const endD = new Date(end + 'T00:00:00'); endD.setDate(endD.getDate() + 1);
