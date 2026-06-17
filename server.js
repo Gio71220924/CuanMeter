@@ -281,6 +281,32 @@ const BI_RDG_SCHEDULE = {
     ],
 };
 
+// FOMC (The Fed) — jadwal resmi tahunan, isi 2 hari rapat [mulai, selesai].
+// Sumber: federalreserve.gov/monetarypolicy/fomccalendars.htm — tambah tahun baru sekali/tahun.
+const FOMC_SCHEDULE = {
+    2025: [
+        ['2025-01-28', '2025-01-29'], ['2025-03-18', '2025-03-19'], ['2025-05-06', '2025-05-07'],
+        ['2025-06-17', '2025-06-18'], ['2025-07-29', '2025-07-30'], ['2025-09-16', '2025-09-17'],
+        ['2025-10-28', '2025-10-29'], ['2025-12-09', '2025-12-10'],
+    ],
+    2026: [
+        ['2026-01-27', '2026-01-28'], ['2026-03-17', '2026-03-18'], ['2026-04-28', '2026-04-29'],
+        ['2026-06-16', '2026-06-17'], ['2026-07-28', '2026-07-29'], ['2026-09-15', '2026-09-16'],
+        ['2026-10-27', '2026-10-28'], ['2026-12-08', '2026-12-09'],
+    ],
+};
+
+// IDX major index rebalancing (LQ45/IDX30 dll) — efektif. Sumber: idx.co.id.
+const IDX_REBALANCE = {
+    2025: ['2025-02-03', '2025-08-01'],
+    2026: ['2026-02-02', '2026-08-03'],
+};
+
+// Event makro sekali-jalan (pemilu, dll). Kurasi manual.
+const MACRO_ONEOFF = [
+    { date: '2026-11-03', label: 'Pemilu AS', title: 'US Midterm Election', detail: 'Pemilu sela AS (DPR, Senat, Gubernur). Bisa menggeser arah kebijakan ekonomi dan sentimen pasar global.', impact: 'high', source: 'US Election', url: 'https://www.usa.gov/midterm-elections' },
+];
+
 /** @param {number} month - 0-indexed (0 = January) */
 function firstBusinessDay(year, month) {
     const d = new Date(year, month, 1);
@@ -288,6 +314,24 @@ function firstBusinessDay(year, month) {
     if (dow === 0) d.setDate(2);
     else if (dow === 6) d.setDate(3);
     return ymdLocal(d);
+}
+
+/** Tanggal hari-ke-n weekday tertentu dalam sebulan. weekday: 0=Min..6=Sab. */
+function nthWeekday(year, month, weekday, n) {
+    const d = new Date(year, month, 1);
+    let count = 0;
+    while (count < n) {
+        if (d.getDay() === weekday) count++;
+        if (count < n) d.setDate(d.getDate() + 1);
+    }
+    return d;
+}
+
+/** Hari kerja terakhir dalam sebulan. */
+function lastBusinessDay(year, month) {
+    const d = new Date(year, month + 1, 0);
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() - 1);
+    return d;
 }
 
 function getMacroEvents() {
@@ -337,6 +381,77 @@ function getMacroEvents() {
             source: 'BPS',
             url: 'https://www.bps.go.id/id/statistics-table',
         });
+    }
+
+    const years = [today.getFullYear(), today.getFullYear() + 1];
+
+    // FOMC (The Fed) — rapat 2 hari, keputusan di hari ke-2
+    for (const year of years) {
+        for (const [start, end] of (FOMC_SCHEDULE[year] || [])) {
+            const d = new Date(start + 'T00:00:00');
+            if (d < from || d > until) continue;
+            const endD = new Date(end + 'T00:00:00'); endD.setDate(endD.getDate() + 1);
+            events.push({
+                id: `fomc-${start}`, date: start, endDate: ymdLocal(endD),
+                category: 'macro', label: 'The Fed', title: 'FOMC Meeting',
+                detail: 'Rapat FOMC The Fed. Pasar mencermati arah suku bunga dan kebijakan moneter AS.',
+                impact: 'high', source: 'Federal Reserve',
+                url: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm',
+            });
+        }
+    }
+
+    // FTSE Russell rebalancing — efektif Jumat ke-3 Mar/Jun/Sep/Des
+    for (const year of years) {
+        for (const month of [2, 5, 8, 11]) {
+            const d = nthWeekday(year, month, 5, 3);
+            if (d < from || d > until) continue;
+            const date = ymdLocal(d);
+            events.push({
+                id: `ftse-${date}`, date, category: 'macro', label: 'FTSE',
+                title: 'FTSE Russell Rebalancing',
+                detail: 'Efektif rebalancing indeks FTSE. Saham masuk/keluar indeks bisa menggeser arus dana pasif.',
+                impact: 'high', source: 'FTSE Russell', url: 'https://www.ftserussell.com/',
+            });
+        }
+    }
+
+    // MSCI index review — efektif hari kerja terakhir Feb/Mei/Agu/Nov (SAIR Feb & Agu, QIR Mei & Nov)
+    for (const year of years) {
+        for (const month of [1, 4, 7, 10]) {
+            const d = lastBusinessDay(year, month);
+            if (d < from || d > until) continue;
+            const date = ymdLocal(d);
+            const sair = (month === 1 || month === 7);
+            events.push({
+                id: `msci-${date}`, date, category: 'macro', label: 'MSCI',
+                title: sair ? 'MSCI Semi-Annual Index Review' : 'MSCI Quarterly Index Review',
+                detail: 'Efektif review indeks MSCI. Perubahan konstituen memengaruhi arus dana pasif (emerging market).',
+                impact: 'high', source: 'MSCI',
+                url: 'https://www.msci.com/our-solutions/indexes/index-review',
+            });
+        }
+    }
+
+    // IDX major index rebalancing (LQ45/IDX30 dll)
+    for (const year of years) {
+        for (const date of (IDX_REBALANCE[year] || [])) {
+            const d = new Date(date + 'T00:00:00');
+            if (d < from || d > until) continue;
+            events.push({
+                id: `idx-rebal-${date}`, date, category: 'macro', label: 'IDX',
+                title: 'Rebalancing Indeks IDX',
+                detail: 'Efektif evaluasi mayor indeks IDX (LQ45, IDX30, dll). Cermati saham yang masuk/keluar.',
+                impact: 'medium', source: 'IDX', url: 'https://www.idx.co.id/',
+            });
+        }
+    }
+
+    // Event makro sekali-jalan
+    for (const ev of MACRO_ONEOFF) {
+        const d = new Date(ev.date + 'T00:00:00');
+        if (d < from || d > until) continue;
+        events.push({ id: `oneoff-${ev.date}`, category: 'macro', ...ev });
     }
 
     return events;
