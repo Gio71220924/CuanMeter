@@ -6,6 +6,7 @@ package-lock.json
 CSS/tailwind-output.css
 dist/
 build/
+video/out/
 
 # Logs
 *.log
@@ -15,6 +16,9 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# Git Bash / Cygwin crash dumps
+*.stackdump
+
 # IDE
 .vscode/
 .idea/
@@ -22,12 +26,19 @@ Thumbs.db
 
 # Tooling notes
 .claude/
+.superpowers/
 docs/superpowers/
+docs/plans/
+docs/specs/
 
 # Cache
 .cache/
 .parcel-cache/
 data/calendar-cache.json
+data/heatmap-shares.json
+data/heatmap-cache.json
+data/board-cache.json
+data/server-errors.log
 __pycache__/
 *.pyc
 
