@@ -1,4 +1,10 @@
-# Sahamath
+<p align="center">
+  <img src="favicon.svg" alt="Logo Sahamath" width="96" height="96" />
+</p>
+
+<h1 align="center">Sahamath</h1>
+
+<p align="center">Kalkulator &amp; simulasi saham IDX untuk trader Indonesia.</p>
 
 Sahamath adalah web kalkulator saham yang mudah dipakai untuk trader Indonesia. Mulai dari menghitung average price, batas ARA/ARB, profit/loss, position sizing, dividen, sampai membaca market calendar, bandarmology, screener swing, dan Analyzer ML.
 
@@ -12,7 +18,10 @@ Sahamath adalah web kalkulator saham yang mudah dipakai untuk trader Indonesia. 
 - **Amunisi**: menghitung position sizing berdasarkan risiko per trade.
 - **Dividen Yield**: menghitung yield dividen kotor dan bersih setelah PPh final.
 - **Analyzer**: membaca harga, bandarmology, chart, trading plan, dan sinyal ML.
-- **Screener IDX Energy**: mendeteksi kandidat swing dengan skor trend, VSA, entry, target price, dan stop loss.
+- **Analisis AI**: ringkasan sentimen dan katalis per emiten dari berita Google News, dirangkai oleh Gemini (butuh `GEMINI_API_KEY`).
+- **Screener IDX Energy**: mendeteksi kandidat swing dengan skor trend, VSA, entry, target price, dan stop loss. Termasuk strategi Triple Confirmation (RSI + MACD + MA20).
+- **Profil Risiko**: kuis singkat menentukan profil risiko, lalu merekomendasikan alokasi portofolio berbasis Modern Portfolio Theory (Sharpe + Markowitz) lengkap dengan efficient frontier.
+- **Kalender IPO**: jadwal IPO BEI (book building, penawaran, pencatatan) yang diambil dari e-ipo.co.id dan ditampilkan di halaman utama.
 - **Market Calendar**: menampilkan corporate action saham dan event makro Indonesia.
 - **Panduan Edukasi**: artikel ringkas untuk pemula seputar ARA/ARB, average down, risk management, dividen, bandarmology, pajak, dan cut loss.
 
@@ -25,7 +34,8 @@ Sahamath memakai frontend ringan berbasis React tanpa bundler production yang ko
 - **Backend**: Node.js HTTP server lewat `server.js`.
 - **ML runtime**: Python untuk menjalankan `predict.py` dan `screener.py`.
 - **Model ML**: `best_models.pkl` sebagai model utama, dengan fallback ke `trading_model.pkl`.
-- **Data market**: TradingView, api-saham, Yahoo Finance, KSEI, IDX, BI, dan BPS.
+- **Data market**: TradingView, api-saham, Yahoo Finance, KSEI, IDX, BI, BPS, e-ipo.co.id (kalender IPO), serta Google News + Gemini (Analisis AI).
+- **Portfolio optimizer**: `portfolio.py` (Modern Portfolio Theory) memakai numpy + scipy.
 
 ## Alur Sederhana Aplikasi
 
@@ -55,7 +65,7 @@ http://localhost:3000
 Untuk fitur Analyzer ML dan Screener, install dependency Python di virtual environment:
 
 ```bash
-pip install pandas numpy scikit-learn yfinance ta joblib requests
+pip install pandas numpy scipy scikit-learn yfinance ta joblib requests
 ```
 
 File model yang dibutuhkan:
@@ -113,6 +123,14 @@ SUPABASE_SERVICE_ROLE_KEY=isi_secret_key
 SUPABASE_BUCKET=models
 SUPABASE_MODEL_PATH=best_models.pkl
 ```
+
+Untuk fitur **Analisis AI** (Gemini), isi juga:
+
+```text
+GEMINI_API_KEY=isi_api_key_gemini
+```
+
+Di lokal, environment variable bisa ditaruh di file `.env` di root (otomatis dibaca `server.js` saat start; file ini sudah di-`.gitignore`). Di production, set variabel di dashboard host (Railway/Render → Variables) karena `.env` tidak ikut ter-deploy. Variabel OS asli selalu menang atas `.env`. Tanpa `GEMINI_API_KEY`, endpoint Analisis AI mengembalikan 503 dan fitur lain tetap jalan.
 
 Netlify build command:
 
