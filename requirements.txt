@@ -5,3 +5,5 @@ yfinance
 ta
 joblib
 requests
+scipy
+curl_cffi

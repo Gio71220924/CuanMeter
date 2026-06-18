@@ -1801,13 +1801,43 @@ function curlFetch(url) {
     });
 }
 
+// Scrape e-ipo via Python curl_cffi (impersonasi TLS Chrome) — lolos Cloudflare
+// dari IP datacenter (Railway), beda dari curl biasa yang kena 403 "Just a moment".
+function pyScrapeIpo() {
+    return new Promise((resolve, reject) => {
+        const py = spawn('python', [path.join(ROOT, 'ipo_scrape.py')]);
+        let out = '';
+        let err = '';
+        const t = setTimeout(() => { py.kill(); reject(new Error('ipo_scrape timeout')); }, 30000);
+        py.stdout.on('data', (d) => { out += d.toString(); });
+        py.stderr.on('data', (d) => { err += d.toString(); });
+        py.on('error', (e) => { clearTimeout(t); reject(e); });
+        py.on('close', () => {
+            clearTimeout(t);
+            if (out && out.length > 500) resolve(out);
+            else reject(new Error('ipo_scrape kosong: ' + err.slice(0, 200)));
+        });
+    });
+}
+
+// HTML e-ipo: utamakan curl_cffi (Python), fallback ke curl (jalan dari IP rumahan/lokal).
+async function fetchEipoHtml() {
+    try {
+        const html = await pyScrapeIpo();
+        if (/ipo-list|data-key=/.test(html)) return html; // konten asli (bukan challenge page)
+    } catch (e) {
+        logError('IpoScrape/py', e);
+    }
+    return curlFetch(`${EIPO_BASE}/id/home`);
+}
+
 async function handleIpoNews(res) {
     if (IPO_CACHE.data && Date.now() - IPO_CACHE.ts < IPO_TTL) {
         sendJSON(res, 200, { ...IPO_CACHE.data, cached: true });
         return;
     }
     try {
-        const html = await curlFetch(`${EIPO_BASE}/id/home`);
+        const html = await fetchEipoHtml();
         const items = parseEipo(html);
         const data = {
             status: 'ok',
@@ -1816,8 +1846,7 @@ async function handleIpoNews(res) {
             source: 'e-ipo.co.id',
             disclaimer: 'Data IPO dari e-ipo.co.id (platform resmi penawaran umum). Bukan rekomendasi — baca prospektus sebelum memesan.',
         };
-        IPO_CACHE.ts = Date.now();
-        IPO_CACHE.data = data;
+        if (items.length) { IPO_CACHE.ts = Date.now(); IPO_CACHE.data = data; } // jangan cache hasil kosong
         sendJSON(res, 200, data);
     } catch (e) {
         logError('IpoNews', e);
