@@ -21,7 +21,7 @@ Sahamath adalah web kalkulator saham yang mudah dipakai untuk trader Indonesia. 
 - **Analisis AI**: ringkasan sentimen dan katalis per emiten dari berita Google News, dirangkai oleh Gemini (butuh `GEMINI_API_KEY`).
 - **Screener IDX Energy**: mendeteksi kandidat swing dengan skor trend, VSA, entry, target price, dan stop loss. Termasuk strategi Triple Confirmation (RSI + MACD + MA20).
 - **Profil Risiko**: kuis singkat menentukan profil risiko, lalu merekomendasikan alokasi portofolio berbasis Modern Portfolio Theory (Sharpe + Markowitz) lengkap dengan efficient frontier.
-- **Kalender IPO**: jadwal IPO BEI (book building, penawaran, pencatatan) yang diambil dari e-ipo.co.id dan ditampilkan di halaman utama.
+- **Kalender IPO**: jadwal IPO BEI dari data curated lokal, dengan RSS sebagai alert awal saat data curated kosong.
 - **Market Calendar**: menampilkan corporate action saham dan event makro Indonesia.
 - **Panduan Edukasi**: artikel ringkas untuk pemula seputar ARA/ARB, average down, risk management, dividen, bandarmology, pajak, dan cut loss.
 
@@ -34,7 +34,7 @@ Sahamath memakai frontend ringan berbasis React tanpa bundler production yang ko
 - **Backend**: Node.js HTTP server lewat `server.js`.
 - **ML runtime**: Python untuk menjalankan `predict.py` dan `screener.py`.
 - **Model ML**: `best_models.pkl` sebagai model utama, dengan fallback ke `trading_model.pkl`.
-- **Data market**: TradingView, api-saham, Yahoo Finance, KSEI, IDX, BI, BPS, e-ipo.co.id (kalender IPO), serta Google News + Gemini (Analisis AI).
+- **Data market**: TradingView, api-saham, Yahoo Finance, KSEI, IDX, BI, BPS, curated IPO calendar/RSS, serta Google News + Gemini (Analisis AI).
 - **Portfolio optimizer**: `portfolio.py` (Modern Portfolio Theory) memakai numpy + scipy.
 
 ## Alur Sederhana Aplikasi
@@ -130,7 +130,17 @@ Untuk fitur **Analisis AI** (Gemini), isi juga:
 GEMINI_API_KEY=isi_api_key_gemini
 ```
 
-Di lokal, environment variable bisa ditaruh di file `.env` di root (otomatis dibaca `server.js` saat start; file ini sudah di-`.gitignore`). Di production, set variabel di dashboard host (Railway/Render → Variables) karena `.env` tidak ikut ter-deploy. Variabel OS asli selalu menang atas `.env`. Tanpa `GEMINI_API_KEY`, endpoint Analisis AI mengembalikan 503 dan fitur lain tetap jalan.
+Di lokal, environment variable bisa ditaruh di file `.env` di root (otomatis dibaca `server.js` saat start; file ini sudah di-`.gitignore`). Di production, set variabel di dashboard host (Railway/Render â†’ Variables) karena `.env` tidak ikut ter-deploy. Variabel OS asli selalu menang atas `.env`. Tanpa `GEMINI_API_KEY`, endpoint Analisis AI mengembalikan 503 dan fitur lain tetap jalan.
+
+### Update Kalender IPO
+
+Production tidak scrape e-ipo langsung karena IP datacenter bisa diblok Cloudflare. Flow stabilnya:
+
+```bash
+npm run refresh:ipo
+```
+
+Jalankan command itu dari laptop/lokal untuk mengambil e-ipo, lalu hasilnya disimpan ke `data/ipo-calendar.json`. Backend `/ipo-news` akan membaca file curated itu. Jika file kosong, endpoint memakai RSS sebagai alert berita IPO yang belum diverifikasi. Live scrape di backend hanya aktif jika `IPO_ALLOW_LIVE_SCRAPE=1`.
 
 Netlify build command:
 

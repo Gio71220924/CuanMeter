@@ -6,7 +6,9 @@
         "build": "node scripts/build-bundle.js",
         "build:static": "node scripts/build-static.js",
         "download:model": "node scripts/download-model.js",
+        "refresh:ipo": "node scripts/refresh-ipo.js",
         "serve:dist": "node dist/server.js",
+        "test:ipo": "node --test tests/ipo-utils.spec.js",
         "test:arena": "node --test tests/arena-utils.spec.js tests/arena-market.spec.js tests/arena-flow.spec.js tests/arena-agents.spec.js",
         "start": "node server.js",
         "dev": "node --watch server.js"

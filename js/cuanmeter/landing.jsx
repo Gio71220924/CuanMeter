@@ -1843,6 +1843,7 @@ function IpoNewsWidget() {
     if (/closed|selesai|pencatatan|listing/.test(s)) return 'var(--fg-muted)';
     return 'var(--primary)';
   };
+  const isRssAlert = data.source === 'rss';
 
   return (
     <section className="ipo-sec" style={{ padding: '64px 0' }}>
@@ -1850,13 +1851,15 @@ function IpoNewsWidget() {
         <div style={{ marginBottom: 24, maxWidth: 640 }}>
           <div className="badge" style={{ marginBottom: 12 }}>
             <Icon name="chart" size={12} />
-            <span>PASAR PRIMER · KALENDER IPO</span>
+            <span>{isRssAlert ? 'PASAR PRIMER - ALERT IPO' : 'PASAR PRIMER - KALENDER IPO'}</span>
           </div>
           <h2 style={{ fontSize: 'clamp(28px, 4vw, 40px)', letterSpacing: '-0.025em', marginBottom: 8 }}>
             IPO di <span style={{ color: 'var(--primary)' }}>BEI</span>.
           </h2>
           <p style={{ fontSize: 15, color: 'var(--fg-muted)', margin: 0 }}>
-            Jadwal book building, penawaran, & pencatatan emiten baru — data dari e-ipo.co.id.
+            {isRssAlert
+              ? 'Pantauan berita IPO terbaru dari RSS. Anggap sebagai alert awal, lalu verifikasi prospektus/e-IPO.'
+              : 'Jadwal book building, penawaran, dan pencatatan emiten baru dari data curated e-IPO.'}
           </p>
         </div>
 
@@ -1864,7 +1867,7 @@ function IpoNewsWidget() {
           {data.items.map((it) => {
             const sc = stageColor(it.stage);
             const shortLbl = (l) => (l || '').replace(/\s*(book building|penawaran umum|penawaran)\s*/ig, ' ').replace(/\s+/g, ' ').trim();
-            const meta = [it.sector, it.lot].filter(Boolean).join(' · ');
+            const meta = [it.sector, it.lot].filter(Boolean).join(' - ');
             return (
               <div key={it.id} className={`card interactive ipo-card${it.closed ? ' ipo-closed' : ''}`}>
                 <div className="ipo-top">
@@ -1872,7 +1875,7 @@ function IpoNewsWidget() {
                     {it.logo ? <img src={it.logo} alt={it.code} loading="lazy" /> : <Icon name="chart" size={22} />}
                   </div>
                   <span className="ipo-tag" style={{ color: sc, background: `color-mix(in oklab, ${sc} 14%, transparent)` }}>
-                    {(it.stage || 'IPO').toUpperCase()}
+                    {it.unverified ? 'RSS ALERT' : (it.stage || 'IPO').toUpperCase()}
                   </span>
                 </div>
 

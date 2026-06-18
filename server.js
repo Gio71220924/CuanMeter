@@ -17,6 +17,12 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 const { exec, execFile, spawn } = require('child_process');
+const {
+    buildIpoResponse,
+    parseEipoHtml,
+    parseRssIpoItems,
+    readCuratedIpoCalendar,
+} = require('./ipo-utils');
 
 // Load .env (no dependency): KEY=VALUE per baris, '#' komentar, kutip opsional.
 // Env var asli (shell/OS) tetap menang atas .env.
@@ -43,6 +49,8 @@ const DEFAULT = '/index.html';   // halaman yang dibuka otomatis
 const DATA_DIR = path.join(ROOT, 'data');
 const CALENDAR_CACHE_FILE = path.join(DATA_DIR, 'calendar-cache.json');
 const CALENDAR_CACHE_VERSION = 10;
+const IPO_CALENDAR_FILE = path.join(DATA_DIR, 'ipo-calendar.json');
+const IPO_RSS_SOURCES_FILE = path.join(DATA_DIR, 'ipo-rss-sources.json');
 const HEATMAP_CACHE_FILE = path.join(DATA_DIR, 'heatmap-cache.json');
 const HEATMAP_TTL_MS = 10 * 60 * 1000;
 let heatmapCache = null; // { data, cachedAt }
@@ -1831,22 +1839,118 @@ async function fetchEipoHtml() {
     return curlFetch(`${EIPO_BASE}/id/home`);
 }
 
+const DEFAULT_IPO_RSS_SOURCES = [
+    {
+        name: 'Google News IPO BEI',
+        url: 'https://news.google.com/rss/search?q=IPO%20BEI%20OR%20e-IPO%20when:30d&hl=id&gl=ID&ceid=ID:id',
+    },
+];
+
+function getIpoRssSources() {
+    const fromEnv = String(process.env.IPO_RSS_URLS || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .map((rssUrl, index) => ({ name: `IPO RSS ${index + 1}`, url: rssUrl }));
+    if (fromEnv.length) return fromEnv;
+
+    try {
+        if (fs.existsSync(IPO_RSS_SOURCES_FILE)) {
+            const parsed = JSON.parse(fs.readFileSync(IPO_RSS_SOURCES_FILE, 'utf8'));
+            if (Array.isArray(parsed) && parsed.length) {
+                return parsed
+                    .filter((source) => source && source.url)
+                    .map((source, index) => ({
+                        name: source.name || `IPO RSS ${index + 1}`,
+                        url: source.url,
+                    }));
+            }
+        }
+    } catch (e) {
+        logError('IpoRss/source', e);
+    }
+    return DEFAULT_IPO_RSS_SOURCES;
+}
+
+function fetchTextUrl(rawUrl, timeout = 12000) {
+    return new Promise((resolve, reject) => {
+        let parsed;
+        try { parsed = new URL(rawUrl); }
+        catch { reject(new Error(`Invalid URL: ${rawUrl}`)); return; }
+
+        const client = parsed.protocol === 'http:' ? http : https;
+        const req = client.request(parsed, {
+            method: 'GET',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; SahamathBot/1.0)',
+                'Accept': 'application/rss+xml,application/xml,text/xml,text/html,*/*',
+            },
+        }, (response) => {
+            let data = '';
+            response.setEncoding('utf8');
+            response.on('data', (chunk) => { data += chunk; });
+            response.on('end', () => {
+                if (response.statusCode >= 400) {
+                    reject(new Error(`HTTP ${response.statusCode} ${rawUrl}`));
+                    return;
+                }
+                resolve(data);
+            });
+        });
+        req.on('error', reject);
+        req.setTimeout(timeout, () => {
+            req.destroy();
+            reject(new Error(`Timeout ${rawUrl}`));
+        });
+        req.end();
+    });
+}
+
+async function fetchIpoRssItems() {
+    const sources = getIpoRssSources();
+    const results = await Promise.allSettled(sources.map(async (source) => {
+        const xml = await fetchTextUrl(source.url);
+        return parseRssIpoItems(xml, source.name);
+    }));
+    const items = [];
+    for (const result of results) {
+        if (result.status === 'fulfilled') items.push(...result.value);
+        else logError('IpoRss/fetch', result.reason);
+    }
+    const seen = new Set();
+    return items.filter((item) => {
+        const key = item.code || item.detail || item.name;
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    }).slice(0, 8);
+}
+
 async function handleIpoNews(res) {
     if (IPO_CACHE.data && Date.now() - IPO_CACHE.ts < IPO_TTL) {
         sendJSON(res, 200, { ...IPO_CACHE.data, cached: true });
         return;
     }
     try {
-        const html = await fetchEipoHtml();
-        const items = parseEipo(html);
-        const data = {
-            status: 'ok',
-            generated_at: new Date().toISOString(),
-            items,
-            source: 'e-ipo.co.id',
-            disclaimer: 'Data IPO dari e-ipo.co.id (platform resmi penawaran umum). Bukan rekomendasi — baca prospektus sebelum memesan.',
-        };
-        if (items.length) { IPO_CACHE.ts = Date.now(); IPO_CACHE.data = data; } // jangan cache hasil kosong
+        const generatedAt = new Date().toISOString();
+        const curated = readCuratedIpoCalendar(IPO_CALENDAR_FILE);
+        let rssItems = [];
+        let liveItems = [];
+
+        if (!curated.length) {
+            rssItems = await fetchIpoRssItems();
+        }
+
+        if (!curated.length && !rssItems.length && process.env.IPO_ALLOW_LIVE_SCRAPE === '1') {
+            const html = await fetchEipoHtml();
+            liveItems = parseEipoHtml(html, EIPO_BASE);
+        }
+
+        const data = liveItems.length
+            ? buildIpoResponse({ curated: liveItems, rssItems: [], generatedAt })
+            : buildIpoResponse({ curated, rssItems, generatedAt });
+        if (liveItems.length) data.source = 'e-ipo-live';
+        if (data.items.length) { IPO_CACHE.ts = Date.now(); IPO_CACHE.data = data; } // jangan cache hasil kosong
         sendJSON(res, 200, data);
     } catch (e) {
         logError('IpoNews', e);

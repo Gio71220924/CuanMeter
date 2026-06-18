@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Fetch e-ipo.co.id home page HTML, bypassing Cloudflare.
+"""Fetch e-ipo.co.id home page HTML for local IPO calendar refresh.
 
-curl/Node fetch get blocked (403 "Just a moment") from datacenter IPs because
-of TLS fingerprinting. curl_cffi impersonates a real Chrome TLS fingerprint,
-which gets past Cloudflare's JA3 check. Prints the HTML to stdout for
-server.js (/ipo-news) to parse.
+Production hosts such as Railway can still be blocked or served sanitized HTML
+by Cloudflare based on IP reputation. This script is intended to run from a
+local/residential connection, then write structured data via
+`npm run refresh:ipo`.
 """
 import sys
 

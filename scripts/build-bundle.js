@@ -51,6 +51,8 @@ const COPY_ENTRIES = [
   'robots.txt',
   'sitemap.xml',
   'server.js',
+  'ipo-utils.js',
+  'ipo_scrape.py',
   'predict.py',
   'screener.py',
   'heatmap.py',
