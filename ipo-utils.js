@@ -9,6 +9,7 @@ function decodeEntities(value) {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, ' ')
+    .replace(/[   �]/g, ' ') // nbsp varian + replacement char -> spasi biasa
     .replace(/\s+/g, ' ')
     .trim();
 }
