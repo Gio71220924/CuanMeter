@@ -1,0 +1,30 @@
+# Auto-refresh the curated IPO calendar. The Azure runner gets past e-ipo's
+# Cloudflare (Railway's datacenter IP does not), so we scrape here and commit
+# data/ipo-calendar.json back; Railway/Netlify redeploy on the push.
+name: refresh-ipo
+on:
+  schedule:
+    - cron: '0 1 */2 * *'   # ~every 2 days, 01:00 UTC (08:00 WIB)
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install curl_cffi
+      - run: npm run refresh:ipo
+      - name: commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/ipo-calendar.json
+          git diff --staged --quiet || git commit -m "chore: refresh ipo calendar [skip ci]"
+          git push
