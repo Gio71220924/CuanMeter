@@ -5,6 +5,7 @@ const {
   buildIpoResponse,
   parseEipoHtml,
   parseRssIpoItems,
+  normalizeItem,
 } = require('../ipo-utils.js');
 
 test('buildIpoResponse prefers curated IPO calendar items for production', () => {
@@ -103,4 +104,28 @@ test('parseEipoHtml keeps structured dates, price range, prospectus, and detail 
   assert.equal(items[0].date, '18 - 24 Juni 2026');
   assert.equal(items[0].prospektus, 'https://e-ipo.co.id/id/pipeline/get-propectus-file?id=123');
   assert.equal(items[0].detail, 'https://e-ipo.co.id/id/ipo/123/abcd');
+});
+
+test('normalizeItem strips nbsp and replacement chars from price (regression)', () => {
+  // e-IPO prices use a non-breaking space that can corrupt to U+FFFD, e.g. "Rp�100".
+  const item = normalizeItem({ name: 'PT Test Tbk', price: 'Rp 900 - Rp�1.120' }, 'curated');
+  assert.equal(item.price, 'Rp 900 - Rp 1.120');
+  assert.ok(!/[ �]/.test(item.price), 'price must not contain nbsp or replacement char');
+});
+
+test('parseEipoHtml cleans nbsp/replacement char inside a price cell', () => {
+  const html = `
+    <section id="ipo-list">
+      <div data-key="9">
+        <div class="pricing-title"><h3>Book Building</h3></div>
+        <img class="img-list" src="/files/x.png" alt="XYZB">
+        <div class="padding5"><h5>PT Contoh Tbk (XYZB)</h5></div>
+        <ul class="pricing-features">
+          <li><h5>Harga Penawaran</h5><p>Rp 100 - Rp�120</p></li>
+        </ul>
+      </div>
+    </section>`;
+  const items = parseEipoHtml(html);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].price, 'Rp 100 - Rp 120');
 });

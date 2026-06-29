@@ -8,6 +8,7 @@
         "download:model": "node scripts/download-model.js",
         "refresh:ipo": "node scripts/refresh-ipo.js",
         "serve:dist": "node dist/server.js",
+        "test": "npm run test:ipo && npm run test:arena",
         "test:ipo": "node --test tests/ipo-utils.spec.js",
         "test:arena": "node --test tests/arena-utils.spec.js tests/arena-market.spec.js tests/arena-flow.spec.js tests/arena-agents.spec.js",
         "start": "node server.js",
