@@ -21,4 +21,6 @@ COPY . .
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npm run download:model && npm start"]
+# ponytail: model download is optional (ML Analyzer only). Never let it block
+# the server from starting — `;` not `&&`, so a Supabase outage != total 502.
+CMD ["sh", "-c", "npm run download:model || true; npm start"]
