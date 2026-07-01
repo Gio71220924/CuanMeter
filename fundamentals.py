@@ -32,8 +32,32 @@ def div_yield(info):
     return round(dy, 2) if isinstance(dy, (int, float)) and dy > 0 else None
 
 
+def recompute_pbv(tk, info):
+    """PBV = market cap / total equity. Yahoo's priceToBook uses a per-share book
+    value that goes haywire around stock splits (e.g. DSSA showing 68333x); total
+    equity from the balance sheet is split-invariant. Fall back to a sanity-capped
+    priceToBook if the balance sheet is unavailable."""
+    mc = info.get('marketCap')
+    if isinstance(mc, (int, float)) and mc > 0:
+        try:
+            bs = tk.balance_sheet
+            for key in ('Stockholders Equity', 'Total Stockholder Equity', 'Common Stock Equity'):
+                if key in bs.index:
+                    eq = bs.loc[key].dropna()
+                    if len(eq) and float(eq.iloc[0]) > 0:
+                        val = round(mc / float(eq.iloc[0]), 2)
+                        # split can corrupt marketCap too (DSSA); only trust a sane ratio
+                        if 0 < val < 1000:
+                            return val
+        except Exception:
+            pass
+    ptb = info.get('priceToBook')
+    return round(ptb, 2) if isinstance(ptb, (int, float)) and 0 < ptb < 1000 else None
+
+
 def fetch(ticker):
-    info = yf.Ticker(ticker + '.JK').info or {}
+    tk = yf.Ticker(ticker + '.JK')
+    info = tk.info or {}
     return {
         'name': info.get('longName') or info.get('shortName'),
         'sector': info.get('sector'),
@@ -41,7 +65,7 @@ def fetch(ticker):
         'marketCap': info.get('marketCap'),
         'per': num(info.get('trailingPE')),
         'forwardPer': num(info.get('forwardPE')),
-        'pbv': num(info.get('priceToBook')),
+        'pbv': recompute_pbv(tk, info),
         'roe': pct(info.get('returnOnEquity')),
         'eps': num(info.get('trailingEps')),
         'divYield': div_yield(info),

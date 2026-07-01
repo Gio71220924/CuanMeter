@@ -517,7 +517,7 @@ def get_prediction(ticker):
         fmt_ticker = f"{ticker}.JK" if not ticker.upper().endswith('.JK') else ticker
         df = yf.download(
             fmt_ticker, period="100d", interval="1d",
-            progress=False, auto_adjust=False
+            progress=False, auto_adjust=True  # split/div-adjusted so a stock split isn't read as a -95% crash
         )
 
         if df.empty or len(df) < 30:
