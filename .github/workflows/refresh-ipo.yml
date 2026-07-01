@@ -19,6 +19,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      # Supabase free pauses a project after 7 days idle; this 2-day cron ping
+      # keeps it awake so the model download keeps working. (Restore it once in
+      # the dashboard first if it's already paused.)
+      - name: keep supabase awake
+        run: curl -s -m 15 -o /dev/null "https://ivrldaznlmiuqqfenvmm.supabase.co/rest/v1/" || true
       - run: pip install curl_cffi
       - run: npm run refresh:ipo
       - name: commit if changed
