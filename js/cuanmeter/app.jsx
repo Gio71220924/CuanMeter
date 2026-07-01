@@ -14,7 +14,8 @@ function IHSGFloater({ compact = false }) {
   const esRef = useRefA(null);
 
   useEffectA(() => {
-    const es = new EventSource('/api/prices/stream');
+    // ponytail: SSE can't go through Netlify's redirect proxy — hit Railway directly (CORS is already *).
+    const es = new EventSource('https://sahamath-production.up.railway.app/api/prices/stream');
     esRef.current = es;
     es.onmessage = (e) => {
       try {

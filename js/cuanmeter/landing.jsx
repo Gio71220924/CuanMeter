@@ -488,7 +488,8 @@ function StockMarquee() {
   const [paused, setPaused] = useStateL(false);
 
   useEffectL(() => {
-    const es = new EventSource('/api/prices/stream');
+    // ponytail: SSE can't go through Netlify's redirect proxy — hit Railway directly (CORS is already *).
+    const es = new EventSource('https://sahamath-production.up.railway.app/api/prices/stream');
     es.onmessage = (e) => {
       try { setPrices(JSON.parse(e.data)); } catch {}
     };
