@@ -764,7 +764,7 @@ function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) 
                   <>
                     {row.strategies?.triple && (() => {
                       const tc = row.strategies.triple;
-                      const sigColor = tc.signal === 'BUY' ? 'var(--primary)' : tc.signal === 'SELL' ? 'var(--danger)' : 'var(--fg-muted)';
+                      const sigColor = tc.signal.includes('BUY') ? 'var(--primary)' : tc.signal.includes('SELL') ? 'var(--danger)' : 'var(--fg-muted)';
                       const macdLabel = tc.macd_signal === 'bullish_cross' ? '↑ Bullish' : tc.macd_signal === 'bearish_cross' ? '↓ Bearish' : '— No cross';
                       return (
                         <div className="screener-strategy-block">
@@ -849,7 +849,7 @@ function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) 
                     <td style={{ padding: '10px 12px', fontWeight: 800, fontFamily: 'JetBrains Mono, monospace', color: 'var(--fg)' }}>
                       {row.ticker}
                     </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: isError || !row.strategies?.triple ? 'var(--fg-faint)' : row.strategies.triple.signal === 'BUY' ? 'var(--primary)' : row.strategies.triple.signal === 'SELL' ? 'var(--danger)' : 'var(--fg-muted)' }}>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: isError || !row.strategies?.triple ? 'var(--fg-faint)' : row.strategies.triple.signal.includes('BUY') ? 'var(--primary)' : row.strategies.triple.signal.includes('SELL') ? 'var(--danger)' : 'var(--fg-muted)' }}>
                       {isError || !row.strategies?.triple ? '—' : row.strategies.triple.signal}
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'right' }}>
@@ -857,7 +857,7 @@ function ScreenerPanel({ data, loading, error, lastScan, onRefresh, onSelect }) 
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
                           <span style={{ fontWeight: 700, fontSize: 12, color: 'var(--fg)' }}>{row.strategies.triple.score}</span>
                           <div style={{ width: 48, height: 4, borderRadius: 2, background: 'var(--border)', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${row.strategies.triple.score}%`, background: row.strategies.triple.signal === 'BUY' ? 'var(--primary)' : row.strategies.triple.signal === 'SELL' ? 'var(--danger)' : 'var(--fg-muted)', borderRadius: 2 }} />
+                            <div style={{ height: '100%', width: `${row.strategies.triple.score}%`, background: row.strategies.triple.signal.includes('BUY') ? 'var(--primary)' : row.strategies.triple.signal.includes('SELL') ? 'var(--danger)' : 'var(--fg-muted)', borderRadius: 2 }} />
                           </div>
                         </div>
                       )}

@@ -276,10 +276,19 @@ def triple_confirmation(df):
     if not above_ma20:
         sell_score += min(34, round(34 * (1 + (ma20 - close) / ma20)))
 
-    if rsi < 40 and bullish_cross and above_ma20:
-        signal, score = 'BUY', min(100, buy_score)
-    elif rsi > 60 and bearish_cross and not above_ma20:
-        signal, score = 'SELL', min(100, sell_score)
+    # Tiered: 3/3 aligned = STRONG, 2/3 = LEAN (partial setup worth watching),
+    # else NEUTRAL. Buy/sell conditions are pairwise mutually exclusive, so
+    # buy_hits and sell_hits can never both reach 2.
+    buy_hits  = sum([rsi < 40, bullish_cross, above_ma20])
+    sell_hits = sum([rsi > 60, bearish_cross, not above_ma20])
+    if buy_hits == 3:
+        signal, score = 'STRONG BUY', min(100, buy_score)
+    elif sell_hits == 3:
+        signal, score = 'STRONG SELL', min(100, sell_score)
+    elif buy_hits == 2:
+        signal, score = 'LEAN BUY', min(100, buy_score)
+    elif sell_hits == 2:
+        signal, score = 'LEAN SELL', min(100, sell_score)
     else:
         signal, score = 'NEUTRAL', max(buy_score, sell_score)
 
