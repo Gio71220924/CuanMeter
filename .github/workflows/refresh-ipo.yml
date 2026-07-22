@@ -1,6 +1,9 @@
 # Auto-refresh the curated IPO calendar. The Azure runner gets past e-ipo's
 # Cloudflare (Railway's datacenter IP does not), so we scrape here and commit
 # data/ipo-calendar.json back; Railway/Netlify redeploy on the push.
+#
+# NOTE: If e-ipo.co.id blocks GitHub's datacenter IP (Cloudflare challenge),
+# refresh-ipo.js will log a warning and exit 0 — preserving the last good data.
 name: refresh-ipo
 on:
   schedule:
@@ -25,6 +28,11 @@ jobs:
       - name: keep supabase awake
         run: curl -s -m 15 -o /dev/null "https://ivrldaznlmiuqqfenvmm.supabase.co/rest/v1/" || true
       - run: pip install curl_cffi
+      # Diagnose whether Cloudflare is blocking this runner's IP
+      - name: check e-ipo reachability
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -m 15 -A "Mozilla/5.0 Chrome/126" "https://e-ipo.co.id/id/home" || echo "FAIL")
+          echo "e-ipo HTTP status from runner: $STATUS"
       - run: npm run refresh:ipo
       - name: commit if changed
         run: |

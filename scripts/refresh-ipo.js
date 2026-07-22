@@ -41,7 +41,12 @@ async function main() {
   const html = await runPythonScraper();
   const items = parseEipoHtml(html);
   if (!items.length) {
-    throw new Error('e-IPO scrape returned 0 structured items. File not updated.');
+    // e-ipo.co.id likely returned a Cloudflare challenge page (common from
+    // GitHub Actions datacenter IPs). Skip overwriting the existing file so
+    // the last good data is preserved. Exit 0 so the workflow stays green.
+    console.warn('[IPO] e-IPO scrape returned 0 structured items — possible Cloudflare block.');
+    console.warn('[IPO] Keeping existing ipo-calendar.json unchanged.');
+    return;
   }
 
   const payload = {
