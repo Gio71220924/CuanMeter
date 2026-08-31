@@ -59,7 +59,6 @@ const WATCHLIST_TTL_MS = 60 * 1000;
 const fundamentalsCache = new Map(); // ticker -> { data, at }
 const FUNDAMENTALS_TTL_MS = 24 * 60 * 60 * 1000;
 const BOARD_CACHE_FILE = path.join(DATA_DIR, 'board-cache.json');
-const SERVER_ERROR_LOG = path.join(DATA_DIR, 'server-errors.log');
 
 // Curated fallback for the liquid main-board (Utama) tickers the app surfaces
 // most, so /board never returns "unknown" for them even while IDX's live list
@@ -79,11 +78,9 @@ const BOARD_SEED = {
 
 function logError(context, error) {
   const message = (error && error.message) || String(error);
+  // ponytail: stdout sudah ditangkap log viewer platform (HF/Railway). File log
+  // di FS ephemeral tidak pernah dibaca balik — write-only, jadi dihapus.
   console.error(`[${context}]`, message);
-  try {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.appendFileSync(SERVER_ERROR_LOG, `${new Date().toISOString()}\t${context}\t${message}\n`);
-  } catch { /* logging must never throw */ }
 }
 
 function writeBoardCache() {
