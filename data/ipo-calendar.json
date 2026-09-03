@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-09-01T05:47:13.218Z",
+  "generated_at": "2026-09-03T05:14:45.795Z",
   "source": "e-ipo.co.id",
   "items": [
     {
       "id": "355",
-      "code": "SWAP",
+      "code": "SWAP-C1",
       "name": "PT Swayasa Prakarsa Tbk",
-      "stage": "Waiting For Offering",
+      "stage": "Canceled",
       "syariah": true,
       "logo": "https://e-ipo.co.id/id/pipeline/get-logo?id=355",
       "prospektus": "https://e-ipo.co.id/id/pipeline/get-propectus-file?id=355&type=",
-      "detail": "https://e-ipo.co.id/id/ipo/355/swap-pt-swayasa-prakarsa-tbk",
+      "detail": "https://e-ipo.co.id/id/ipo/355/swap-c1-pt-swayasa-prakarsa-tbk",
       "closed": false,
       "priceLabel": "Rentang Harga Book Building",
       "price": "Rp 130 - Rp 140",
